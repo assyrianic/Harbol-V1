@@ -1,4 +1,4 @@
-# C-Data-Structure-Collection
+# C Data Structure Collection (DSC)
 self-contained all-in-one STL-style data structure collection in C.
 
 ### Features:
