@@ -79,7 +79,7 @@ struct Variant {
 	enum ValType TypeTag;
 };
 
-inline struct Variant *Variant_NewData(const union Value val, const enum ValType typeID)
+inline struct Variant *Variant_New(const union Value val, const enum ValType typeID)
 {
 	struct Variant *var = calloc(1, sizeof *var);
 	if( var )
