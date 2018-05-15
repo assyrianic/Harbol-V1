@@ -16,5 +16,5 @@ self-contained all-in-one STL-style data structure collection in C.
 
 ### Planned Data Structures
 * Ordered Hashmaps
-* Sets
 * Graphs
+* Memory Pool
