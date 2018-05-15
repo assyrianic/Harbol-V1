@@ -353,3 +353,58 @@ struct BiListNode *BiLinkedList_GetTail(const struct BiLinkedList *const __restr
 {
 	return list ? list->Tail : NULL;
 }
+
+void BiLinkedList_FromUniLinkedList(struct BiLinkedList *const __restrict bilist, const struct UniLinkedList *const __restrict unilist)
+{
+	if( !bilist or !unilist )
+		return;
+	
+	for( struct UniListNode *n=unilist->Head ; n ; n = n->Next )
+		BiLinkedList_InsertValueAtTail(bilist, n->Data);
+}
+
+void BiLinkedList_FromMap(struct BiLinkedList *const __restrict bilist, const struct Hashmap *const __restrict map)
+{
+	if( !bilist or !map )
+		return;
+	
+	for( size_t i=0 ; i<map->Len ; i++ )
+		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
+			BiLinkedList_InsertValueAtTail(bilist, n->Data);
+}
+
+void BiLinkedList_FromVector(struct BiLinkedList *const __restrict bilist, const struct Vector *const __restrict v)
+{
+	if( !bilist or !v )
+		return;
+	
+	for( size_t i=0 ; i<v->Count ; i++ )
+		BiLinkedList_InsertValueAtTail(bilist, v->Table[i]);
+}
+
+struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *const __restrict unilist)
+{
+	if( !unilist )
+		return NULL;
+	struct BiLinkedList *bilist = BiLinkedList_New(unilist->Destructor);
+	BiLinkedList_FromUniLinkedList(bilist, unilist);
+	return bilist;
+}
+
+struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct BiLinkedList *bilist = BiLinkedList_New(map->Destructor);
+	BiLinkedList_FromMap(bilist, map);
+	return bilist;
+}
+
+struct BiLinkedList *BiLinkedList_NewVector(const struct Vector *const __restrict v)
+{
+	if( !v )
+		return NULL;
+	struct BiLinkedList *bilist = BiLinkedList_New(v->Destructor);
+	BiLinkedList_FromVector(bilist, v);
+	return bilist;
+}

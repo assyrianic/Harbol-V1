@@ -163,11 +163,11 @@ void Vector_Add(struct Vector *const __restrict vA, const struct Vector *const _
 	if( !vA or !vB or !vB->Table )
 		return;
 	
-	for( size_t i=0 ; i<vB->Count ; i++ ) {
+	size_t i=0;
+	while( i<vB->Count ) {
 		if( !vA->Table or vA->Count >= vA->Len )
 			Vector_Resize(vA);
-		
-		vA->Table[vA->Count++] = vB->Table[i];
+		vA->Table[vA->Count++] = vB->Table[i++];
 	}
 }
 
@@ -177,11 +177,11 @@ void Vector_Copy(struct Vector *const __restrict vA, const struct Vector *const 
 		return;
 	
 	Vector_Del(vA);
-	for( size_t i=0 ; i<vB->Count ; i++ ) {
+	size_t i=0;
+	while( i<vB->Count ) {
 		if( !vA->Table or vA->Count >= vA->Len )
 			Vector_Resize(vA);
-		
-		vA->Table[vA->Count++] = vB->Table[i];
+		vA->Table[vA->Count++] = vB->Table[i++];
 	}
 }
 
@@ -191,4 +191,68 @@ void Vector_SetItemDestructor(struct Vector *const __restrict v, bool (*dtor)())
 		return;
 	
 	v->Destructor = dtor;
+}
+
+void Vector_FromUniLinkedList(struct Vector *const __restrict v, const struct UniLinkedList *const __restrict list)
+{
+	if( !v or !list )
+		return;
+	else if( !v->Table or v->Count+list->Len >= v->Len )
+		while( v->Count+list->Len >= v->Len )
+			Vector_Resize(v);
+	
+	for( struct UniListNode *n=list->Head ; n ; n = n->Next )
+		v->Table[v->Count++] = n->Data;
+}
+
+void Vector_FromBiLinkedList(struct Vector *const __restrict v, const struct BiLinkedList *const __restrict list)
+{
+	if( !v or !list )
+		return;
+	else if( !v->Table or v->Count+list->Len >= v->Len )
+		while( v->Count+list->Len >= v->Len )
+			Vector_Resize(v);
+	
+	for( struct BiListNode *n=list->Head ; n ; n = n->Next )
+		v->Table[v->Count++] = n->Data;
+}
+
+void Vector_FromMap(struct Vector *const __restrict v, const struct Hashmap *const __restrict map)
+{
+	if( !v or !map )
+		return;
+	else if( !v->Table or v->Count+map->Count >= v->Len )
+		while( v->Count+map->Count >= v->Len )
+			Vector_Resize(v);
+	
+	for( size_t i=0 ; i<map->Len ; i++ )
+		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
+			v->Table[v->Count++] = n->Data;
+}
+
+struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+{
+	if( !list )
+		return NULL;
+	struct Vector *v = Vector_New(list->Destructor);
+	Vector_FromUniLinkedList(v, list);
+	return v;
+}
+
+struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+{
+	if( !list )
+		return NULL;
+	struct Vector *v = Vector_New(list->Destructor);
+	Vector_FromBiLinkedList(v, list);
+	return v;
+}
+
+struct Vector *Vector_NewFromMap(const struct Hashmap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct Vector *v = Vector_New(map->Destructor);
+	Vector_FromMap(v, map);
+	return v;
 }

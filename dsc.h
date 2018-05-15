@@ -141,7 +141,12 @@ void Vector_SetItemDestructor(struct Vector *, bool (*)());
 void Vector_Delete(struct Vector *, size_t);
 void Vector_Add(struct Vector *, const struct Vector *);
 void Vector_Copy(struct Vector *, const struct Vector *);
-
+void Vector_FromUniLinkedList(struct Vector *, const struct UniLinkedList *);
+void Vector_FromBiLinkedList(struct Vector *, const struct BiLinkedList *);
+void Vector_FromMap(struct Vector *, const struct Hashmap *);
+struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *);
+struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *);
+struct Vector *Vector_NewFromMap(const struct Hashmap *);
 /***************/
 
 /************* Hashmap (hashmap.c) *************/
@@ -185,6 +190,13 @@ bool Map_HasKey(const struct Hashmap *, const char *);
 struct KeyNode *Map_GetKeyNode(const struct Hashmap *, const char *);
 struct KeyNode **Map_GetKeyTable(const struct Hashmap *);
 size_t GenHash(const char *);
+
+void Map_FromUniLinkedList(struct Hashmap *, const struct UniLinkedList *);
+void Map_FromBiLinkedList(struct Hashmap *, const struct BiLinkedList *);
+void Map_FromVector(struct Hashmap *, const struct Vector *);
+struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *);
+struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *);
+struct Hashmap *Map_NewVector(const struct Vector *);
 /***************/
 
 #if 0
@@ -263,6 +275,13 @@ void UniLinkedList_SetDestructor(struct UniLinkedList *, bool (*)());
 
 struct UniListNode *UniLinkedList_GetHead(const struct UniLinkedList *);
 struct UniListNode *UniLinkedList_GetTail(const struct UniLinkedList *);
+
+void UniLinkedList_FromBiLinkedList(struct UniLinkedList *, const struct BiLinkedList *);
+void UniLinkedList_FromMap(struct UniLinkedList *, const struct Hashmap *);
+void UniLinkedList_FromVector(struct UniLinkedList *, const struct Vector *);
+struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *);
+struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *);
+struct UniLinkedList *UniLinkedList_NewVector(const struct Vector *);
 /***************/
 
 
@@ -309,6 +328,13 @@ void BiLinkedList_SetDestructor(struct BiLinkedList *, bool (*)());
 
 struct BiListNode *BiLinkedList_GetHead(const struct BiLinkedList *);
 struct BiListNode *BiLinkedList_GetTail(const struct BiLinkedList *);
+
+void BiLinkedList_FromUniLinkedList(struct BiLinkedList *, const struct UniLinkedList *);
+void BiLinkedList_FromMap(struct BiLinkedList *, const struct Hashmap *);
+void BiLinkedList_FromVector(struct BiLinkedList *, const struct Vector *);
+struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *);
+struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *);
+struct BiLinkedList *BiLinkedList_NewVector(const struct Vector *);
 /***************/
 
 

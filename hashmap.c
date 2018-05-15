@@ -116,7 +116,7 @@ bool Map_Rehash(struct Hashmap *const __restrict map)
 	struct KeyNode **curr, **temp;
 	temp = calloc(map->Len, sizeof *temp);
 	if( !temp ) {
-		puts("**** Memory Allocation Error **** Map_Insert::temp is NULL\n");
+		puts("**** Memory Allocation Error **** Map_Rehash::temp is NULL\n");
 		map->Len = 0;
 		return false;
 	}
@@ -152,7 +152,7 @@ bool Map_InsertNode(struct Hashmap *const __restrict map, struct KeyNode *__rest
 	else if( map->Count >= map->Len )
 		Map_Rehash(map);
 	else if( Map_HasKey(map, node->KeyName.CStr) ) {
-		puts("Map_Insert::map already has entry!\n");
+		puts("Map_InsertNode::map already has entry!\n");
 		return false;
 	}
 	
@@ -264,3 +264,75 @@ struct KeyNode **Map_GetKeyTable(const struct Hashmap *const __restrict map)
 {
 	return map ? map->Table : NULL;
 }
+
+void Map_FromUniLinkedList(struct Hashmap *const __restrict map, const struct UniLinkedList *const __restrict list)
+{
+	if( !map or !list )
+		return;
+	
+	size_t i=0;
+	for( struct UniListNode *n=list->Head ; n ; n = n->Next ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		Map_Insert(map, cstrkey, n->Data);
+		i++;
+	}
+}
+
+void Map_FromBiLinkedList(struct Hashmap *const __restrict map, const struct BiLinkedList *const __restrict list)
+{
+	if( !map or !list )
+		return;
+	
+	size_t i=0;
+	for( struct BiListNode *n=list->Head ; n ; n = n->Next ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		Map_Insert(map, cstrkey, n->Data);
+		i++;
+	}
+}
+
+void Map_FromVector(struct Hashmap *const __restrict map, const struct Vector *const __restrict v)
+{
+	if( !map or !v )
+		return;
+	
+	for( size_t i=0 ; i<v->Count ; i++ ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		Map_Insert(map, cstrkey, v->Table[i]);
+		i++;
+	}
+}
+
+struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+{
+	if( !list )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(list->Destructor);
+	Map_FromUniLinkedList(map, list);
+	return map;
+}
+
+struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+{
+	if( !list )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(list->Destructor);
+	Map_FromBiLinkedList(map, list);
+	return map;
+}
+
+struct Hashmap *Map_NewVector(const struct Vector *const __restrict v)
+{
+	if( !v )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(v->Destructor);
+	Map_FromVector(map, v);
+	return map;
+}
+
