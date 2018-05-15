@@ -146,48 +146,25 @@ bool BiLinkedList_InsertNodeAtIndex(struct BiLinkedList *const __restrict list, 
 	else if( index >= list->Len )
 		return BiLinkedList_InsertNodeAtTail(list, node);
 	
-	bool direction_prev = ( index >= list->Len/2 );
-	if( direction_prev ) {
-		struct BiListNode *curr=list->Tail;
-		size_t i=list->Len-1;
-		while( curr->Prev != NULL and i != index ) {
-			curr = curr->Prev;
-			i--;
-		}
-		if( i ) {
-			// P-> <-(curr)
-			// P-> x(node)x
-			curr->Prev->Next = node;
-			// P-> <-(node)x
-			node->Prev = curr->Prev;
-			// P-> <-(node)-> x(curr)
-			node->Next = curr;
-			// P-> <-(node)-> <-(curr)
-			curr->Prev = node;
-			list->Len++;
-			return true;
-		}
+	bool prev_dir = ( index >= list->Len/2 );
+	struct BiListNode *curr = prev_dir ? list->Tail : list->Head;
+	size_t i=prev_dir ? list->Len-1 : 0;
+	while( (prev_dir ? curr->Prev != NULL : curr->Next != NULL) and i != index ) {
+		curr = prev_dir ? curr->Prev : curr->Next;
+		prev_dir ? i-- : i++;
 	}
-	else {
-		struct BiListNode *curr=list->Head;
-		size_t i=0;
-		while( curr->Next != NULL and i != index ) {
-			curr = curr->Next;
-			i++;
-		}
-		if( i ) {
-			// P-> <-(curr)
-			// P-> x(node)x
-			curr->Prev->Next = node;
-			// P-> <-(node)x
-			node->Prev = curr->Prev;
-			// P-> <-(node)-> x(curr)
-			node->Next = curr;
-			// P-> <-(node)-> <-(curr)
-			curr->Prev = node;
-			list->Len++;
-			return true;
-		}
+	if( i ) {
+		// P-> <-(curr)
+		// P-> x(node)x
+		curr->Prev->Next = node;
+		// P-> <-(node)x
+		node->Prev = curr->Prev;
+		// P-> <-(node)-> x(curr)
+		node->Next = curr;
+		// P-> <-(node)-> <-(curr)
+		curr->Prev = node;
+		list->Len++;
+		return true;
 	}
 	return false;
 }
@@ -224,22 +201,12 @@ struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *const __restr
 	else if( index >= list->Len )
 		return list->Tail;
 	
-	bool direction_prev = ( index >= list->Len/2 );
-	if( direction_prev ) {
-		struct BiListNode *node = list->Tail;
-		for( size_t i=list->Len-1 ; i<list->Len ; i-- ) {
-			if( node and i==index )
-				return node;
-			node = node->Prev;
-		}
-	}
-	else {
-		struct BiListNode *node = list->Head;
-		for( size_t i=0 ; i<list->Len ; i++ ) {
-			if( node and i==index )
-				return node;
-			node = node->Next;
-		}
+	bool prev_dir = ( index >= list->Len/2 );
+	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+		if( node and i==index )
+			return node;
+		node = prev_dir ? node->Prev : node->Next;
 	}
 	return NULL;
 }
@@ -251,22 +218,12 @@ union Value BiLinkedList_GetValue(const struct BiLinkedList *const __restrict li
 	else if( index >= list->Len )
 		return list->Tail->Data;
 	
-	bool direction_prev = ( index >= list->Len/2 );
-	if( direction_prev ) {
-		struct BiListNode *node = list->Tail;
-		for( size_t i=list->Len-1 ; i<list->Len ; i-- ) {
-			if( node and i==index )
-				return node->Data;
-			node = node->Prev;
-		}
-	}
-	else {
-		struct BiListNode *node = list->Head;
-		for( size_t i=0 ; i<list->Len ; i++ ) {
-			if( node and i==index )
-				return node->Data;
-			node = node->Next;
-		}
+	bool prev_dir = ( index >= list->Len/2 );
+	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+		if( node and i==index )
+			return node->Data;
+		node = prev_dir ? node->Prev : node->Next;
 	}
 	return (union Value){0};
 }
@@ -280,26 +237,14 @@ void BiLinkedList_SetValue(struct BiLinkedList *const __restrict list, const siz
 		return;
 	}
 	
-	bool direction_prev = ( index >= list->Len/2 );
-	if( direction_prev ) {
-		struct BiListNode *node = list->Tail;
-		for( size_t i=list->Len-1 ; i<list->Len ; i-- ) {
-			if( node and i==index ) {
-				node->Data = val;
-				break;
-			}
-			node = node->Prev;
+	bool prev_dir = ( index >= list->Len/2 );
+	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+		if( node and i==index ) {
+			node->Data = val;
+			break;
 		}
-	}
-	else {
-		struct BiListNode *node = list->Head;
-		for( size_t i=0 ; i<list->Len ; i++ ) {
-			if( node and i==index ) {
-				node->Data = val;
-				break;
-			}
-			node = node->Next;
-		}
+		node = prev_dir ? node->Prev : node->Next;
 	}
 }
 bool BiLinkedList_DelNodeByIndex(struct BiLinkedList *const __restrict list, const size_t index)

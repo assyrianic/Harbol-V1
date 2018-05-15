@@ -24,9 +24,9 @@ int main()
 	//TestVector();
 	//TestHashmap();
 	//TestUniList();
-	//TestBiList();
+	TestBiList();
 	//TestByteBuffer();
-	TestDSConversions();
+	//TestDSConversions();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
 
