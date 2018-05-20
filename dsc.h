@@ -17,6 +17,7 @@ struct Hashmap;
 struct UniLinkedList;
 struct BiLinkedList;
 struct ByteBuffer;
+struct Tuple;
 
 union Value {
 	bool Bool, *BoolPtr, (*BoolFunc)(), *(*BoolPtrFunc)();
@@ -42,6 +43,7 @@ union Value {
 	struct UniLinkedList *UniListPtr, (*UniListFunc)(), *(*UniListPtrFunc)();
 	struct BiLinkedList *BiListPtr, (*BiListFunc)(), *(*BiListPtrFunc)();
 	struct ByteBuffer *BufferPtr, (*BufferFunc)(), *(*BufferPtrFunc)();
+	struct Tuple *TuplePtr, (*TupleFunc)(), *(*TuplePtrFunc)();
 };
 
 typedef enum ValType {
@@ -71,6 +73,7 @@ typedef enum ValType {
 	TypeUniListPtr, TypeUniListFunc, TypeUniListPtrFunc,
 	TypeBiListPtr, TypeBiListFunc, TypeBiListPtrFunc,
 	TypeBufferPtr, TypeBufferFunc, TypeBufferPtrFunc,
+	TypeTuplePtr, TypeTupleFunc, TypeTuplePtrFunc,
 } ValType;
 
 // discriminated union type
@@ -85,6 +88,16 @@ inline struct Variant *Variant_New(const union Value val, const enum ValType typ
 	if( var )
 		var->Val = val, var->TypeTag = typeID;
 	return var;
+}
+
+inline union Value Variant_GetVal(struct Variant *const __restrict var)
+{
+	return var ? var->Val : (union Value){0};
+}
+
+inline enum ValType Variant_GetType(struct Variant *const __restrict var)
+{
+	return var ? var->TypeTag : TypeInvalid;
 }
 
 
@@ -144,15 +157,17 @@ void Vector_Copy(struct Vector *, const struct Vector *);
 void Vector_FromUniLinkedList(struct Vector *, const struct UniLinkedList *);
 void Vector_FromBiLinkedList(struct Vector *, const struct BiLinkedList *);
 void Vector_FromMap(struct Vector *, const struct Hashmap *);
+void Vector_FromTuple(struct Vector *, const struct Tuple *);
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Vector *Vector_NewFromMap(const struct Hashmap *);
+struct Vector *Vector_NewFromTuple(const struct Tuple *);
 /***************/
 
 /************* Hashmap (hashmap.c) *************/
 struct KeyNode {
 	struct String KeyName;
-	union Value Data;	// use variant on this one.
+	union Value Data;
 	struct KeyNode *Next;
 };
 
@@ -189,21 +204,23 @@ void Map_Delete(struct Hashmap *, const char *);
 bool Map_HasKey(const struct Hashmap *, const char *);
 struct KeyNode *Map_GetKeyNode(const struct Hashmap *, const char *);
 struct KeyNode **Map_GetKeyTable(const struct Hashmap *);
-size_t GenHash(const char *);
+//size_t GenHash(const char *);
 
 void Map_FromUniLinkedList(struct Hashmap *, const struct UniLinkedList *);
 void Map_FromBiLinkedList(struct Hashmap *, const struct BiLinkedList *);
 void Map_FromVector(struct Hashmap *, const struct Vector *);
+void Map_FromTuple(struct Hashmap *, const struct Tuple *);
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *);
-struct Hashmap *Map_NewVector(const struct Vector *);
+struct Hashmap *Map_NewFromVector(const struct Vector *);
+struct Hashmap *Map_NewFromTuple(const struct Tuple *);
 /***************/
 
 #if 0
 /************* Key Value Tree (kvtree.c) *************/
 struct KeyVal {
 	struct String KeyName;
-	struct Variant Data;
+	struct Variant Data; // use variant on this one.
 	struct KeyVal *NextKey;
 };
 
@@ -267,6 +284,7 @@ bool UniLinkedList_InsertValueAtTail(struct UniLinkedList *, union Value);
 bool UniLinkedList_InsertValueAtIndex(struct UniLinkedList *, union Value, size_t);
 
 struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *, size_t);
+struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *, union Value);
 union Value UniLinkedList_GetValue(const struct UniLinkedList *, size_t);
 void UniLinkedList_SetValue(struct UniLinkedList *, size_t, union Value);
 bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *, size_t);
@@ -279,9 +297,11 @@ struct UniListNode *UniLinkedList_GetTail(const struct UniLinkedList *);
 void UniLinkedList_FromBiLinkedList(struct UniLinkedList *, const struct BiLinkedList *);
 void UniLinkedList_FromMap(struct UniLinkedList *, const struct Hashmap *);
 void UniLinkedList_FromVector(struct UniLinkedList *, const struct Vector *);
+void UniLinkedList_FromTuple(struct UniLinkedList *, const struct Tuple *);
 struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *);
 struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *);
-struct UniLinkedList *UniLinkedList_NewVector(const struct Vector *);
+struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *);
+struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *);
 /***************/
 
 
@@ -320,6 +340,7 @@ bool BiLinkedList_InsertValueAtTail(struct BiLinkedList *, union Value);
 bool BiLinkedList_InsertValueAtIndex(struct BiLinkedList *, union Value, size_t);
 
 struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *, size_t);
+struct BiListNode *BiLinkedList_GetNodeByValue(const struct BiLinkedList *, union Value);
 union Value BiLinkedList_GetValue(const struct BiLinkedList *, size_t);
 void BiLinkedList_SetValue(struct BiLinkedList *, size_t, union Value);
 bool BiLinkedList_DelNodeByIndex(struct BiLinkedList *, size_t);
@@ -332,9 +353,11 @@ struct BiListNode *BiLinkedList_GetTail(const struct BiLinkedList *);
 void BiLinkedList_FromUniLinkedList(struct BiLinkedList *, const struct UniLinkedList *);
 void BiLinkedList_FromMap(struct BiLinkedList *, const struct Hashmap *);
 void BiLinkedList_FromVector(struct BiLinkedList *, const struct Vector *);
+void BiLinkedList_FromTuple(struct BiLinkedList *, const struct Tuple *);
 struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *);
 struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *);
-struct BiLinkedList *BiLinkedList_NewVector(const struct Vector *);
+struct BiLinkedList *BiLinkedList_NewFromVector(const struct Vector *);
+struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *);
 /***************/
 
 
@@ -362,6 +385,33 @@ void ByteBuffer_Resize(struct ByteBuffer *);
 void ByteBuffer_DumpToFile(/* struct ByteBuffer *, FILE * */);
 size_t ByteBuffer_ReadFromFile(/* struct ByteBuffer *, FILE * */);
 void ByteBuffer_Append(struct ByteBuffer *, struct ByteBuffer *);
+/***************/
+
+
+/************* Tuple (tuple.c) *************/
+struct Tuple {
+	union Value *Items;
+	size_t Len;
+};
+
+struct Tuple *Tuple_New(size_t, union Value []);
+void Tuple_Free(struct Tuple **);
+
+void Tuple_Init(struct Tuple *, size_t, union Value []);
+void Tuple_Del(struct Tuple *);
+size_t Tuple_Len(const struct Tuple *);
+union Value *Tuple_GetItems(const struct Tuple *);
+union Value Tuple_GetItem(const struct Tuple *, size_t);
+
+void Tuple_FromUniLinkedList(struct Tuple *, const struct UniLinkedList *);
+void Tuple_FromMap(struct Tuple *, const struct Hashmap *);
+void Tuple_FromVector(struct Tuple *, const struct Vector *);
+void Tuple_FromBiLinkedList(struct Tuple *, const struct BiLinkedList *);
+
+struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *);
+struct Tuple *Tuple_NewFromMap(const struct Hashmap *);
+struct Tuple *Tuple_NewFromVector(const struct Vector *);
+struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *);
 /***************/
 
 #ifdef __cplusplus

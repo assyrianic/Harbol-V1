@@ -30,13 +30,13 @@ void UniListNode_Del(struct UniListNode *const __restrict node, bool (*dtor)())
 		UniListNode_Free(&node->Next, dtor);
 }
 
-void UniListNode_Free(struct UniListNode **__restrict node, bool (*dtor)())
+void UniListNode_Free(struct UniListNode **__restrict noderef, bool (*dtor)())
 {
-	if( !*node )
+	if( !*noderef )
 		return;
 	
-	UniListNode_Del(*node, dtor);
-	free(*node); *node=NULL;
+	UniListNode_Del(*noderef, dtor);
+	free(*noderef); *noderef=NULL;
 }
 
 struct UniListNode *UniListNode_GetNextNode(const struct UniListNode *const __restrict node)
@@ -190,6 +190,16 @@ struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const __re
 	return NULL;
 }
 
+struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *const __restrict list, const union Value val)
+{
+	if( !list )
+		return NULL;
+	for( struct UniListNode *i=list->Head ; i ; i=i->Next )
+		if( !memcmp(&i->Data, &val, sizeof val) )
+			return i;
+	return NULL;
+}
+
 union Value UniLinkedList_GetValue(const struct UniLinkedList *const __restrict list, const size_t index)
 {
 	if( !list )
@@ -337,6 +347,16 @@ void UniLinkedList_FromVector(struct UniLinkedList *const __restrict unilist, co
 		UniLinkedList_InsertValueAtTail(unilist, v->Table[i]);
 }
 
+void UniLinkedList_FromTuple(struct UniLinkedList *const __restrict unilist, const struct Tuple *const __restrict tup)
+{
+	if( !unilist or !tup or !tup->Items or !tup->Len )
+		return;
+	
+	for( size_t i=0 ; i<tup->Len ; i++ )
+		UniLinkedList_InsertValueAtTail(unilist, tup->Items[i]);
+}
+
+
 struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *const __restrict bilist)
 {
 	if( !bilist )
@@ -355,7 +375,7 @@ struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *const __res
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewVector(const struct Vector *const __restrict v)
+struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *const __restrict v)
 {
 	if( !v )
 		return NULL;
@@ -364,3 +384,11 @@ struct UniLinkedList *UniLinkedList_NewVector(const struct Vector *const __restr
 	return unilist;
 }
 
+struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *const __restrict tup)
+{
+	if( !tup or !tup->Items or !tup->Len )
+		return NULL;
+	struct UniLinkedList *unilist = UniLinkedList_New(NULL);
+	UniLinkedList_FromTuple(unilist, tup);
+	return unilist;
+}

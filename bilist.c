@@ -31,13 +31,13 @@ void BiListNode_Del(struct BiListNode *const __restrict node, bool (*dtor)())
 	BiListNode_Free(&node->Next, dtor);
 }
 
-void BiListNode_Free(struct BiListNode **__restrict node, bool (*dtor)())
+void BiListNode_Free(struct BiListNode **__restrict noderef, bool (*dtor)())
 {
-	if( !*node )
+	if( !*noderef )
 		return;
 	
-	BiListNode_Del(*node, dtor);
-	free(*node), *node=NULL;
+	BiListNode_Del(*noderef, dtor);
+	free(*noderef), *noderef=NULL;
 }
 
 struct BiListNode *BiListNode_GetNextNode(const struct BiListNode *const __restrict node)
@@ -76,13 +76,13 @@ void BiLinkedList_Del(struct BiLinkedList *const __restrict list)
 	*list = (struct BiLinkedList){0};
 }
 
-void BiLinkedList_Free(struct BiLinkedList **__restrict list)
+void BiLinkedList_Free(struct BiLinkedList **__restrict listref)
 {
-	if( !*list )
+	if( !*listref )
 		return;
 	
-	BiLinkedList_Del(*list);
-	free(*list), *list=NULL;
+	BiLinkedList_Del(*listref);
+	free(*listref), *listref=NULL;
 }
 void BiLinkedList_Init(struct BiLinkedList *const __restrict list, bool (*dtor)())
 {
@@ -211,6 +211,16 @@ struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *const __restr
 	return NULL;
 }
 
+struct BiListNode *BiLinkedList_GetNodeByValue(const struct BiLinkedList *const __restrict list, const union Value val)
+{
+	if( !list )
+		return NULL;
+	for( struct BiListNode *i=list->Head ; i ; i=i->Next )
+		if( !memcmp(&i->Data, &val, sizeof val) )
+			return i;
+	return NULL;
+}
+
 union Value BiLinkedList_GetValue(const struct BiLinkedList *const __restrict list, const size_t index)
 {
 	if( !list )
@@ -327,6 +337,16 @@ void BiLinkedList_FromVector(struct BiLinkedList *const __restrict bilist, const
 		BiLinkedList_InsertValueAtTail(bilist, v->Table[i]);
 }
 
+void BiLinkedList_FromTuple(struct BiLinkedList *const __restrict bilist, const struct Tuple *const __restrict tup)
+{
+	if( !bilist or !tup or !tup->Items or !tup->Len )
+		return;
+	
+	for( size_t i=0 ; i<tup->Len ; i++ )
+		BiLinkedList_InsertValueAtTail(bilist, tup->Items[i]);
+}
+
+
 struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *const __restrict unilist)
 {
 	if( !unilist )
@@ -345,11 +365,20 @@ struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *const __restr
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewVector(const struct Vector *const __restrict v)
+struct BiLinkedList *BiLinkedList_NewFromVector(const struct Vector *const __restrict v)
 {
 	if( !v )
 		return NULL;
 	struct BiLinkedList *bilist = BiLinkedList_New(v->Destructor);
 	BiLinkedList_FromVector(bilist, v);
+	return bilist;
+}
+
+struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *const __restrict tup)
+{
+	if( !tup or !tup->Items or !tup->Len )
+		return NULL;
+	struct BiLinkedList *bilist = BiLinkedList_New(NULL);
+	BiLinkedList_FromTuple(bilist, tup);
 	return bilist;
 }

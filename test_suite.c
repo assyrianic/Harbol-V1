@@ -10,6 +10,7 @@ void TestHashmap(void);
 void TestUniList(void);
 void TestBiList(void);
 void TestByteBuffer(void);
+void TestTuple(void);
 void TestDSConversions(void);
 
 FILE *DSC_debug_output = NULL;
@@ -19,14 +20,16 @@ int main()
 	DSC_debug_output = fopen("data_structure_debug_output.txt", "w+");
 	if( !DSC_debug_output )
 		return -1;
-	
-	//TestStringObject();
-	//TestVector();
-	//TestHashmap();
-	//TestUniList();
+	/*
+	TestStringObject();
+	TestVector();
+	TestHashmap();
+	TestUniList();
 	TestBiList();
-	//TestByteBuffer();
-	//TestDSConversions();
+	TestByteBuffer();
+	TestTuple();
+	*/
+	TestDSConversions();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
 
@@ -355,6 +358,8 @@ void TestUniList(void)
 	for( struct UniListNode *n=UniLinkedList_GetHead(p) ; n ; n = UniListNode_GetNextNode(n) )
 		fprintf(DSC_debug_output, "unilist value : %lli\n", UniListNode_GetValue(n).Int64);
 	
+	// test finding a node by value.
+	
 	// free data
 	fputs("unilist :: test destruction.", DSC_debug_output);
 	fputs("\n", DSC_debug_output);
@@ -535,6 +540,50 @@ void TestByteBuffer(void)
 	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 }
 
+void TestTuple(void)
+{
+	if( !DSC_debug_output )
+		return;
+	
+	// Test allocation and initializations
+	fputs("tuple :: test allocation/initialization.\n", DSC_debug_output);
+	fputs("\n", DSC_debug_output);
+	
+	union Value stuff[5] = {
+		{.Int64 = 1},
+		{.Int64 = 2},
+		{.Int64 = 3},
+		{.Int64 = 4},
+		{.Int64 = 5},
+	};
+	struct Tuple *p = Tuple_New(5, stuff);
+	assert( p );
+	
+	struct Tuple i;
+	Tuple_Init(&i, 5, stuff);
+	
+	// test getting a single item and then iterating.
+	fputs("tuple :: test single item retrieval and iterating.\n", DSC_debug_output);
+	fputs("\n", DSC_debug_output);
+	
+	union Value single_item = Tuple_GetItem(p, 0);
+	fprintf(DSC_debug_output, "single item tuple value : %llu\n", single_item.Int64);
+	
+	for( size_t n=0 ; n<Tuple_Len(p) ; n++ )
+		fprintf(DSC_debug_output, "tuple value : %llu\n", Tuple_GetItem(p, n).Int64);
+	
+	// free data
+	fputs("tuple :: test destruction.", DSC_debug_output);
+	fputs("\n", DSC_debug_output);
+	Tuple_Del(&i);
+	fprintf(DSC_debug_output, "i's item is null? '%s'\n", i.Items ? "no" : "yes");
+	
+	Tuple_Del(p);
+	fprintf(DSC_debug_output, "p's item is null? '%s'\n", p->Items ? "no" : "yes");
+	Tuple_Free(&p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+}
+
 void TestDSConversions(void)
 {
 	// inserting five items to all 4 of these collector type data structures.
@@ -566,6 +615,16 @@ void TestDSConversions(void)
 	BiLinkedList_InsertValueAtTail(&bilist, (union Value){.Int64 = 4});
 	BiLinkedList_InsertValueAtTail(&bilist, (union Value){.Int64 = 5});
 	
+	struct Tuple tuple = (struct Tuple){0};
+	union Value stuff[5] = {
+		{.Int64 = 1},
+		{.Int64 = 2},
+		{.Int64 = 3},
+		{.Int64 = 4},
+		{.Int64 = 5},
+	};
+	Tuple_Init(&tuple, 5, stuff);
+	
 	
 	// test vector conversion.
 	fputs("data struct conversions :: test vector conversions.\n", DSC_debug_output);
@@ -595,6 +654,14 @@ void TestDSConversions(void)
 				fprintf(DSC_debug_output, "map -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
 			Vector_Free(&p);
 		}
+		
+		p = Vector_NewFromTuple(&tuple);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Count ; i++ )
+				fprintf(DSC_debug_output, "tuple -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+			Vector_Free(&p);
+		}
 	}
 	
 	// test map conversion.
@@ -605,8 +672,8 @@ void TestDSConversions(void)
 		p = Map_NewFromUniLinkedList(&unilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<map.Len ; i++ )
-				for( struct KeyNode *n = map.Table[i] ; n ; n=n->Next )
+			for( size_t i=0 ; i<p->Len ; i++ )
+				for( struct KeyNode *n = p->Table[i] ; n ; n=n->Next )
 					fprintf(DSC_debug_output, "unilist -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
 			Map_Free(&p);
 		}
@@ -614,18 +681,27 @@ void TestDSConversions(void)
 		p = Map_NewFromBiLinkedList(&bilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<map.Len ; i++ )
-				for( struct KeyNode *n = map.Table[i] ; n ; n=n->Next )
+			for( size_t i=0 ; i<p->Len ; i++ )
+				for( struct KeyNode *n = p->Table[i] ; n ; n=n->Next )
 					fprintf(DSC_debug_output, "bilist -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
 			Map_Free(&p);
 		}
 		
-		p = Map_NewVector(&vec);
+		p = Map_NewFromVector(&vec);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<map.Len ; i++ )
-				for( struct KeyNode *n = map.Table[i] ; n ; n=n->Next )
+			for( size_t i=0 ; i<p->Len ; i++ )
+				for( struct KeyNode *n = p->Table[i] ; n ; n=n->Next )
 					fprintf(DSC_debug_output, "vec -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
+			Map_Free(&p);
+		}
+		
+		p = Map_NewFromTuple(&tuple);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				for( struct KeyNode *n = p->Table[i] ; n ; n=n->Next )
+					fprintf(DSC_debug_output, "tuple -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
 			Map_Free(&p);
 		}
 	}
@@ -638,7 +714,7 @@ void TestDSConversions(void)
 		p = UniLinkedList_NewFromBiLinkedList(&bilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct UniListNode *n=unilist.Head ; n ; n = n->Next )
+			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "bilist value : %lli\n", n->Data.Int64);
 			UniLinkedList_Free(&p);
 		}
@@ -646,16 +722,24 @@ void TestDSConversions(void)
 		p = UniLinkedList_NewFromMap(&map);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct UniListNode *n=unilist.Head ; n ; n = n->Next )
+			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "map value : %lli\n", n->Data.Int64);
 			UniLinkedList_Free(&p);
 		}
 		
-		p = UniLinkedList_NewVector(&vec);
+		p = UniLinkedList_NewFromVector(&vec);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct UniListNode *n=unilist.Head ; n ; n = n->Next )
+			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "vec value : %lli\n", n->Data.Int64);
+			UniLinkedList_Free(&p);
+		}
+		
+		p = UniLinkedList_NewFromTuple(&tuple);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
+				fprintf(DSC_debug_output, "tuple value : %lli\n", n->Data.Int64);
 			UniLinkedList_Free(&p);
 		}
 	}
@@ -668,7 +752,7 @@ void TestDSConversions(void)
 		p = BiLinkedList_NewFromUniLinkedList(&unilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct BiListNode *n=bilist.Head ; n ; n = n->Next )
+			for( struct BiListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "unilist value : %lli\n", n->Data.Int64);
 			BiLinkedList_Free(&p);
 		}
@@ -676,17 +760,63 @@ void TestDSConversions(void)
 		p = BiLinkedList_NewFromMap(&map);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct BiListNode *n=bilist.Head ; n ; n = n->Next )
+			for( struct BiListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "map value : %lli\n", n->Data.Int64);
 			BiLinkedList_Free(&p);
 		}
 		
-		p = BiLinkedList_NewVector(&vec);
+		p = BiLinkedList_NewFromVector(&vec);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( struct BiListNode *n=bilist.Head ; n ; n = n->Next )
+			for( struct BiListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "vec value : %lli\n", n->Data.Int64);
 			BiLinkedList_Free(&p);
+		}
+		
+		p = BiLinkedList_NewFromTuple(&tuple);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct BiListNode *n=p->Head ; n ; n = n->Next )
+				fprintf(DSC_debug_output, "tuple value : %lli\n", n->Data.Int64);
+			BiLinkedList_Free(&p);
+		}
+	}
+	
+	// test tuple conversion.
+	fputs("data struct conversions :: test tuple conversions.\n", DSC_debug_output);
+	{
+		struct Tuple *p = NULL;
+		
+		p = Tuple_NewFromUniLinkedList(&unilist);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				fprintf(DSC_debug_output, "unilist value : %lli\n", p->Items[i].Int64);
+			Tuple_Free(&p);
+		}
+		
+		p = Tuple_NewFromMap(&map);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				fprintf(DSC_debug_output, "map value : %lli\n", p->Items[i].Int64);
+			Tuple_Free(&p);
+		}
+		
+		p = Tuple_NewFromVector(&vec);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				fprintf(DSC_debug_output, "vec value : %lli\n", p->Items[i].Int64);
+			Tuple_Free(&p);
+		}
+		
+		p = Tuple_NewFromBiLinkedList(&bilist);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				fprintf(DSC_debug_output, "bilist value : %lli\n", p->Items[i].Int64);
+			Tuple_Free(&p);
 		}
 	}
 	
@@ -694,9 +824,5 @@ void TestDSConversions(void)
 	Map_Del(&map);
 	UniLinkedList_Del(&unilist);
 	BiLinkedList_Del(&bilist);
-	
-	/*
-	for( struct BiListNode *n=bilist.Head ; n ; n = n->Next )
-		fprintf(DSC_debug_output, "bilist value : %lli\n", n->Data.Int64);
-	*/
+	Tuple_Del(&tuple);
 }

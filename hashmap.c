@@ -13,8 +13,7 @@ struct KeyNode *KeyNode_NewSP(const char *__restrict cstr, const union Value val
 {
 	struct KeyNode *n = calloc(1, sizeof *n);
 	if( n ) {
-		String_Init(&n->KeyName);
-		String_CopyStr(&n->KeyName, cstr);
+		String_InitStr(&n->KeyName, cstr);
 		n->Data = val;
 	}
 	return n;
@@ -32,19 +31,19 @@ void KeyNode_Del(struct KeyNode *const __restrict n, bool (*dtor)())
 		KeyNode_Free(&n->Next, dtor);
 }
 
-bool KeyNode_Free(struct KeyNode **__restrict n, bool (*dtor)())
+bool KeyNode_Free(struct KeyNode **__restrict noderef, bool (*dtor)())
 {
-	if( !*n )
+	if( !*noderef )
 		return false;
 	
-	KeyNode_Del(*n, dtor);
-	free(*n), *n=NULL;
+	KeyNode_Del(*noderef, dtor);
+	free(*noderef), *noderef=NULL;
 	return true;
 }
 
 
 // size_t general hash function.
-size_t GenHash(const char *cstr)
+static size_t GenHash(const char *cstr)
 {
 	size_t h = 0;
 	if( !cstr )
@@ -156,7 +155,7 @@ bool Map_InsertNode(struct Hashmap *const __restrict map, struct KeyNode *__rest
 		return false;
 	}
 	
-	size_t hash = GenHash(node->KeyName.CStr) % map->Len;
+	const size_t hash = GenHash(node->KeyName.CStr) % map->Len;
 	node->Next = map->Table[hash];
 	map->Table[hash] = node;
 	++map->Count;
@@ -181,7 +180,7 @@ union Value Map_Get(const struct Hashmap *const __restrict map, const char *__re
 	if( !map or !map->Table or !Map_HasKey(map, strkey) )
 		return (union Value){0};
 	
-	size_t hash = GenHash(strkey) % map->Len;
+	const size_t hash = GenHash(strkey) % map->Len;
 	for( struct KeyNode *__restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
 		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
 			return kv->Data;
@@ -199,7 +198,7 @@ void Map_Set(struct Hashmap *const __restrict map, const char *__restrict strkey
 		return;
 	}
 	
-	size_t hash = GenHash(strkey) % map->Len;
+	const size_t hash = GenHash(strkey) % map->Len;
 	for( struct KeyNode *__restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
 		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
 			kv->Data = val;
@@ -218,7 +217,7 @@ void Map_Delete(struct Hashmap *const __restrict map, const char *__restrict str
 	if( !map or !map->Table or !Map_HasKey(map, strkey) )
 		return;
 	
-	size_t hash = GenHash(strkey) % map->Len;
+	const size_t hash = GenHash(strkey) % map->Len;
 	for( struct KeyNode *kv=map->Table[hash], *next=NULL ; kv ; kv=next ) {
 		next = kv->Next;
 		
@@ -239,7 +238,7 @@ bool Map_HasKey(const struct Hashmap *const __restrict map, const char *__restri
 	if( !map or !map->Table )
 		return false;
 	
-	size_t hash = GenHash(strkey) % map->Len;
+	const size_t hash = GenHash(strkey) % map->Len;
 	for( struct KeyNode *__restrict n = map->Table[hash] ; n ; n=n->Next )
 		if( !String_StrCmpCStr(&n->KeyName, strkey) )
 			return true;
@@ -252,7 +251,7 @@ struct KeyNode *Map_GetKeyNode(const struct Hashmap *const __restrict map, const
 	if( !map or !strkey or !map->Table )
 		return NULL;
 	
-	size_t hash = GenHash(strkey) % map->Len;
+	const size_t hash = GenHash(strkey) % map->Len;
 	for( struct KeyNode *__restrict n = map->Table[hash] ; n ; n=n->Next )
 		if( !String_StrCmpCStr(&n->KeyName, strkey) )
 			return n;
@@ -302,7 +301,18 @@ void Map_FromVector(struct Hashmap *const __restrict map, const struct Vector *c
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
 		Map_Insert(map, cstrkey, v->Table[i]);
-		i++;
+	}
+}
+
+void Map_FromTuple(struct Hashmap *const __restrict map, const struct Tuple *const __restrict tup)
+{
+	if( !map or !tup or !tup->Items or !tup->Len )
+		return;
+	
+	for( size_t i=0 ; i<tup->Len ; i++ ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		Map_Insert(map, cstrkey, tup->Items[i]);
 	}
 }
 
@@ -326,7 +336,7 @@ struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 	return map;
 }
 
-struct Hashmap *Map_NewVector(const struct Vector *const __restrict v)
+struct Hashmap *Map_NewFromVector(const struct Vector *const __restrict v)
 {
 	if( !v )
 		return NULL;
@@ -336,3 +346,12 @@ struct Hashmap *Map_NewVector(const struct Vector *const __restrict v)
 	return map;
 }
 
+struct Hashmap *Map_NewFromTuple(const struct Tuple *const __restrict tup)
+{
+	if( !tup or !tup->Items or !tup->Len )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(NULL);
+	Map_FromTuple(map, tup);
+	return map;
+}

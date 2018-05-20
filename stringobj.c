@@ -32,13 +32,13 @@ void String_Del(struct String *const __restrict strobj)
 	strobj->Len = 0;
 }
 
-void String_Free(struct String **__restrict strobj)
+void String_Free(struct String **__restrict strobjref)
 {
-	if( !*strobj )
+	if( !*strobjref )
 		return;
 	
-	String_Del(*strobj);
-	free(*strobj), *strobj=NULL;
+	String_Del(*strobjref);
+	free(*strobjref), *strobjref=NULL;
 }
 
 void String_Init(struct String *const __restrict strobj)

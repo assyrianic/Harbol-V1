@@ -38,13 +38,13 @@ void Vector_Del(struct Vector *const __restrict v)
 	free(v->Table), Vector_Init(v, v->Destructor);
 }
 
-void Vector_Free(struct Vector **__restrict v)
+void Vector_Free(struct Vector **__restrict vecref)
 {
-	if( !*v )
+	if( !*vecref )
 		return;
 	
-	Vector_Del(*v);
-	free(*v), *v=NULL;
+	Vector_Del(*vecref);
+	free(*vecref), *vecref=NULL;
 }
 
 inline size_t Vector_Len(const struct Vector *const __restrict v)
@@ -230,6 +230,20 @@ void Vector_FromMap(struct Vector *const __restrict v, const struct Hashmap *con
 			v->Table[v->Count++] = n->Data;
 }
 
+void Vector_FromTuple(struct Vector *const __restrict v, const struct Tuple *const __restrict tup)
+{
+	if( !v or !tup or !tup->Items or !tup->Len )
+		return;
+	else if( !v->Table or v->Count+tup->Len >= v->Len )
+		while( v->Count+tup->Len >= v->Len )
+			Vector_Resize(v);
+	
+	size_t i=0;
+	while( i < tup->Len )
+		v->Table[v->Count++] = tup->Items[i++];
+}
+
+
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
 	if( !list )
@@ -254,5 +268,14 @@ struct Vector *Vector_NewFromMap(const struct Hashmap *const __restrict map)
 		return NULL;
 	struct Vector *v = Vector_New(map->Destructor);
 	Vector_FromMap(v, map);
+	return v;
+}
+
+struct Vector *Vector_NewFromTuple(const struct Tuple *const __restrict tup)
+{
+	if( !tup )
+		return NULL;
+	struct Vector *v = Vector_New(NULL);
+	Vector_FromTuple(v, tup);
 	return v;
 }

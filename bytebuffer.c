@@ -125,13 +125,13 @@ void ByteBuffer_Del(struct ByteBuffer *const __restrict p)
 	*p = (struct ByteBuffer){0};
 }
 
-void ByteBuffer_Free(struct ByteBuffer **__restrict p)
+void ByteBuffer_Free(struct ByteBuffer **__restrict pref)
 {
-	if( !*p )
+	if( !*pref )
 		return;
 	
-	ByteBuffer_Del(*p);
-	free(*p); *p=NULL;
+	ByteBuffer_Del(*pref);
+	free(*pref); *pref=NULL;
 }
 
 void ByteBuffer_Resize(struct ByteBuffer *const __restrict p)
