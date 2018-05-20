@@ -15,6 +15,7 @@ self-contained all-in-one STL-style data structure collection in C.
 * Doubly Linked List (*can apply virtual destructor*)
 * Byte Buffer
 * Variant Type (using a fat union)
+* Tuple
 
 ### Planned Data Structures
 * Ordered Hashmaps
