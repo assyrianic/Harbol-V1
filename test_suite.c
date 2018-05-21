@@ -11,6 +11,7 @@ void TestUniList(void);
 void TestBiList(void);
 void TestByteBuffer(void);
 void TestTuple(void);
+void TestHeapPool(void);
 void TestDSConversions(void);
 
 FILE *DSC_debug_output = NULL;
@@ -28,8 +29,9 @@ int main()
 	TestBiList();
 	TestByteBuffer();
 	TestTuple();
-	*/
 	TestDSConversions();
+	*/
+	TestHeapPool();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
 
@@ -582,6 +584,135 @@ void TestTuple(void)
 	fprintf(DSC_debug_output, "p's item is null? '%s'\n", p->Items ? "no" : "yes");
 	Tuple_Free(&p);
 	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+}
+
+void TestHeapPool(void)
+{
+	if( !DSC_debug_output )
+		return;
+	
+	// Test allocation and initializations
+	fputs("heap :: test allocation/initialization.\n", DSC_debug_output);
+	
+	struct Heap i = (struct Heap){0};
+#ifdef DSC_NO_MALLOC
+	Heap_Init(&i);
+#else
+	Heap_Init(&i, 1000);
+#endif
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	
+	// test giving memory
+	fputs("heap :: test giving memory.\n", DSC_debug_output);
+	int *p = Heap_Alloc(&i, sizeof *p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+	if( p ) {
+		*p = 500;
+		fprintf(DSC_debug_output, "p's value: %i\n", *p);
+	}
+	
+	float *f = Heap_Alloc(&i, sizeof *f);
+	fprintf(DSC_debug_output, "f is null? '%s'\n", f ? "no" : "yes");
+	if( f ) {
+		*f = 500.5f;
+		fprintf(DSC_debug_output, "f's value: %f\n", *f);
+	}
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	
+	// test releasing memory
+	fputs("heap :: test releasing memory.\n", DSC_debug_output);
+	Heap_Release(&i, f), f=NULL;
+	Heap_Release(&i, p), p=NULL;
+	
+	// test re-giving memory
+	fputs("heap :: test regiving memory.\n", DSC_debug_output);
+	p = Heap_Alloc(&i, sizeof *p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+	if( p ) {
+		*p = 532;
+		fprintf(DSC_debug_output, "p's value: %i\n", *p);
+	}
+	f = Heap_Alloc(&i, sizeof *f);
+	fprintf(DSC_debug_output, "f is null? '%s'\n", f ? "no" : "yes");
+	if( f ) {
+		*f = 466.5f;
+		fprintf(DSC_debug_output, "f's value: %f\n", *f);
+	}
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	Heap_Release(&i, p), p=NULL; // release memory that's from different region.
+	Heap_Release(&i, f), f=NULL;
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	
+	// test giving array memory
+	fputs("heap :: test giving array memory.\n", DSC_debug_output);
+	const size_t arrsize = 100;
+	p = Heap_Alloc(&i, sizeof *p * arrsize);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+	if( p ) {
+		for( size_t i=0 ; i<arrsize ; i++ )
+			p[i] = i+1;
+		for( size_t i=0 ; i<arrsize ; i++ )
+			fprintf(DSC_debug_output, "p[%zu] value: %i\n", i, p[i]);
+	}
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	f = Heap_Alloc(&i, sizeof *f * arrsize);
+	fprintf(DSC_debug_output, "f is null? '%s'\n", f ? "no" : "yes");
+	if( f ) {
+		for( size_t i=0 ; i<arrsize ; i++ )
+			f[i] = i+1.15f;
+		for( size_t i=0 ; i<arrsize ; i++ )
+			fprintf(DSC_debug_output, "f[%zu] value: %f\n", i, f[i]);
+	}
+	Heap_Release(&i, p), p=NULL;
+	Heap_Release(&i, f), f=NULL;
+	fprintf(DSC_debug_output, "remaining heap mem: '%zu'\n", Heap_Remaining(&i));
+	
+	
+	// test using heap to make a unilinked list!
+	fputs("heap :: test using heap for unilinked list.\n", DSC_debug_output);
+	struct UniLinkedList *list = Heap_Alloc(&i, sizeof *list);
+	assert( list );
+	
+	struct UniListNode *node1 = Heap_Alloc(&i, sizeof *node1);
+	assert( node1 );
+	node1->Data = (union Value){.Int64 = 1};
+	UniLinkedList_InsertNodeAtTail(list, node1);
+	
+	struct UniListNode *node2 = Heap_Alloc(&i, sizeof *node2);
+	assert( node2 );
+	node2->Data = (union Value){.Int64 = 2};
+	UniLinkedList_InsertNodeAtTail(list, node2);
+	
+	struct UniListNode *node3 = Heap_Alloc(&i, sizeof *node3);
+	assert( node3 );
+	node3->Data = (union Value){.Int64 = 3};
+	UniLinkedList_InsertNodeAtTail(list, node3);
+	
+	struct UniListNode *node4 = Heap_Alloc(&i, sizeof *node4);
+	assert( node4 );
+	node4->Data = (union Value){.Int64 = 4};
+	UniLinkedList_InsertNodeAtTail(list, node4);
+	
+	struct UniListNode *node5 = Heap_Alloc(&i, sizeof *node5);
+	assert( node5 );
+	node5->Data = (union Value){.Int64 = 5};
+	UniLinkedList_InsertNodeAtTail(list, node5);
+	
+	for( struct UniListNode *n=list->Head ; n ; n = n->Next )
+		fprintf(DSC_debug_output, "unilist value : %lli\n", n->Data.Int64);
+	
+	Heap_Release(&i, node1), node1=NULL;
+	Heap_Release(&i, node2), node2=NULL;
+	Heap_Release(&i, node3), node3=NULL;
+	Heap_Release(&i, node4), node4=NULL;
+	Heap_Release(&i, node5), node5=NULL;
+	Heap_Release(&i, list), list=NULL;
+	
+	// free data
+	fputs("heap :: test destruction.\n", DSC_debug_output);
+	Heap_Del(&i);
+	fprintf(DSC_debug_output, "i's heap bottom is null? '%s'\n", i.HeapBottom ? "no" : "yes");
+	fprintf(DSC_debug_output, "i's FreeList is null? '%s'\n", i.FreeList ? "no" : "yes");
 }
 
 void TestDSConversions(void)

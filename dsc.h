@@ -414,6 +414,45 @@ struct Tuple *Tuple_NewFromVector(const struct Vector *);
 struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *);
 /***************/
 
+/************* Heap Memory Pool (heap.c) *************/
+// uncomment 'DSC_NO_MALLOC' if you can't use 'malloc'.
+#define DSC_NO_MALLOC
+#ifdef DSC_NO_MALLOC
+	#define DSC_HEAPSIZE	(1<<10)
+#endif
+
+struct AllocNode {
+	size_t Size;
+	struct AllocNode *NextFree;
+};
+
+struct Heap {
+	uint8_t
+#ifdef DSC_NO_MALLOC
+		HeapMem[DSC_HEAPSIZE],
+#else
+		*HeapMem,
+#endif
+		*HeapBottom
+	;
+	struct AllocNode *FreeList;
+	size_t HeapSize;
+};
+
+#ifdef DSC_NO_MALLOC
+void Heap_Init(struct Heap *);
+#else
+void Heap_Init(struct Heap *, size_t);
+#endif
+
+void Heap_Del(struct Heap *);
+void *Heap_Alloc(struct Heap *, size_t);
+void Heap_Release(struct Heap *, void *);
+size_t Heap_Remaining(const struct Heap *);
+size_t Heap_Size(const struct Heap *);
+struct AllocNode *Heap_GetFreeList(const struct Heap *);
+/***************/
+
 #ifdef __cplusplus
 }
 #endif
