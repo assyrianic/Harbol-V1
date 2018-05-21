@@ -416,7 +416,7 @@ struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *);
 
 /************* Heap Memory Pool (heap.c) *************/
 // uncomment 'DSC_NO_MALLOC' if you can't use 'malloc'.
-#define DSC_NO_MALLOC
+//#define DSC_NO_MALLOC
 #ifdef DSC_NO_MALLOC
 	#define DSC_HEAPSIZE	(1<<10)
 #endif
