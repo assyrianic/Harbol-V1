@@ -17,8 +17,8 @@ self-contained all-in-one STL-style data structure collection in C.
 * Variant Type (using a fat union)
 * Tuple
 * Heap Memory Pool
+* Graph (*can apply virtual destructors for edge weight data and vertex data*)
 
 ### Planned Data Structures
 * Ordered Hashmaps (Linked Map)
-* Graphs (Adjacency List)
 * General Trees
