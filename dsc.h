@@ -18,6 +18,7 @@ struct UniLinkedList;
 struct BiLinkedList;
 struct ByteBuffer;
 struct Tuple;
+struct Graph;
 
 union Value {
 	bool Bool, *BoolPtr, (*BoolFunc)(), *(*BoolPtrFunc)();
@@ -44,6 +45,7 @@ union Value {
 	struct BiLinkedList *BiListPtr, (*BiListFunc)(), *(*BiListPtrFunc)();
 	struct ByteBuffer *BufferPtr, (*BufferFunc)(), *(*BufferPtrFunc)();
 	struct Tuple *TuplePtr, (*TupleFunc)(), *(*TuplePtrFunc)();
+	struct Graph *GraphPtr, (*GraphFunc)(), *(*GraphPtrFunc)();
 };
 
 typedef enum ValType {
@@ -74,6 +76,7 @@ typedef enum ValType {
 	TypeBiListPtr, TypeBiListFunc, TypeBiListPtrFunc,
 	TypeBufferPtr, TypeBufferFunc, TypeBufferPtrFunc,
 	TypeTuplePtr, TypeTupleFunc, TypeTuplePtrFunc,
+	TypeGraphPtr, TypeGraphFunc, TypeGraphPtrFunc,
 } ValType;
 
 // discriminated union type
@@ -98,6 +101,22 @@ inline union Value Variant_GetVal(struct Variant *const __restrict var)
 inline enum ValType Variant_GetType(struct Variant *const __restrict var)
 {
 	return var ? var->TypeTag : TypeInvalid;
+}
+
+inline void Variant_Del(struct Variant *const __restrict var, bool (*dtor)())
+{
+	if( !var )
+		return;
+	if( dtor )
+		(*dtor)(&var->Val.Ptr);
+}
+
+inline void Variant_Free(struct Variant **__restrict varref, bool (*dtor)())
+{
+	if( !*varref )
+		return;
+	Variant_Del(*varref, dtor);
+	free(*varref), *varref=NULL;
 }
 
 
@@ -131,8 +150,8 @@ bool String_IsEmpty(const struct String *);
 /************* Vector / Dynamic Array (vector.c) *************/
 struct Vector {
 	union Value *Table;
-	bool (*Destructor)(/* Type **Obj */);
 	size_t Len, Count;
+	bool (*Destructor)(/* Type **Obj */);
 };
 
 struct Vector *Vector_New(bool (*)());
@@ -158,10 +177,12 @@ void Vector_FromUniLinkedList(struct Vector *, const struct UniLinkedList *);
 void Vector_FromBiLinkedList(struct Vector *, const struct BiLinkedList *);
 void Vector_FromMap(struct Vector *, const struct Hashmap *);
 void Vector_FromTuple(struct Vector *, const struct Tuple *);
+void Vector_FromGraph(struct Vector *, const struct Graph *);
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Vector *Vector_NewFromMap(const struct Hashmap *);
 struct Vector *Vector_NewFromTuple(const struct Tuple *);
+struct Vector *Vector_NewFromGraph(const struct Graph *);
 /***************/
 
 /************* Hashmap (hashmap.c) *************/
@@ -180,8 +201,8 @@ bool KeyNode_Free(struct KeyNode **, bool(*)());
 
 struct Hashmap {
 	struct KeyNode **Table;
-	bool (*Destructor)(/* Type **Obj */);
 	size_t Len, Count;
+	bool (*Destructor)(/* Type **Obj */);
 };
 
 
@@ -204,51 +225,19 @@ void Map_Delete(struct Hashmap *, const char *);
 bool Map_HasKey(const struct Hashmap *, const char *);
 struct KeyNode *Map_GetKeyNode(const struct Hashmap *, const char *);
 struct KeyNode **Map_GetKeyTable(const struct Hashmap *);
-//size_t GenHash(const char *);
 
 void Map_FromUniLinkedList(struct Hashmap *, const struct UniLinkedList *);
 void Map_FromBiLinkedList(struct Hashmap *, const struct BiLinkedList *);
 void Map_FromVector(struct Hashmap *, const struct Vector *);
 void Map_FromTuple(struct Hashmap *, const struct Tuple *);
+void Map_FromGraph(struct Hashmap *, const struct Graph *);
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Hashmap *Map_NewFromVector(const struct Vector *);
 struct Hashmap *Map_NewFromTuple(const struct Tuple *);
+struct Hashmap *Map_NewFromGraph(const struct Graph *);
 /***************/
 
-#if 0
-/************* Key Value Tree (kvtree.c) *************/
-struct KeyVal {
-	struct String KeyName;
-	struct Variant Data; // use variant on this one.
-	struct KeyVal *NextKey;
-};
-
-struct KeyVal *KeyVal_New(void);
-struct KeyVal *KeyVal_NewS(char *);
-void KeyVal_Free(struct KeyVal **);
-void KeyVal_Init(struct KeyVal *);
-void KeyVal_Print(struct KeyVal *);
-
-uint64_t KeyVal_GetInt(struct KeyVal *);
-struct String *KeyVal_GetStr(struct KeyVal *);
-struct KeyVal *KeyVal_GetSubKey(struct KeyVal *);
-struct KeyVal *KeyVal_GetNextKey(struct KeyVal *);
-char *KeyVal_GetKeyName(struct KeyVal *);
-
-void KeyVal_SetInt(struct KeyVal *, uint64_t);
-void KeyVal_SetSubKey(struct KeyVal *, struct KeyVal *);
-void KeyVal_SetNextKey(struct KeyVal *, struct KeyVal *);
-void KeyVal_SetKeyName(struct KeyVal *, char *);
-
-struct KeyVal *KeyVal_GetFirstSubKey(struct KeyVal *);
-struct KeyVal *KeyVal_GetNextSubKey(struct KeyVal *);
-struct KeyVal *KeyVal_FindLastSubKey(struct KeyVal *);
-
-struct KeyVal *KeyVal_FindByKeyName(struct KeyVal *, const char *);
-bool KeyVal_HasKey(struct KeyVal *, const char *);
-/***************/
-#endif
 
 /************* Singly Linked List (unilist.c) *************/
 struct UniListNode {
@@ -266,8 +255,8 @@ union Value UniListNode_GetValue(const struct UniListNode *);
 
 struct UniLinkedList {
 	struct UniListNode *Head, *Tail;
-	bool (*Destructor)(/* Type **Obj */);
 	size_t Len;
+	bool (*Destructor)(/* Type **Obj */);
 };
 
 struct UniLinkedList *UniLinkedList_New(bool (*)());
@@ -298,10 +287,12 @@ void UniLinkedList_FromBiLinkedList(struct UniLinkedList *, const struct BiLinke
 void UniLinkedList_FromMap(struct UniLinkedList *, const struct Hashmap *);
 void UniLinkedList_FromVector(struct UniLinkedList *, const struct Vector *);
 void UniLinkedList_FromTuple(struct UniLinkedList *, const struct Tuple *);
+void UniLinkedList_FromGraph(struct UniLinkedList *, const struct Graph *);
 struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *);
 struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *);
 struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *);
 struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *);
+struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *);
 /***************/
 
 
@@ -322,8 +313,8 @@ union Value BiListNode_GetValue(const struct BiListNode *);
 
 struct BiLinkedList {
 	struct BiListNode *Head, *Tail;
-	bool (*Destructor)(/* Type **Obj */);
 	size_t Len;
+	bool (*Destructor)(/* Type **Obj */);
 };
 
 struct BiLinkedList *BiLinkedList_New(bool (*)());
@@ -354,10 +345,12 @@ void BiLinkedList_FromUniLinkedList(struct BiLinkedList *, const struct UniLinke
 void BiLinkedList_FromMap(struct BiLinkedList *, const struct Hashmap *);
 void BiLinkedList_FromVector(struct BiLinkedList *, const struct Vector *);
 void BiLinkedList_FromTuple(struct BiLinkedList *, const struct Tuple *);
+void BiLinkedList_FromGraph(struct BiLinkedList *, const struct Graph *);
 struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *);
 struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *);
 struct BiLinkedList *BiLinkedList_NewFromVector(const struct Vector *);
 struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *);
+struct BiLinkedList *BiLinkedList_NewFromGraph(const struct Graph *);
 /***************/
 
 
@@ -407,15 +400,17 @@ void Tuple_FromUniLinkedList(struct Tuple *, const struct UniLinkedList *);
 void Tuple_FromMap(struct Tuple *, const struct Hashmap *);
 void Tuple_FromVector(struct Tuple *, const struct Vector *);
 void Tuple_FromBiLinkedList(struct Tuple *, const struct BiLinkedList *);
+void Tuple_FromGraph(struct Tuple *, const struct Graph *);
 
 struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Tuple *Tuple_NewFromMap(const struct Hashmap *);
 struct Tuple *Tuple_NewFromVector(const struct Vector *);
 struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *);
+struct Tuple *Tuple_NewFromGraph(const struct Graph *);
 /***************/
 
 /************* Heap Memory Pool (heap.c) *************/
-// uncomment 'DSC_NO_MALLOC' if you can't use 'malloc'.
+// uncomment 'DSC_NO_MALLOC' if you can't or don't want to use 'malloc/calloc'.
 //#define DSC_NO_MALLOC
 #ifdef DSC_NO_MALLOC
 	#define DSC_HEAPSIZE	(1<<10)
@@ -451,6 +446,87 @@ void Heap_Release(struct Heap *, void *);
 size_t Heap_Remaining(const struct Heap *);
 size_t Heap_Size(const struct Heap *);
 struct AllocNode *Heap_GetFreeList(const struct Heap *);
+/***************/
+
+
+/************* Graph (Adjacency List) (graph.c) *************/
+struct GraphVertex;
+struct GraphEdge {
+	union Value Weight;
+	struct GraphEdge *NextEdge;
+	struct GraphVertex *VertexSocket;
+};
+
+struct GraphEdge *GraphEdge_New(void);
+struct GraphEdge *GraphEdge_NewVP(union Value, struct GraphVertex *);
+void GraphEdge_Del(struct GraphEdge *, bool (*)());
+void GraphEdge_Free(struct GraphEdge **, bool (*)());
+
+union Value GraphEdge_GetWeight(const struct GraphEdge *);
+void GraphEdge_SetWeight(struct GraphEdge *, union Value);
+struct GraphVertex *GraphEdge_GetVertex(const struct GraphEdge *);
+void GraphEdge_SetVertex(struct GraphEdge *, struct GraphVertex *);
+
+
+struct GraphVertex {
+	// struct GraphEdgeBiList
+	struct GraphEdge *EdgeHead, *EdgeTail;
+	size_t Edges;
+	union Value Data;
+};
+
+void GraphVertex_Del(struct GraphVertex *, bool (*)(), bool (*)());
+struct GraphEdge *GraphVertex_GetEdges(struct GraphVertex *);
+union Value GraphVertex_GetData(const struct GraphVertex *);
+void GraphVertex_SetData(struct GraphVertex *, union Value);
+
+
+struct Graph {
+	struct GraphVertex *VertVec;
+	size_t VecLen, Vertices;
+	bool
+		(*VertexDestructor)(),
+		(*EdgeDestructor)()
+	;
+};
+
+struct Graph *Graph_New(bool (*)(), bool (*)());
+void Graph_Init(struct Graph *, bool (*)(), bool (*)());
+void Graph_Del(struct Graph *);
+void Graph_Free(struct Graph **);
+
+bool Graph_InsertVertexByValue(struct Graph *, union Value);
+bool Graph_RemoveVertexByValue(struct Graph *, union Value);
+bool Graph_RemoveVertexByIndex(struct Graph *, size_t);
+
+bool Graph_InsertEdgeBtwnVerts(struct Graph *, size_t, size_t, union Value);
+bool Graph_RemoveEdgeBtwnVerts(struct Graph *, size_t, size_t);
+
+struct GraphVertex *Graph_GetVertexByIndex(struct Graph *, size_t);
+union Value Graph_GetVertexDataByIndex(struct Graph *, size_t);
+void Graph_SetVertexDataByIndex(struct Graph *, size_t, union Value);
+struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *, size_t, size_t);
+
+bool Graph_IsVertexAdjacent(struct Graph *, size_t, size_t);
+struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *, size_t);
+
+struct GraphVertex *Graph_GetVertexArray(struct Graph *);
+size_t Graph_GetVerticeCount(const struct Graph *);
+size_t Graph_GetEdgeCount(const struct Graph *);
+void Graph_SetItemDestructors(struct Graph *, bool (*)(), bool (*)());
+void Graph_Resize(struct Graph *);
+void Graph_Truncate(struct Graph *);
+
+void Graph_FromVector(struct Graph *, const struct Vector *);
+void Graph_FromMap(struct Graph *, const struct Hashmap *);
+void Graph_FromUniLinkedList(struct Graph *, const struct UniLinkedList *);
+void Graph_FromBiLinkedList(struct Graph *, const struct BiLinkedList *);
+void Graph_FromTuple(struct Graph *, const struct Tuple *);
+struct Graph *Graph_NewFromVector(const struct Vector *);
+struct Graph *Graph_NewFromMap(const struct Hashmap *);
+struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *);
+struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *);
+struct Graph *Graph_NewFromTuple(const struct Tuple *);
 /***************/
 
 #ifdef __cplusplus

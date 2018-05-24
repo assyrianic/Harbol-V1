@@ -346,6 +346,14 @@ void BiLinkedList_FromTuple(struct BiLinkedList *const __restrict bilist, const 
 		BiLinkedList_InsertValueAtTail(bilist, tup->Items[i]);
 }
 
+void BiLinkedList_FromGraph(struct BiLinkedList *const __restrict bilist, const struct Graph *const __restrict graph)
+{
+	if( !bilist or !graph )
+		return;
+	for( size_t i=0 ; i<graph->Vertices ; i++ )
+		BiLinkedList_InsertValueAtTail(bilist, graph->VertVec[i].Data);
+}
+
 
 struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *const __restrict unilist)
 {
@@ -380,5 +388,14 @@ struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *const __restr
 		return NULL;
 	struct BiLinkedList *bilist = BiLinkedList_New(NULL);
 	BiLinkedList_FromTuple(bilist, tup);
+	return bilist;
+}
+
+struct BiLinkedList *BiLinkedList_NewFromGraph(const struct Graph *const __restrict graph)
+{
+	if( !graph )
+		return NULL;
+	struct BiLinkedList *bilist = BiLinkedList_New(NULL);
+	BiLinkedList_FromGraph(bilist, graph);
 	return bilist;
 }

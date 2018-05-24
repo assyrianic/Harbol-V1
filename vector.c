@@ -147,11 +147,12 @@ void Vector_Delete(struct Vector *const __restrict v, const size_t index)
 	if( v->Destructor )
 		(*v->Destructor)(&v->Table[index].Ptr);
 	
-	const size_t
+	size_t
 		i=index+1,
 		j=index
 	;
-	memmove(v->Table+j, v->Table+i, v->Count);
+	while( i<v->Count )
+		v->Table[j++] = v->Table[i++];
 	v->Count--;
 	// can't keep auto-truncating, allocating memory every time can be expensive.
 	// I'll let the programmers truncate whenever they need to.
@@ -239,10 +240,22 @@ void Vector_FromTuple(struct Vector *const __restrict v, const struct Tuple *con
 			Vector_Resize(v);
 	
 	size_t i=0;
-	while( i < tup->Len )
+	while( i<tup->Len )
 		v->Table[v->Count++] = tup->Items[i++];
 }
 
+void Vector_FromGraph(struct Vector *const __restrict v, const struct Graph *const __restrict graph)
+{
+	if( !v or !graph )
+		return;
+	else if( !v->Table or v->Count+graph->Vertices >= v->Len )
+		while( v->Count+graph->Vertices >= v->Len )
+			Vector_Resize(v);
+	
+	size_t i=0;
+	while( i<graph->Vertices )
+		v->Table[v->Count++] = graph->VertVec[i++].Data;
+}
 
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
@@ -277,5 +290,14 @@ struct Vector *Vector_NewFromTuple(const struct Tuple *const __restrict tup)
 		return NULL;
 	struct Vector *v = Vector_New(NULL);
 	Vector_FromTuple(v, tup);
+	return v;
+}
+
+struct Vector *Vector_NewFromGraph(const struct Graph *const __restrict graph)
+{
+	if( !graph )
+		return NULL;
+	struct Vector *v = Vector_New(NULL);
+	Vector_FromGraph(v, graph);
 	return v;
 }

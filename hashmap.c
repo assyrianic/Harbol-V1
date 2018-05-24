@@ -51,7 +51,6 @@ static size_t GenHash(const char *cstr)
 	
 	for( const char *__restrict us = cstr ; *us ; us++ )
 		h = 37 * h + *us;
-	
 	return h;
 }
 
@@ -316,6 +315,18 @@ void Map_FromTuple(struct Hashmap *const __restrict map, const struct Tuple *con
 	}
 }
 
+void Map_FromGraph(struct Hashmap *const __restrict map, const struct Graph *const __restrict graph)
+{
+	if( !map or !graph )
+		return;
+	
+	for( size_t i=0 ; i<graph->Vertices ; i++ ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		Map_Insert(map, cstrkey, graph->VertVec[i].Data);
+	}
+}
+
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
 	if( !list )
@@ -353,5 +364,15 @@ struct Hashmap *Map_NewFromTuple(const struct Tuple *const __restrict tup)
 	
 	struct Hashmap *map = Map_New(NULL);
 	Map_FromTuple(map, tup);
+	return map;
+}
+
+struct Hashmap *Map_NewFromGraph(const struct Graph *const __restrict graph)
+{
+	if( !graph )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(NULL);
+	Map_FromGraph(map, graph);
 	return map;
 }

@@ -119,6 +119,20 @@ void Tuple_FromBiLinkedList(struct Tuple *const __restrict tup, const struct BiL
 	Tuple_Init(tup, i, list_items);
 }
 
+void Tuple_FromGraph(struct Tuple *const __restrict tup, const struct Graph *const __restrict graph)
+{
+	if( !tup or !graph )
+		return;
+	
+	if( tup->Items )
+		Tuple_Del(tup);
+	
+	union Value list_items[graph->Vertices];
+	for( size_t i=0 ; i<graph->Vertices ; i++ )
+		list_items[i] = graph->VertVec[i].Data;
+	
+	Tuple_Init(tup, graph->Vertices, list_items);
+}
 
 struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
@@ -150,5 +164,13 @@ struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 		return NULL;
 	struct Tuple *tup = calloc(1, sizeof *tup);
 	Tuple_FromBiLinkedList(tup, list);
+	return tup;
+}
+struct Tuple *Tuple_NewFromGraph(const struct Graph *const __restrict graph)
+{
+	if( !graph )
+		return NULL;
+	struct Tuple *tup = calloc(1, sizeof *tup);
+	Tuple_FromGraph(tup, graph);
 	return tup;
 }
