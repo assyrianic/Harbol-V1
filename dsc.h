@@ -19,6 +19,7 @@ struct BiLinkedList;
 struct ByteBuffer;
 struct Tuple;
 struct Graph;
+struct TreeNode;
 
 union Value {
 	bool Bool, *BoolPtr, (*BoolFunc)(), *(*BoolPtrFunc)();
@@ -173,11 +174,13 @@ void Vector_SetItemDestructor(struct Vector *, bool (*)());
 void Vector_Delete(struct Vector *, size_t);
 void Vector_Add(struct Vector *, const struct Vector *);
 void Vector_Copy(struct Vector *, const struct Vector *);
+
 void Vector_FromUniLinkedList(struct Vector *, const struct UniLinkedList *);
 void Vector_FromBiLinkedList(struct Vector *, const struct BiLinkedList *);
 void Vector_FromMap(struct Vector *, const struct Hashmap *);
 void Vector_FromTuple(struct Vector *, const struct Tuple *);
 void Vector_FromGraph(struct Vector *, const struct Graph *);
+
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Vector *Vector_NewFromMap(const struct Hashmap *);
@@ -205,7 +208,6 @@ struct Hashmap {
 	bool (*Destructor)(/* Type **Obj */);
 };
 
-
 struct Hashmap *Map_New(bool (*)());
 void Map_Init(struct Hashmap *, bool (*)());
 void Map_Del(struct Hashmap *);
@@ -231,6 +233,7 @@ void Map_FromBiLinkedList(struct Hashmap *, const struct BiLinkedList *);
 void Map_FromVector(struct Hashmap *, const struct Vector *);
 void Map_FromTuple(struct Hashmap *, const struct Tuple *);
 void Map_FromGraph(struct Hashmap *, const struct Graph *);
+
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Hashmap *Map_NewFromVector(const struct Vector *);
@@ -470,7 +473,7 @@ void GraphEdge_SetVertex(struct GraphEdge *, struct GraphVertex *);
 
 struct GraphVertex {
 	struct GraphEdge *EdgeHead, *EdgeTail;
-	size_t Edges;
+	size_t EdgeLen;
 	union Value Data;
 };
 
@@ -481,11 +484,11 @@ void GraphVertex_SetData(struct GraphVertex *, union Value);
 
 
 struct Graph {
-	struct GraphVertex *VertVec;
-	size_t VecLen, Vertices;
+	struct GraphVertex *Vertices;
+	size_t VertexLen, VertexCount;
 	bool
-		(*VertexDestructor)(),
-		(*EdgeDestructor)()
+		(*VertexDestructor)(/* Type **Obj */),
+		(*EdgeDestructor)(/* Type **Obj */)
 	;
 };
 
@@ -521,11 +524,42 @@ void Graph_FromMap(struct Graph *, const struct Hashmap *);
 void Graph_FromUniLinkedList(struct Graph *, const struct UniLinkedList *);
 void Graph_FromBiLinkedList(struct Graph *, const struct BiLinkedList *);
 void Graph_FromTuple(struct Graph *, const struct Tuple *);
+
 struct Graph *Graph_NewFromVector(const struct Vector *);
 struct Graph *Graph_NewFromMap(const struct Hashmap *);
 struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Graph *Graph_NewFromTuple(const struct Tuple *);
+/***************/
+
+
+/************* General Tree (tree.c) *************/
+struct TreeNode {
+	struct TreeNode **Children;
+	size_t ChildLen, ChildCount;
+	union Value Data;
+};
+
+struct TreeNode *TreeNode_New(union Value);
+void TreeNode_Init(struct TreeNode *);
+void TreeNode_InitVal(struct TreeNode *, union Value);
+void TreeNode_Del(struct TreeNode *, bool(*)());
+void TreeNode_Free(struct TreeNode **, bool(*)());
+
+bool TreeNode_InsertChildByNode(struct TreeNode *, struct TreeNode *);
+bool TreeNode_InsertChildByValue(struct TreeNode *, union Value);
+
+bool TreeNode_RemoveChildByRef(struct TreeNode *, struct TreeNode **, bool(*)());
+bool TreeNode_RemoveChildByIndex(struct TreeNode *, size_t, bool(*)());
+bool TreeNode_RemoveChildByValue(struct TreeNode *, union Value, bool(*)());
+
+struct TreeNode *TreeNode_GetChildByIndex(const struct TreeNode *, size_t);
+struct TreeNode *TreeNode_GetChildByValue(const struct TreeNode *, union Value);
+union Value TreeNode_GetData(const struct TreeNode *);
+void TreeNode_SetData(struct TreeNode *, union Value);
+struct TreeNode **TreeNode_GetChildren(const struct TreeNode *);
+size_t TreeNode_GetChildLen(const struct TreeNode *);
+size_t TreeNode_GetChildCount(const struct TreeNode *);
 /***************/
 
 #ifdef __cplusplus

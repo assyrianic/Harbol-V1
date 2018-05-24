@@ -320,10 +320,10 @@ void Map_FromGraph(struct Hashmap *const __restrict map, const struct Graph *con
 	if( !map or !graph )
 		return;
 	
-	for( size_t i=0 ; i<graph->Vertices ; i++ ) {
+	for( size_t i=0 ; i<graph->VertexCount ; i++ ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
-		Map_Insert(map, cstrkey, graph->VertVec[i].Data);
+		Map_Insert(map, cstrkey, graph->Vertices[i].Data);
 	}
 }
 

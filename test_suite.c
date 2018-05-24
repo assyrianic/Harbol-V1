@@ -13,6 +13,7 @@ void TestByteBuffer(void);
 void TestTuple(void);
 void TestHeapPool(void);
 void TestGraph(void);
+void TestTree(void);
 void TestDSConversions(void);
 
 FILE *DSC_debug_output = NULL;
@@ -33,7 +34,8 @@ int main()
 	TestHeapPool();
 	TestGraph();
 	*/
-	TestDSConversions();
+	TestTree();
+	//TestDSConversions();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
 
@@ -731,36 +733,36 @@ void TestGraph(void)
 	if( p )
 		fputs("graph :: allocation/initialization of p is GOOD.\n", DSC_debug_output);
 	
-	// Test adding vertices
-	fputs("\ngraph :: test adding vertices.\n", DSC_debug_output);
+	// Test adding VertexCount
+	fputs("\ngraph :: test adding VertexCount.\n", DSC_debug_output);
 	for( size_t c=0 ; c<5 ; c++ ) {
 		Graph_InsertVertexByValue(&g, (union Value){.Int64=c+1});
 		Graph_InsertVertexByValue(p, (union Value){.Int64=c+1});
 	}
-	for( size_t i=0 ; i<g.Vertices ; i++ )
-		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n",g.VertVec[i].Data.Int64);
+	for( size_t i=0 ; i<g.VertexCount ; i++ )
+		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n",g.Vertices[i].Data.Int64);
 	
-	// test linking two vertices
-	fputs("\ngraph :: test linking vertices.\n", DSC_debug_output);
+	// test linking two VertexCount
+	fputs("\ngraph :: test linking VertexCount.\n", DSC_debug_output);
 	fprintf(DSC_debug_output, "linking was success?: '%u'\n", Graph_InsertEdgeBtwnVerts(&g, 0, 1, (union Value){0}));
 	fprintf(DSC_debug_output, "Edge count in graph: '%u'\n", Graph_GetEdgeCount(&g));
 	
-	for( size_t i=0 ; i<g.Vertices ; i++ ) {
-		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n",g.VertVec[i].Data.Int64);
-		for( struct GraphEdge *k=g.VertVec[i].EdgeHead ; k ; k=k->NextEdge ) {
+	for( size_t i=0 ; i<g.VertexCount ; i++ ) {
+		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n",g.Vertices[i].Data.Int64);
+		for( struct GraphEdge *k=g.Vertices[i].EdgeHead ; k ; k=k->NextEdge ) {
 			fprintf(DSC_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
 			if( k->VertexSocket )
 				fprintf(DSC_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	
-	// test unlinking the two previous vertices
-	fputs("\ngraph :: test unlinking the two previous vertices.\n", DSC_debug_output);
+	// test unlinking the two previous VertexCount
+	fputs("\ngraph :: test unlinking the two previous VertexCount.\n", DSC_debug_output);
 	fprintf(DSC_debug_output, "unlinking was success?: '%u'\n", Graph_RemoveEdgeBtwnVerts(&g, 0, 1));
 	fprintf(DSC_debug_output, "Edge count in graph: '%u'\n", Graph_GetEdgeCount(&g));
 	
-	// test linking ALL available vertices!
-	fputs("\ngraph :: test linking all vertices in graph.\n", DSC_debug_output);
+	// test linking ALL available VertexCount!
+	fputs("\ngraph :: test linking all VertexCount in graph.\n", DSC_debug_output);
 	// link 1 to 2
 	Graph_InsertEdgeBtwnVerts(&g, 0, 1, (union Value){0});
 	// link 2 to 3
@@ -773,18 +775,18 @@ void TestGraph(void)
 	Graph_InsertEdgeBtwnVerts(&g, 4, 2, (union Value){0});
 	fprintf(DSC_debug_output, "Edge count in graph: '%u'\n", Graph_GetEdgeCount(&g));
 	
-	for( size_t i=0 ; i<g.Vertices ; i++ ) {
-		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.VertVec[i].Data.Int64);
-		for( struct GraphEdge *k=g.VertVec[i].EdgeHead ; k ; k=k->NextEdge ) {
+	for( size_t i=0 ; i<g.VertexCount ; i++ ) {
+		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.Vertices[i].Data.Int64);
+		for( struct GraphEdge *k=g.Vertices[i].EdgeHead ; k ; k=k->NextEdge ) {
 			fprintf(DSC_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
 			if( k->VertexSocket )
 				fprintf(DSC_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	fprintf(DSC_debug_output, "\nRemoving 5th value success?: '%u'\n", Graph_RemoveVertexByIndex(&g, 4));
-	for( size_t i=0 ; i<g.Vertices ; i++ ) {
-		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.VertVec[i].Data.Int64);
-		for( struct GraphEdge *k=g.VertVec[i].EdgeHead ; k ; k=k->NextEdge ) {
+	for( size_t i=0 ; i<g.VertexCount ; i++ ) {
+		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.Vertices[i].Data.Int64);
+		for( struct GraphEdge *k=g.Vertices[i].EdgeHead ; k ; k=k->NextEdge ) {
 			fprintf(DSC_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
 			if( k->VertexSocket )
 				fprintf(DSC_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
@@ -794,9 +796,9 @@ void TestGraph(void)
 	// test changing vertex data through an index!
 	fprintf(DSC_debug_output, "\nTest changing vertex data by index\n");
 	Graph_SetVertexDataByIndex(&g, 0, (union Value){.Int64 = 100});
-	for( size_t i=0 ; i<g.Vertices ; i++ ) {
-		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.VertVec[i].Data.Int64);
-		for( struct GraphEdge *k=g.VertVec[i].EdgeHead ; k ; k=k->NextEdge ) {
+	for( size_t i=0 ; i<g.VertexCount ; i++ ) {
+		fprintf(DSC_debug_output, "Vertex Data: '%lli'\n", g.Vertices[i].Data.Int64);
+		for( struct GraphEdge *k=g.Vertices[i].EdgeHead ; k ; k=k->NextEdge ) {
 			fprintf(DSC_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
 			if( k->VertexSocket )
 				fprintf(DSC_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
@@ -818,11 +820,82 @@ void TestGraph(void)
 	// free data
 	fputs("\ngraph :: test destruction.\n", DSC_debug_output);
 	Graph_Del(&g);
-	fprintf(DSC_debug_output, "i's Vertices vector is null? '%s'\n", g.VertVec ? "no" : "yes");
+	fprintf(DSC_debug_output, "i's VertexCount vector is null? '%s'\n", g.Vertices ? "no" : "yes");
 	
 	Graph_Del(p);
-	fprintf(DSC_debug_output, "p's Vertices vector is null? '%s'\n", p->VertVec ? "no" : "yes");
+	fprintf(DSC_debug_output, "p's VertexCount vector is null? '%s'\n", p->Vertices ? "no" : "yes");
 	Graph_Free(&p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+}
+
+void TestTree(void)
+{
+	if( !DSC_debug_output )
+		return;
+	
+	// Test allocation and initializations
+	fputs("tree :: test allocation/initialization.\n", DSC_debug_output);
+	struct TreeNode i = (struct TreeNode){0};
+	TreeNode_Init(&i);
+	struct TreeNode *p = TreeNode_New((union Value){0});
+	if( p )
+		fputs("graph :: allocation/initialization of p is GOOD.\n", DSC_debug_output);
+	
+	
+	// Test insertions
+	fputs("\ntree :: test insertions.\n", DSC_debug_output);
+	fprintf(DSC_debug_output, "insertion by node success?: '%u'\n", TreeNode_InsertChildByNode(p, TreeNode_New((union Value){.Int64=20})));
+	fprintf(DSC_debug_output, "insertion by value success?: '%u'\n", TreeNode_InsertChildByValue(p, (union Value){.Int64=10}));
+	TreeNode_Del(p, NULL);
+	
+	// Test deletions
+	fputs("\ntree :: test deletions by first adding 5 children.\n", DSC_debug_output);
+	TreeNode_InsertChildByValue(p, (union Value){.Int64=1});
+	TreeNode_InsertChildByValue(p, (union Value){.Int64=2});
+	TreeNode_InsertChildByValue(p, (union Value){.Int64=3});
+	TreeNode_InsertChildByValue(p, (union Value){.Int64=4});
+	TreeNode_InsertChildByValue(p, (union Value){.Int64=5});
+	for( size_t n=0 ; n<p->ChildCount ; n++ )
+		fprintf(DSC_debug_output, "child #%zu value: '%lli'\n", n, p->Children[n]->Data.Int64);
+	
+	fputs("\ndeleting index 1\n", DSC_debug_output);
+	TreeNode_RemoveChildByIndex(p, 1, NULL);
+	for( size_t n=0 ; n<p->ChildCount ; n++ )
+		fprintf(DSC_debug_output, "child #%zu value: '%lli'\n", n, p->Children[n]->Data.Int64);
+	
+	// Test delete by node reference
+	fputs("\ntree :: test deletion by node reference.\n", DSC_debug_output);
+	// delete first child!
+	fputs("\ndeleting index 0\n", DSC_debug_output);
+	TreeNode_RemoveChildByRef(p, p->Children, NULL);
+	for( size_t n=0 ; n<p->ChildCount ; n++ )
+		fprintf(DSC_debug_output, "child #%zu value: '%lli'\n", n, p->Children[n]->Data.Int64);
+	
+	// Test creating something of an abstract syntax tree.
+	fputs("\ntree :: test creating something of an abstract syntax tree.\n", DSC_debug_output);
+	TreeNode_Del(p, NULL);
+	TreeNode_SetData(p, (union Value){.StrObjPtr=String_NewStr("program")});
+	TreeNode_InsertChildByValue(p, (union Value){.StrObjPtr=String_NewStr("stmt")});
+	TreeNode_InsertChildByValue(p->Children[0], (union Value){.StrObjPtr=String_NewStr("if")});
+	TreeNode_InsertChildByValue(p->Children[0], (union Value){.StrObjPtr=String_NewStr("cond")});
+	TreeNode_InsertChildByValue(p->Children[0], (union Value){.StrObjPtr=String_NewStr("stmt")});
+	TreeNode_InsertChildByValue(p->Children[0], (union Value){.StrObjPtr=String_NewStr("else")});
+	fprintf(DSC_debug_output, "p's data: '%s'\n", p->Data.StrObjPtr->CStr);
+	fprintf(DSC_debug_output, "p's child data: '%s'\n", p->Children[0]->Data.StrObjPtr->CStr);
+	for( size_t n=0 ; n<p->Children[0]->ChildCount ; n++ )
+		fprintf(DSC_debug_output, "p's child's children data: '%s'\n", p->Children[0]->Children[n]->Data.StrObjPtr->CStr);
+	
+	fputs("\nfreeing string data.\n", DSC_debug_output);
+	TreeNode_Del(p, String_Free);
+	
+	// free data
+	fputs("\ntree :: test destruction.\n", DSC_debug_output);
+	TreeNode_Del(&i, NULL);
+	fprintf(DSC_debug_output, "i's Children vector is null? '%s'\n", i.Children ? "no" : "yes");
+	
+	TreeNode_Del(p, NULL);
+	fprintf(DSC_debug_output, "p's Children vector is null? '%s'\n", p->Children ? "no" : "yes");
+	TreeNode_Free(&p, NULL);
 	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 }
 
@@ -1118,40 +1191,40 @@ void TestDSConversions(void)
 		p = Graph_NewFromUniLinkedList(&unilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<p->Vertices ; i++ )
-				fprintf(DSC_debug_output, "unilist value : %lli\n", p->VertVec[i].Data.Int64);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "unilist value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
 		
 		p = Graph_NewFromMap(&map);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<p->Vertices ; i++ )
-				fprintf(DSC_debug_output, "map value : %lli\n", p->VertVec[i].Data.Int64);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "map value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
 		
 		p = Graph_NewFromVector(&vec);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<p->Vertices ; i++ )
-				fprintf(DSC_debug_output, "vec value : %lli\n", p->VertVec[i].Data.Int64);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "vec value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
 		
 		p = Graph_NewFromBiLinkedList(&bilist);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<p->Vertices ; i++ )
-				fprintf(DSC_debug_output, "bilist value : %lli\n", p->VertVec[i].Data.Int64);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "bilist value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
 		
 		p = Graph_NewFromTuple(&tuple);
 		if( p ) {
 			fputs("ptr is valid\n", DSC_debug_output);
-			for( size_t i=0 ; i<p->Vertices ; i++ )
-				fprintf(DSC_debug_output, "tuple value : %lli\n", p->VertVec[i].Data.Int64);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "tuple value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
 	}

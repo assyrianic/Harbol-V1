@@ -350,8 +350,8 @@ void BiLinkedList_FromGraph(struct BiLinkedList *const __restrict bilist, const 
 {
 	if( !bilist or !graph )
 		return;
-	for( size_t i=0 ; i<graph->Vertices ; i++ )
-		BiLinkedList_InsertValueAtTail(bilist, graph->VertVec[i].Data);
+	for( size_t i=0 ; i<graph->VertexCount ; i++ )
+		BiLinkedList_InsertValueAtTail(bilist, graph->Vertices[i].Data);
 }
 
 

@@ -248,13 +248,13 @@ void Vector_FromGraph(struct Vector *const __restrict v, const struct Graph *con
 {
 	if( !v or !graph )
 		return;
-	else if( !v->Table or v->Count+graph->Vertices >= v->Len )
-		while( v->Count+graph->Vertices >= v->Len )
+	else if( !v->Table or v->Count+graph->VertexCount >= v->Len )
+		while( v->Count+graph->VertexCount >= v->Len )
 			Vector_Resize(v);
 	
 	size_t i=0;
-	while( i<graph->Vertices )
-		v->Table[v->Count++] = graph->VertVec[i++].Data;
+	while( i<graph->VertexCount )
+		v->Table[v->Count++] = graph->Vertices[i++].Data;
 }
 
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)

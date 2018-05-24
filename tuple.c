@@ -127,11 +127,11 @@ void Tuple_FromGraph(struct Tuple *const __restrict tup, const struct Graph *con
 	if( tup->Items )
 		Tuple_Del(tup);
 	
-	union Value list_items[graph->Vertices];
-	for( size_t i=0 ; i<graph->Vertices ; i++ )
-		list_items[i] = graph->VertVec[i].Data;
+	union Value list_items[graph->VertexCount];
+	for( size_t i=0 ; i<graph->VertexCount ; i++ )
+		list_items[i] = graph->Vertices[i].Data;
 	
-	Tuple_Init(tup, graph->Vertices, list_items);
+	Tuple_Init(tup, graph->VertexCount, list_items);
 }
 
 struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)

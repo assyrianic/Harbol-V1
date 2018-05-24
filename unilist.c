@@ -360,8 +360,8 @@ void UniLinkedList_FromGraph(struct UniLinkedList *const __restrict unilist, con
 {
 	if( !unilist or !graph )
 		return;
-	for( size_t i=0 ; i<graph->Vertices ; i++ )
-		UniLinkedList_InsertValueAtTail(unilist, graph->VertVec[i].Data);
+	for( size_t i=0 ; i<graph->VertexCount ; i++ )
+		UniLinkedList_InsertValueAtTail(unilist, graph->Vertices[i].Data);
 }
 
 

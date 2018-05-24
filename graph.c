@@ -120,10 +120,10 @@ void Graph_Del(struct Graph *const __restrict graph)
 	if( !graph )
 		return;
 	
-	for( size_t i=0 ; i<graph->Vertices ; i++ )
-		GraphVertex_Del(graph->VertVec+i, graph->EdgeDestructor, graph->VertexDestructor);
-	free(graph->VertVec), graph->VertVec=NULL;
-	graph->Vertices = graph->VecLen = 0;
+	for( size_t i=0 ; i<graph->VertexCount ; i++ )
+		GraphVertex_Del(graph->Vertices+i, graph->EdgeDestructor, graph->VertexDestructor);
+	free(graph->Vertices), graph->Vertices=NULL;
+	graph->VertexCount = graph->VertexLen = 0;
 }
 
 void Graph_Free(struct Graph **__restrict graphref)
@@ -139,10 +139,10 @@ bool Graph_InsertVertexByValue(struct Graph *const __restrict graph, const union
 {
 	if( !graph )
 		return false;
-	else if( !graph->VertVec or graph->Vertices >= graph->VecLen )
+	else if( !graph->Vertices or graph->VertexCount >= graph->VertexLen )
 		Graph_Resize(graph);
 	
-	graph->VertVec[graph->Vertices++].Data = val;
+	graph->Vertices[graph->VertexCount++].Data = val;
 	return true;
 }
 
@@ -153,11 +153,11 @@ bool Graph_RemoveVertexByValue(struct Graph *const __restrict graph, const union
 	
 	struct GraphVertex *vert = NULL;
 	size_t index=0;
-	for( index=0 ; index<graph->Vertices ; index++ ) {
-		if( !vert and graph->VertVec[index].Data.UInt64==val.UInt64 )
-			vert = graph->VertVec + index;
-		// value exists, cut its links with other vertices.
-		for( struct GraphEdge *edge=graph->VertVec[index].EdgeHead ; edge ; edge=edge->NextEdge ) {
+	for( index=0 ; index<graph->VertexCount ; index++ ) {
+		if( !vert and graph->Vertices[index].Data.UInt64==val.UInt64 )
+			vert = graph->Vertices + index;
+		// value exists, cut its links with other VertexCount.
+		for( struct GraphEdge *edge=graph->Vertices[index].EdgeHead ; edge ; edge=edge->NextEdge ) {
 			if( edge->VertexSocket == vert )
 				// sever the link!
 				edge->VertexSocket = NULL;
@@ -169,8 +169,8 @@ bool Graph_RemoveVertexByValue(struct Graph *const __restrict graph, const union
 			i=index+1,
 			j=index
 		;
-		memmove(graph->VertVec+j, graph->VertVec+i, graph->Vertices * sizeof *graph->VertVec);
-		graph->Vertices--;
+		memmove(graph->Vertices+j, graph->Vertices+i, graph->VertexCount * sizeof *graph->Vertices);
+		graph->VertexCount--;
 		return true;
 	}
 	return false;
@@ -187,12 +187,12 @@ bool Graph_RemoveVertexByIndex(struct Graph *const __restrict graph, const size_
 	for( struct GraphEdge *edge=vert->EdgeHead ; edge ; edge=edge->NextEdge )
 		edge->VertexSocket = NULL;
 	
-	for( size_t i=0 ; i<graph->Vertices ; i++ ) {
-		if( graph->VertVec+i == vert )
+	for( size_t i=0 ; i<graph->VertexCount ; i++ ) {
+		if( graph->Vertices+i == vert )
 			continue;
 		
-		// cut links with other vertices.
-		for( struct GraphEdge *edge=graph->VertVec[i].EdgeHead ; edge ; edge=edge->NextEdge ) {
+		// cut links with other VertexCount.
+		for( struct GraphEdge *edge=graph->Vertices[i].EdgeHead ; edge ; edge=edge->NextEdge ) {
 			if( edge->VertexSocket == vert )
 				// sever the link!
 				edge->VertexSocket = NULL;
@@ -204,9 +204,9 @@ bool Graph_RemoveVertexByIndex(struct Graph *const __restrict graph, const size_
 		i=index+1,
 		j=index
 	;
-	while( i<graph->Vertices )
-		graph->VertVec[j++] = graph->VertVec[i++];
-	graph->Vertices--;
+	while( i<graph->VertexCount )
+		graph->Vertices[j++] = graph->Vertices[i++];
+	graph->VertexCount--;
 	return true;
 }
 
@@ -224,13 +224,13 @@ bool Graph_InsertEdgeBtwnVerts(struct Graph *const __restrict graph, const size_
 	if( !edge )
 		return false;
 	
-	if( vert1->Edges ) {
+	if( vert1->EdgeLen ) {
 		edge->NextEdge = NULL;
 		vert1->EdgeTail->NextEdge = edge;
 		vert1->EdgeTail = edge;
 	}
 	else vert1->EdgeHead = vert1->EdgeTail = edge;
-	vert1->Edges++;
+	vert1->EdgeLen++;
 	return true;
 }
 
@@ -258,7 +258,7 @@ bool Graph_RemoveEdgeBtwnVerts(struct Graph *const __restrict graph, const size_
 		vert1->EdgeHead = n->NextEdge;
 	else {
 		struct GraphEdge *travnode = vert1->EdgeHead;
-		for( size_t i=0 ; i<vert1->Edges ; i++ ) {
+		for( size_t i=0 ; i<vert1->EdgeLen ; i++ ) {
 			if( travnode->NextEdge == n ) {
 				if( vert1->EdgeTail == n ) {
 					travnode->NextEdge = NULL;
@@ -271,30 +271,30 @@ bool Graph_RemoveEdgeBtwnVerts(struct Graph *const __restrict graph, const size_
 		}
 	}
 	GraphEdge_Free(&n, graph->EdgeDestructor);
-	vert1->Edges--;
+	vert1->EdgeLen--;
 	return true;
 }
 
 struct GraphVertex *Graph_GetVertexByIndex(struct Graph *const __restrict graph, const size_t index)
 {
-	if( !graph or !graph->VertVec or index >= graph->Vertices )
+	if( !graph or !graph->Vertices or index >= graph->VertexCount )
 		return NULL;
 	
-	return graph->VertVec + index;
+	return graph->Vertices + index;
 }
 
 union Value Graph_GetVertexDataByIndex(struct Graph *const __restrict graph, const size_t index)
 {
-	if( !graph or !graph->VertVec or index>=graph->Vertices )
+	if( !graph or !graph->Vertices or index>=graph->VertexCount )
 		return (union Value){0};
-	return graph->VertVec[index].Data;
+	return graph->Vertices[index].Data;
 }
 
 void Graph_SetVertexDataByIndex(struct Graph *const __restrict graph, const size_t index, const union Value val)
 {
-	if( !graph or !graph->VertVec or index>=graph->Vertices )
+	if( !graph or !graph->Vertices or index>=graph->VertexCount )
 		return;
-	graph->VertVec[index].Data = val;
+	graph->Vertices[index].Data = val;
 }
 
 struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *const __restrict graph, const size_t index, const size_t otherindex)
@@ -332,20 +332,20 @@ bool Graph_IsVertexAdjacent(struct Graph *const __restrict graph, const size_t i
 
 struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *const __restrict graph, const size_t index)
 {
-	if( !graph or index >= graph->Vertices )
+	if( !graph or index >= graph->VertexCount )
 		return NULL;
 	
-	return graph->VertVec[index].EdgeHead;
+	return graph->Vertices[index].EdgeHead;
 }
 
 struct GraphVertex *Graph_GetVertexArray(struct Graph *const __restrict graph)
 {
-	return graph ? graph->VertVec : NULL;
+	return graph ? graph->Vertices : NULL;
 }
 
 size_t Graph_GetVerticeCount(const struct Graph *const __restrict graph)
 {
-	return graph ? graph->Vertices : 0;
+	return graph ? graph->VertexCount : 0;
 }
 
 size_t Graph_GetEdgeCount(const struct Graph *const __restrict graph)
@@ -354,8 +354,8 @@ size_t Graph_GetEdgeCount(const struct Graph *const __restrict graph)
 		return 0;
 	
 	size_t totaledges = 0;
-	for( size_t i=0 ; i<graph->Vertices ; i++ )
-		totaledges += graph->VertVec[i].Edges;
+	for( size_t i=0 ; i<graph->VertexCount ; i++ )
+		totaledges += graph->Vertices[i].EdgeLen;
 	return totaledges;
 }
 
@@ -373,24 +373,24 @@ void Graph_Resize(struct Graph *const __restrict graph)
 	if( !graph )
 		return;
 	
-	size_t oldsize = graph->VecLen;
-	graph->VecLen <<= 1;
-	if( !graph->VecLen )
-		graph->VecLen = 2;
+	size_t oldsize = graph->VertexLen;
+	graph->VertexLen <<= 1;
+	if( !graph->VertexLen )
+		graph->VertexLen = 2;
 	
-	struct GraphVertex *newdata = calloc(graph->VecLen, sizeof *newdata);
+	struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
 	if( !newdata ) {
-		graph->VecLen >>= 1;
-		if( graph->VecLen == 1 )
-			graph->VecLen=0;
+		graph->VertexLen >>= 1;
+		if( graph->VertexLen == 1 )
+			graph->VertexLen=0;
 		return;
 	}
 	
-	if( graph->VertVec ) {
-		memcpy(newdata, graph->VertVec, sizeof *newdata * oldsize);
-		free(graph->VertVec); graph->VertVec = NULL;
+	if( graph->Vertices ) {
+		memcpy(newdata, graph->Vertices, sizeof *newdata * oldsize);
+		free(graph->Vertices); graph->Vertices = NULL;
 	}
-	graph->VertVec = newdata;
+	graph->Vertices = newdata;
 }
 
 void Graph_Truncate(struct Graph *const __restrict graph)
@@ -398,17 +398,17 @@ void Graph_Truncate(struct Graph *const __restrict graph)
 	if( !graph )
 		return;
 	
-	if( graph->Vertices < graph->VecLen>>1 ) {
-		graph->VecLen >>= 1;
-		struct GraphVertex *newdata = calloc(graph->VecLen, sizeof *newdata);
+	if( graph->VertexCount < graph->VertexLen>>1 ) {
+		graph->VertexLen >>= 1;
+		struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
 		if( !newdata )
 			return;
 		
-		if( graph->VertVec ) {
-			memcpy(newdata, graph->VertVec, sizeof *newdata * graph->VecLen);
-			free(graph->VertVec), graph->VertVec = NULL;
+		if( graph->Vertices ) {
+			memcpy(newdata, graph->Vertices, sizeof *newdata * graph->VertexLen);
+			free(graph->Vertices), graph->Vertices = NULL;
 		}
-		graph->VertVec = newdata;
+		graph->Vertices = newdata;
 	}
 }
 
