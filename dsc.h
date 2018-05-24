@@ -469,7 +469,6 @@ void GraphEdge_SetVertex(struct GraphEdge *, struct GraphVertex *);
 
 
 struct GraphVertex {
-	// struct GraphEdgeBiList
 	struct GraphEdge *EdgeHead, *EdgeTail;
 	size_t Edges;
 	union Value Data;
