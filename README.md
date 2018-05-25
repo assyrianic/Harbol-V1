@@ -25,7 +25,3 @@ self-contained all-in-one STL-style data structure collection in C.
 * Graph (*can apply virtual destructors for edge weight data and vertex data*)
 	* can be converted to a vector, hashmap, singly linked list, doubly linked list, and tuple.
 * General Trees (*doesn't have virtual destructors can deletion API supports destructor*)
-
-### Planned Data Structures
-* Ordered Hashmaps (Linked Map)
-* Sets
