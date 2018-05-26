@@ -24,7 +24,7 @@ self-contained all-in-one STL-style data structure collection in C.
 * Heap Memory Pool
 * Graph (*can apply virtual destructors for edge weight data and vertex data*)
 	* can be converted to a vector, hashmap, singly linked list, doubly linked list, and tuple.
-* General Trees (*doesn't have virtual destructors can deletion API supports destructor*)
+* General Trees (*doesn't have virtual destructors as the deletion API takes external destructors*)
 * Basic Plugin Architecture Manager.
 
 ### How to install/use
