@@ -198,6 +198,8 @@ struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *const __restr
 {
 	if( !list )
 		return NULL;
+	else if( index==0 )
+		return list->Head;
 	else if( index >= list->Len )
 		return list->Tail;
 	
@@ -225,7 +227,9 @@ union Value BiLinkedList_GetValue(const struct BiLinkedList *const __restrict li
 {
 	if( !list )
 		return (union Value){0};
-	else if( index >= list->Len )
+	else if( index==0 and list->Head )
+		return list->Head->Data;
+	else if( index >= list->Len and list->Tail )
 		return list->Tail->Data;
 	
 	bool prev_dir = ( index >= list->Len/2 );
@@ -233,6 +237,8 @@ union Value BiLinkedList_GetValue(const struct BiLinkedList *const __restrict li
 	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
 		if( node and i==index )
 			return node->Data;
+		if( (prev_dir and !node->Prev) or (!prev_dir and !node->Next) )
+			break;
 		node = prev_dir ? node->Prev : node->Next;
 	}
 	return (union Value){0};
@@ -242,7 +248,11 @@ void BiLinkedList_SetValue(struct BiLinkedList *const __restrict list, const siz
 {
 	if( !list )
 		return;
-	else if( index >= list->Len ) {
+	else if( index==0 and list->Head ) {
+		list->Head->Data = val;
+		return;
+	}
+	else if( index >= list->Len and list->Tail ) {
 		list->Tail->Data = val;
 		return;
 	}
@@ -254,6 +264,8 @@ void BiLinkedList_SetValue(struct BiLinkedList *const __restrict list, const siz
 			node->Data = val;
 			break;
 		}
+		if( (prev_dir and !node->Prev) or (!prev_dir and !node->Next) )
+			break;
 		node = prev_dir ? node->Prev : node->Next;
 	}
 }

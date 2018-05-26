@@ -14,6 +14,7 @@ void TestTuple(void);
 void TestHeapPool(void);
 void TestGraph(void);
 void TestTree(void);
+void TestPlugins(void);
 void TestDSConversions(void);
 
 FILE *DSC_debug_output = NULL;
@@ -33,8 +34,9 @@ int main()
 	TestTuple();
 	TestHeapPool();
 	TestGraph();
-	*/
 	TestTree();
+	*/
+	TestPlugins();
 	//TestDSConversions();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
@@ -886,7 +888,7 @@ void TestTree(void)
 		fprintf(DSC_debug_output, "p's child's children data: '%s'\n", p->Children[0]->Children[n]->Data.StrObjPtr->CStr);
 	
 	fputs("\nfreeing string data.\n", DSC_debug_output);
-	TreeNode_Del(p, String_Free);
+	TreeNode_Del(p, (bool(*)())String_Free);
 	
 	// free data
 	fputs("\ntree :: test destruction.\n", DSC_debug_output);
@@ -901,6 +903,9 @@ void TestTree(void)
 
 void TestDSConversions(void)
 {
+	if( !DSC_debug_output )
+		return;
+	
 	// inserting five items to all 4 of these collector type data structures.
 	struct Vector vec = (struct Vector){0};
 	Vector_Insert(&vec, (union Value){.Int64 = 1});
@@ -1235,4 +1240,29 @@ void TestDSConversions(void)
 	BiLinkedList_Del(&bilist);
 	Tuple_Del(&tuple);
 	Graph_Del(&graph);
+}
+
+#if OS_WINDOWS
+	#include <direct.h>
+#else
+	#include <unistd.h>
+#endif
+
+void TestPlugins(void)
+{
+	if( !DSC_debug_output )
+		return;
+	
+	struct PluginManager pm = (struct PluginManager){0};
+	char currdir[FILENAME_MAX];
+#if OS_WINDOWS
+	if( GetCurrentDirectory(sizeof currdir, currdir) )
+#else
+	if( getcwd(currdir, sizeof currdir) )
+#endif
+		PluginManager_Init(&pm, currdir);
+	bool r = PluginManager_LoadModule(&pm, "testplugin", 0, NULL);
+	fprintf(DSC_debug_output, "module loaded?: %u\n", r);
+	PluginManager_UnloadAllModules(&pm, 0, NULL);
+	PluginManager_Del(&pm);
 }

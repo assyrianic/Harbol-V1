@@ -178,6 +178,8 @@ struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const __re
 {
 	if( !list )
 		return NULL;
+	else if( index==0 )
+		return list->Head;
 	else if( index >= list->Len )
 		return list->Tail;
 	
@@ -204,13 +206,17 @@ union Value UniLinkedList_GetValue(const struct UniLinkedList *const __restrict 
 {
 	if( !list )
 		return (union Value){0};
-	else if( index >= list->Len )
+	else if( index==0 and list->Head )
+		return list->Head->Data;
+	else if( index >= list->Len and list->Tail )
 		return list->Tail->Data;
 	
 	struct UniListNode *node = list->Head;
 	for( size_t i=0 ; i<list->Len ; i++ ) {
 		if( node and i==index )
 			return node->Data;
+		if( !node->Next )
+			break;
 		node = node->Next;
 	}
 	return (union Value){0};
@@ -220,7 +226,11 @@ void UniLinkedList_SetValue(struct UniLinkedList *const __restrict list, const s
 {
 	if( !list )
 		return;
-	else if( index >= list->Len ) {
+	else if( index==0 and list->Head ) {
+		list->Head->Data = val;
+		return;
+	}
+	else if( index >= list->Len and list->Tail ) {
 		list->Tail->Data = val;
 		return;
 	}
@@ -231,6 +241,8 @@ void UniLinkedList_SetValue(struct UniLinkedList *const __restrict list, const s
 			node->Data = val;
 			break;
 		}
+		if( !node->Next )
+			break;
 		node = node->Next;
 	}
 }

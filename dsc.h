@@ -4,6 +4,15 @@
 extern "C" {
 #endif
 
+#if _WIN32 || _WIN64
+	#define OS_WINDOWS 1
+#elif unix || __unix || __unix__ || __linux__ || linux || __linux || __FreeBSD__
+	#define OS_LINUX_UNIX 1
+#elif __ANDROID__
+	#define OS_ANDROID 1
+#else
+	#define OS_MAC 1
+#endif
 
 #include <stdbool.h>
 #include <string.h>
@@ -47,6 +56,7 @@ union Value {
 	struct ByteBuffer *BufferPtr, (*BufferFunc)(), *(*BufferPtrFunc)();
 	struct Tuple *TuplePtr, (*TupleFunc)(), *(*TuplePtrFunc)();
 	struct Graph *GraphPtr, (*GraphFunc)(), *(*GraphPtrFunc)();
+	struct TreeNode *TreePtr, (*TreeFunc)(), *(*TreePtrFunc)();
 };
 
 typedef enum ValType {
@@ -78,6 +88,7 @@ typedef enum ValType {
 	TypeBufferPtr, TypeBufferFunc, TypeBufferPtrFunc,
 	TypeTuplePtr, TypeTupleFunc, TypeTuplePtrFunc,
 	TypeGraphPtr, TypeGraphFunc, TypeGraphPtrFunc,
+	TypeTreePtr, TypeTreeFunc, TypeTreePtrFunc,
 } ValType;
 
 // discriminated union type
@@ -560,6 +571,62 @@ void TreeNode_SetData(struct TreeNode *, union Value);
 struct TreeNode **TreeNode_GetChildren(const struct TreeNode *);
 size_t TreeNode_GetChildLen(const struct TreeNode *);
 size_t TreeNode_GetChildCount(const struct TreeNode *);
+/***************/
+
+
+/************* C Plugin Architecture (pluginarch.c) *************/
+struct PluginData {
+	// hashmap for functions or global vars.
+	struct Hashmap Symbols;
+	struct String
+		Name,	// plugin name
+		Version,	// plugin version
+		Author,	// plugin author's name (and possible contact info)
+		RunTimeName, // plugin runtime/file name.
+		Descr	// plugin description of operations.
+	;
+#if _WIN32 || _WIN64
+	HMODULE ModulePtr;
+#else
+	void *ModulePtr;
+#endif
+};
+
+struct PluginData *Plugin_New(void);
+void Plugin_Del(struct PluginData *);
+void Plugin_Free(struct PluginData **);
+const char *Plugin_GetName(const struct PluginData *);
+const char *Plugin_GetVersion(const struct PluginData *);
+const char *Plugin_GetAuthor(const struct PluginData *);
+const char *Plugin_GetRuntimeName(const struct PluginData *);
+const char *Plugin_GetDescription(const struct PluginData *);
+
+void Plugin_SetName(struct PluginData *, const char *);
+void Plugin_SetVersion(struct PluginData *, const char *);
+void Plugin_SetAuthor(struct PluginData *, const char *);
+void Plugin_SetDescription(struct PluginData *, const char *);
+
+void *Plugin_GetModulePtr(const struct PluginData *);
+void *Plugin_GetExportedSymbol(const struct PluginData *, const char *);
+
+
+struct PluginManager {
+	struct Hashmap ModuleMap;
+	struct Vector ModuleVec; // purpose of vector is for knowing insertion order.
+	struct String PluginDir;
+};
+
+struct PluginManager *PluginManager_New(const char *);
+void PluginManager_Init(struct PluginManager *, const char *);
+void PluginManager_Del(struct PluginManager *);
+void PluginManager_Free(struct PluginManager **);
+
+bool PluginManager_LoadModule(struct PluginManager *, const char *, size_t, void *[*]);
+bool PluginManager_ReloadModule(struct PluginManager *, const char *, size_t, void *[*]);
+bool PluginManager_ReloadAllModules(struct PluginManager *, size_t, void *[*]);
+bool PluginManager_UnloadModule(struct PluginManager *, const char *, size_t, void *[*]);
+bool PluginManager_UnloadAllModules(struct PluginManager *, size_t, void *[*]);
+
 /***************/
 
 #ifdef __cplusplus
