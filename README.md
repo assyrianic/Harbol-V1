@@ -25,6 +25,7 @@ self-contained all-in-one STL-style data structure collection in C.
 * Graph (*can apply virtual destructors for edge weight data and vertex data*)
 	* can be converted to a vector, hashmap, singly linked list, doubly linked list, and tuple.
 * General Trees (*doesn't have virtual destructors can deletion API supports destructor*)
+* Basic Plugin Architecture Manager.
 
-### How to install
+### How to install/use
 Run the `build_libCDSC_static.sh` script to build a static library that you can then link into your C (or C++ if u don't want to use STL) program.
