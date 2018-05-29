@@ -452,12 +452,21 @@ void Graph_FromTuple(struct Graph *const __restrict graph, const struct Tuple *c
 	for( size_t i=0 ; i<tup->Len ; i++ )
 		Graph_InsertVertexByValue(graph, tup->Items[i]);
 }
+void Graph_FromLinkMap(struct Graph *const __restrict graph, const struct LinkMap *const __restrict map)
+{
+	if( !graph or !map )
+		return;
+	
+	for( struct LinkNode *n=map->Head ; n ; n=n->After )
+		Graph_InsertVertexByValue(graph, n->Data);
+}
+
 
 struct Graph *Graph_NewFromVector(const struct Vector *const __restrict vec)
 {
 	if( !vec )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, NULL);
+	struct Graph *graph = Graph_New(NULL, vec->Destructor);
 	Graph_FromVector(graph, vec);
 	return graph;
 }
@@ -466,7 +475,7 @@ struct Graph *Graph_NewFromMap(const struct Hashmap *const __restrict map)
 {
 	if( !map )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, NULL);
+	struct Graph *graph = Graph_New(NULL, map->Destructor);
 	Graph_FromMap(graph, map);
 	return graph;
 }
@@ -474,7 +483,7 @@ struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *const __res
 {
 	if( !list )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, NULL);
+	struct Graph *graph = Graph_New(NULL, list->Destructor);
 	Graph_FromUniLinkedList(graph, list);
 	return graph;
 }
@@ -482,7 +491,7 @@ struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 {
 	if( !list )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, NULL);
+	struct Graph *graph = Graph_New(NULL, list->Destructor);
 	Graph_FromBiLinkedList(graph, list);
 	return graph;
 }
@@ -492,6 +501,14 @@ struct Graph *Graph_NewFromTuple(const struct Tuple *const __restrict tup)
 		return NULL;
 	struct Graph *graph = Graph_New(NULL, NULL);
 	Graph_FromTuple(graph, tup);
+	return graph;
+}
+struct Graph *Graph_NewFromLinkMap(const struct LinkMap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct Graph *graph = Graph_New(NULL, map->Destructor);
+	Graph_FromLinkMap(graph, map);
 	return graph;
 }
 /**************************************/

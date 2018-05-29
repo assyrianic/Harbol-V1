@@ -29,6 +29,7 @@ struct ByteBuffer;
 struct Tuple;
 struct Graph;
 struct TreeNode;
+struct LinkMap;
 
 union Value {
 	bool Bool, *BoolPtr, (*BoolFunc)(), *(*BoolPtrFunc)();
@@ -57,6 +58,7 @@ union Value {
 	struct Tuple *TuplePtr, (*TupleFunc)(), *(*TuplePtrFunc)();
 	struct Graph *GraphPtr, (*GraphFunc)(), *(*GraphPtrFunc)();
 	struct TreeNode *TreePtr, (*TreeFunc)(), *(*TreePtrFunc)();
+	struct LinkMap *LinkMapPtr, (*LinkMapFunc)(), *(*LinkMapPtrFunc)();
 };
 
 typedef enum ValType {
@@ -89,6 +91,7 @@ typedef enum ValType {
 	TypeTuplePtr, TypeTupleFunc, TypeTuplePtrFunc,
 	TypeGraphPtr, TypeGraphFunc, TypeGraphPtrFunc,
 	TypeTreePtr, TypeTreeFunc, TypeTreePtrFunc,
+	TypeLinkMapPtr, TypeLinkMapFunc, TypeLinkMapPtrFunc,
 } ValType;
 
 // discriminated union type
@@ -96,40 +99,6 @@ struct Variant {
 	union Value Val;
 	enum ValType TypeTag;
 };
-
-inline struct Variant *Variant_New(const union Value val, const enum ValType typeID)
-{
-	struct Variant *var = calloc(1, sizeof *var);
-	if( var )
-		var->Val = val, var->TypeTag = typeID;
-	return var;
-}
-
-inline union Value Variant_GetVal(struct Variant *const __restrict var)
-{
-	return var ? var->Val : (union Value){0};
-}
-
-inline enum ValType Variant_GetType(struct Variant *const __restrict var)
-{
-	return var ? var->TypeTag : TypeInvalid;
-}
-
-inline void Variant_Del(struct Variant *const __restrict var, bool (*dtor)())
-{
-	if( !var )
-		return;
-	if( dtor )
-		(*dtor)(&var->Val.Ptr);
-}
-
-inline void Variant_Free(struct Variant **__restrict varref, bool (*dtor)())
-{
-	if( !*varref )
-		return;
-	Variant_Del(*varref, dtor);
-	free(*varref), *varref=NULL;
-}
 
 
 /************* C++ Style Automated String (stringobj.c) *************/
@@ -191,12 +160,14 @@ void Vector_FromBiLinkedList(struct Vector *, const struct BiLinkedList *);
 void Vector_FromMap(struct Vector *, const struct Hashmap *);
 void Vector_FromTuple(struct Vector *, const struct Tuple *);
 void Vector_FromGraph(struct Vector *, const struct Graph *);
+void Vector_FromLinkMap(struct Vector *, const struct LinkMap *);
 
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Vector *Vector_NewFromMap(const struct Hashmap *);
 struct Vector *Vector_NewFromTuple(const struct Tuple *);
 struct Vector *Vector_NewFromGraph(const struct Graph *);
+struct Vector *Vector_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 /************* Hashmap (hashmap.c) *************/
@@ -244,12 +215,14 @@ void Map_FromBiLinkedList(struct Hashmap *, const struct BiLinkedList *);
 void Map_FromVector(struct Hashmap *, const struct Vector *);
 void Map_FromTuple(struct Hashmap *, const struct Tuple *);
 void Map_FromGraph(struct Hashmap *, const struct Graph *);
+void Map_FromLinkMap(struct Hashmap *, const struct LinkMap *);
 
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Hashmap *Map_NewFromVector(const struct Vector *);
 struct Hashmap *Map_NewFromTuple(const struct Tuple *);
 struct Hashmap *Map_NewFromGraph(const struct Graph *);
+struct Hashmap *Map_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 
@@ -302,11 +275,14 @@ void UniLinkedList_FromMap(struct UniLinkedList *, const struct Hashmap *);
 void UniLinkedList_FromVector(struct UniLinkedList *, const struct Vector *);
 void UniLinkedList_FromTuple(struct UniLinkedList *, const struct Tuple *);
 void UniLinkedList_FromGraph(struct UniLinkedList *, const struct Graph *);
+void UniLinkedList_FromLinkMap(struct UniLinkedList *, const struct LinkMap *);
+
 struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *);
 struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *);
 struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *);
 struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *);
 struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *);
+struct UniLinkedList *UniLinkedList_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 
@@ -360,11 +336,14 @@ void BiLinkedList_FromMap(struct BiLinkedList *, const struct Hashmap *);
 void BiLinkedList_FromVector(struct BiLinkedList *, const struct Vector *);
 void BiLinkedList_FromTuple(struct BiLinkedList *, const struct Tuple *);
 void BiLinkedList_FromGraph(struct BiLinkedList *, const struct Graph *);
+void BiLinkedList_FromLinkMap(struct BiLinkedList *, const struct LinkMap *);
+
 struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *);
 struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *);
 struct BiLinkedList *BiLinkedList_NewFromVector(const struct Vector *);
 struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *);
 struct BiLinkedList *BiLinkedList_NewFromGraph(const struct Graph *);
+struct BiLinkedList *BiLinkedList_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 
@@ -415,12 +394,14 @@ void Tuple_FromMap(struct Tuple *, const struct Hashmap *);
 void Tuple_FromVector(struct Tuple *, const struct Vector *);
 void Tuple_FromBiLinkedList(struct Tuple *, const struct BiLinkedList *);
 void Tuple_FromGraph(struct Tuple *, const struct Graph *);
+void Tuple_FromLinkMap(struct Tuple *, const struct LinkMap *);
 
 struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Tuple *Tuple_NewFromMap(const struct Hashmap *);
 struct Tuple *Tuple_NewFromVector(const struct Vector *);
 struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Tuple *Tuple_NewFromGraph(const struct Graph *);
+struct Tuple *Tuple_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 /************* Heap Memory Pool (heap.c) *************/
@@ -535,12 +516,14 @@ void Graph_FromMap(struct Graph *, const struct Hashmap *);
 void Graph_FromUniLinkedList(struct Graph *, const struct UniLinkedList *);
 void Graph_FromBiLinkedList(struct Graph *, const struct BiLinkedList *);
 void Graph_FromTuple(struct Graph *, const struct Tuple *);
+void Graph_FromLinkMap(struct Graph *, const struct LinkMap *);
 
 struct Graph *Graph_NewFromVector(const struct Vector *);
 struct Graph *Graph_NewFromMap(const struct Hashmap *);
 struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *);
 struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *);
 struct Graph *Graph_NewFromTuple(const struct Tuple *);
+struct Graph *Graph_NewFromLinkMap(const struct LinkMap *);
 /***************/
 
 
@@ -621,11 +604,73 @@ void PluginManager_Init(struct PluginManager *, const char *);
 void PluginManager_Del(struct PluginManager *);
 void PluginManager_Free(struct PluginManager **);
 
-bool PluginManager_LoadModule(struct PluginManager *, const char *, size_t, void *[*]);
-bool PluginManager_ReloadModule(struct PluginManager *, const char *, size_t, void *[*]);
-bool PluginManager_ReloadAllModules(struct PluginManager *, size_t, void *[*]);
-bool PluginManager_UnloadModule(struct PluginManager *, const char *, size_t, void *[*]);
-bool PluginManager_UnloadAllModules(struct PluginManager *, size_t, void *[*]);
+bool PluginManager_LoadModule(struct PluginManager *, const char *, size_t, void *[]);
+bool PluginManager_ReloadModule(struct PluginManager *, const char *, size_t, void *[]);
+bool PluginManager_ReloadAllModules(struct PluginManager *, size_t, void *[]);
+bool PluginManager_UnloadModule(struct PluginManager *, const char *, size_t, void *[]);
+bool PluginManager_UnloadAllModules(struct PluginManager *, size_t, void *[]);
+
+/***************/
+
+
+/************* Ordered Hashmap (linkmap.c) *************/
+
+struct LinkNode {
+	struct String KeyName;
+	union Value Data;
+	struct LinkNode *Next, *After, *Before;
+};
+
+struct LinkNode *LinkNode_New(void);
+struct LinkNode *LinkNode_NewSP(const char *, union Value);
+
+void LinkNode_Del(struct LinkNode *, bool(*)());
+bool LinkNode_Free(struct LinkNode **, bool(*)());
+
+
+struct LinkMap {
+	struct LinkNode **Table, *Head, *Tail;
+	size_t Len, Count;
+	bool (*Destructor)(/* Type **Obj */);
+};
+
+struct LinkMap *LinkMap_New(bool (*)());
+void LinkMap_Init(struct LinkMap *, bool (*)());
+void LinkMap_Del(struct LinkMap *);
+void LinkMap_Free(struct LinkMap **);
+size_t LinkMap_Count(const struct LinkMap *);
+size_t LinkMap_Len(const struct LinkMap *);
+bool LinkMap_Rehash(struct LinkMap *);
+
+bool LinkMap_InsertNode(struct LinkMap *, struct LinkNode *);
+bool LinkMap_Insert(struct LinkMap *, const char *, union Value);
+
+struct LinkNode *LinkMap_GetNodeByIndex(const struct LinkMap *, size_t);
+union Value LinkMap_Get(const struct LinkMap *, const char *);
+void LinkMap_Set(struct LinkMap *, const char *, union Value);
+union Value LinkMap_GetByIndex(const struct LinkMap *, size_t);
+void LinkMap_SetByIndex(struct LinkMap *, size_t, union Value);
+void LinkMap_SetItemDestructor(struct LinkMap *, bool (*)());
+
+void LinkMap_Delete(struct LinkMap *, const char *);
+void LinkMap_DeleteByIndex(struct LinkMap *, size_t);
+bool LinkMap_HasKey(const struct LinkMap *, const char *);
+struct LinkNode *LinkMap_GetNodeByKey(const struct LinkMap *, const char *);
+struct LinkNode **LinkMap_GetKeyTable(const struct LinkMap *);
+
+void LinkMap_FromMap(struct LinkMap *, const struct Hashmap *);
+void LinkMap_FromUniLinkedList(struct LinkMap *, const struct UniLinkedList *);
+void LinkMap_FromBiLinkedList(struct LinkMap *, const struct BiLinkedList *);
+void LinkMap_FromVector(struct LinkMap *, const struct Vector *);
+void LinkMap_FromTuple(struct LinkMap *, const struct Tuple *);
+void LinkMap_FromGraph(struct LinkMap *, const struct Graph *);
+
+struct LinkMap *LinkMap_NewFromMap(const struct Hashmap *);
+struct LinkMap *LinkMap_NewFromUniLinkedList(const struct UniLinkedList *);
+struct LinkMap *LinkMap_NewFromBiLinkedList(const struct BiLinkedList *);
+struct LinkMap *LinkMap_NewFromVector(const struct Vector *);
+struct LinkMap *LinkMap_NewFromTuple(const struct Tuple *);
+struct LinkMap *LinkMap_NewFromGraph(const struct Graph *);
 
 /***************/
 

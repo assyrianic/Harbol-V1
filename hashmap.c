@@ -327,6 +327,16 @@ void Map_FromGraph(struct Hashmap *const __restrict map, const struct Graph *con
 	}
 }
 
+void Map_FromLinkMap(struct Hashmap *const __restrict map, const struct LinkMap *const __restrict linkmap)
+{
+	if( !map or !linkmap )
+		return;
+	
+	for( struct LinkNode *l=linkmap->Head ; l ; l=l->After )
+		Map_InsertNode(map, KeyNode_NewSP(l->KeyName.CStr, l->Data));
+}
+
+
 struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
 	if( !list )
@@ -372,7 +382,17 @@ struct Hashmap *Map_NewFromGraph(const struct Graph *const __restrict graph)
 	if( !graph )
 		return NULL;
 	
-	struct Hashmap *map = Map_New(NULL);
+	struct Hashmap *map = Map_New(graph->VertexDestructor);
 	Map_FromGraph(map, graph);
+	return map;
+}
+
+struct Hashmap *Map_NewFromLinkMap(const struct LinkMap *const __restrict linkmap)
+{
+	if( !linkmap )
+		return NULL;
+	
+	struct Hashmap *map = Map_New(linkmap->Destructor);
+	Map_FromLinkMap(map, linkmap);
 	return map;
 }

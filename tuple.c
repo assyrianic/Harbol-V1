@@ -134,6 +134,20 @@ void Tuple_FromGraph(struct Tuple *const __restrict tup, const struct Graph *con
 	Tuple_Init(tup, graph->VertexCount, list_items);
 }
 
+void Tuple_FromLinkMap(struct Tuple *const __restrict tup, const struct LinkMap *const __restrict map)
+{
+	if( tup->Items )
+		Tuple_Del(tup);
+	
+	union Value list_items[map->Len];
+	size_t i=0;
+	for( struct LinkNode *n=map->Head ; n ; n=n->After )
+		list_items[i++] = n->Data;
+	
+	Tuple_Init(tup, i, list_items);
+}
+
+
 struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
 	if( !list )
@@ -172,5 +186,13 @@ struct Tuple *Tuple_NewFromGraph(const struct Graph *const __restrict graph)
 		return NULL;
 	struct Tuple *tup = calloc(1, sizeof *tup);
 	Tuple_FromGraph(tup, graph);
+	return tup;
+}
+struct Tuple *Tuple_NewFromLinkMap(const struct LinkMap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct Tuple *tup = calloc(1, sizeof *tup);
+	Tuple_FromLinkMap(tup, map);
 	return tup;
 }

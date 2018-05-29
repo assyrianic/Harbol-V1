@@ -257,6 +257,18 @@ void Vector_FromGraph(struct Vector *const __restrict v, const struct Graph *con
 		v->Table[v->Count++] = graph->Vertices[i++].Data;
 }
 
+void Vector_FromLinkMap(struct Vector *const __restrict v, const struct LinkMap *const __restrict map)
+{
+	if( !v or !map )
+		return;
+	else if( !v->Table or v->Count+map->Count >= v->Len )
+		while( v->Count+map->Count >= v->Len )
+			Vector_Resize(v);
+	
+	for( struct LinkNode *n = map->Head ; n ; n=n->After )
+		v->Table[v->Count++] = n->Data;
+}
+
 struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
 {
 	if( !list )
@@ -297,7 +309,16 @@ struct Vector *Vector_NewFromGraph(const struct Graph *const __restrict graph)
 {
 	if( !graph )
 		return NULL;
-	struct Vector *v = Vector_New(NULL);
+	struct Vector *v = Vector_New(graph->VertexDestructor);
 	Vector_FromGraph(v, graph);
+	return v;
+}
+
+struct Vector *Vector_NewFromLinkMap(const struct LinkMap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct Vector *v = Vector_New(map->Destructor);
+	Vector_FromLinkMap(v, map);
 	return v;
 }

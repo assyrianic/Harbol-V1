@@ -14,8 +14,9 @@ void TestTuple(void);
 void TestHeapPool(void);
 void TestGraph(void);
 void TestTree(void);
-void TestPlugins(void);
+void TestLinkMap(void);
 void TestDSConversions(void);
+void TestPlugins(void);
 
 FILE *DSC_debug_output = NULL;
 
@@ -36,8 +37,9 @@ int main()
 	TestGraph();
 	TestTree();
 	*/
-	TestPlugins();
-	//TestDSConversions();
+	//TestPlugins();
+	//TestLinkMap();
+	TestDSConversions();
 	fclose(DSC_debug_output), DSC_debug_output=NULL;
 }
 
@@ -901,6 +903,84 @@ void TestTree(void)
 	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 }
 
+void TestLinkMap(void)
+{
+	// Test allocation and initializations
+	fputs("linkmap :: test allocation / initialization.\n", DSC_debug_output);
+	struct LinkMap *p = LinkMap_New(NULL);
+	assert( p );
+	
+	struct LinkMap i = (struct LinkMap){0};
+	
+	// test insertion
+	fputs("\nlinkmap :: test insertion.\n", DSC_debug_output);
+	LinkMap_Insert(p, "1", (union Value){.Int64=1});
+	LinkMap_Insert(p, "2", (union Value){.Int64=2});
+	LinkMap_Insert(p, "3", (union Value){.Int64=3});
+	LinkMap_Insert(p, "4", (union Value){.Int64=4});
+	LinkMap_Insert(p, "5", (union Value){.Int64=5});
+	
+	LinkMap_Insert(&i, "1", (union Value){.Int64=1});
+	LinkMap_Insert(&i, "2", (union Value){.Int64=2});
+	LinkMap_Insert(&i, "3", (union Value){.Int64=3});
+	LinkMap_Insert(&i, "4", (union Value){.Int64=4});
+	LinkMap_Insert(&i, "5", (union Value){.Int64=5});
+	
+	// test retrieval.
+	fputs("\nlinkmap :: test data retrieval.\n", DSC_debug_output);
+	fprintf(DSC_debug_output, "ptr[\"1\"] == %lli\n", LinkMap_Get(p, "1").Int64);
+	fprintf(DSC_debug_output, "ptr[\"2\"] == %lli\n", LinkMap_Get(p, "2").Int64);
+	fprintf(DSC_debug_output, "stk[\"1\"] == %lli\n", LinkMap_Get(&i, "1").Int64);
+	fprintf(DSC_debug_output, "stk[\"2\"] == %lli\n", LinkMap_Get(&i, "2").Int64);
+	
+	fputs("\nlinkmap :: looping through all data.\n", DSC_debug_output);
+	for( struct LinkNode *l=i.Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	
+	// test setting.
+	fputs("\nlinkmap :: test data setting.\n", DSC_debug_output);
+	LinkMap_Set(p, "2", (union Value){.Int64=20});
+	LinkMap_Set(&i, "2", (union Value){.Int64=200});
+	fprintf(DSC_debug_output, "ptr[\"1\"] == %lli\n", LinkMap_Get(p, "1").Int64);
+	fprintf(DSC_debug_output, "ptr[\"2\"] == %lli\n", LinkMap_Get(p, "2").Int64);
+	fprintf(DSC_debug_output, "stk[\"1\"] == %lli\n", LinkMap_Get(&i, "1").Int64);
+	fprintf(DSC_debug_output, "stk[\"2\"] == %lli\n", LinkMap_Get(&i, "2").Int64);
+	fputs("\nlinkmap :: looping through all data.\n", DSC_debug_output);
+	for( struct LinkNode *l=i.Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	for( struct LinkNode *l=p->Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	
+	// test deletion
+	fputs("\nlinkmap :: test item deletion.\n", DSC_debug_output);
+	LinkMap_Delete(p, "2");
+	fprintf(DSC_debug_output, "ptr[\"2\"] == %lli\n", LinkMap_Get(p, "2").Int64);
+	fputs("\nlinkmap :: looping through all data.\n", DSC_debug_output);
+	for( struct LinkNode *l=p->Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	
+	fputs("\nlinkmap :: test item deletion by index.\n", DSC_debug_output);
+	LinkMap_DeleteByIndex(p, 2);
+	for( struct LinkNode *l=p->Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	
+	// test setting by index
+	fputs("\nlinkmap :: test item setting by index.\n", DSC_debug_output);
+	LinkMap_SetByIndex(p, 2, (union Value){.Int64=500});
+	for( struct LinkNode *l=p->Head ; l ; l=l->After )
+		fprintf(DSC_debug_output, "l's value == %lli\n", l->Data.Int64);
+	
+	// free data
+	fputs("\nlinkmap :: test destruction.\n", DSC_debug_output);
+	LinkMap_Del(&i);
+	fprintf(DSC_debug_output, "i's buckets are null? '%s'\n", i.Table ? "no" : "yes");
+	
+	LinkMap_Del(p);
+	fprintf(DSC_debug_output, "p's buckets are null? '%s'\n", p->Table ? "no" : "yes");
+	LinkMap_Free(&p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+}
+
 void TestDSConversions(void)
 {
 	if( !DSC_debug_output )
@@ -952,6 +1032,13 @@ void TestDSConversions(void)
 	Graph_InsertVertexByValue(&graph, (union Value){.Int64 = 4});
 	Graph_InsertVertexByValue(&graph, (union Value){.Int64 = 5});
 	
+	struct LinkMap linkmap = (struct LinkMap){0};
+	LinkMap_Insert(&linkmap, "1", (union Value){.Int64 = 1});
+	LinkMap_Insert(&linkmap, "2", (union Value){.Int64 = 2});
+	LinkMap_Insert(&linkmap, "3", (union Value){.Int64 = 3});
+	LinkMap_Insert(&linkmap, "4", (union Value){.Int64 = 4});
+	LinkMap_Insert(&linkmap, "5", (union Value){.Int64 = 5});
+	
 	
 	// test vector conversion.
 	fputs("\ndata struct conversions :: test vector conversions.\n", DSC_debug_output);
@@ -995,6 +1082,14 @@ void TestDSConversions(void)
 			fputs("ptr is valid\n", DSC_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
 				fprintf(DSC_debug_output, "graph -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+			Vector_Free(&p);
+		}
+		
+		p = Vector_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Count ; i++ )
+				fprintf(DSC_debug_output, "linked map -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
 			Vector_Free(&p);
 		}
 	}
@@ -1048,6 +1143,15 @@ void TestDSConversions(void)
 					fprintf(DSC_debug_output, "graph -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
 			Map_Free(&p);
 		}
+		
+		p = Map_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				for( struct KeyNode *n = p->Table[i] ; n ; n=n->Next )
+					fprintf(DSC_debug_output, "linked map -> ptr[\"%s\"] == %lli\n", n->KeyName.CStr, n->Data.Int64);
+			Map_Free(&p);
+		}
 	}
 	
 	// test uni linked list conversion.
@@ -1092,6 +1196,14 @@ void TestDSConversions(void)
 			fputs("ptr is valid\n", DSC_debug_output);
 			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
 				fprintf(DSC_debug_output, "graph value : %lli\n", n->Data.Int64);
+			UniLinkedList_Free(&p);
+		}
+		
+		p = UniLinkedList_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct UniListNode *n=p->Head ; n ; n = n->Next )
+				fprintf(DSC_debug_output, "linked map value : %lli\n", n->Data.Int64);
 			UniLinkedList_Free(&p);
 		}
 	}
@@ -1140,6 +1252,14 @@ void TestDSConversions(void)
 				fprintf(DSC_debug_output, "graph value : %lli\n", n->Data.Int64);
 			BiLinkedList_Free(&p);
 		}
+		
+		p = BiLinkedList_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct BiListNode *n=p->Head ; n ; n = n->Next )
+				fprintf(DSC_debug_output, "linked map value : %lli\n", n->Data.Int64);
+			BiLinkedList_Free(&p);
+		}
 	}
 	
 	// test tuple conversion.
@@ -1184,6 +1304,14 @@ void TestDSConversions(void)
 			fputs("ptr is valid\n", DSC_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
 				fprintf(DSC_debug_output, "graph value : %lli\n", p->Items[i].Int64);
+			Tuple_Free(&p);
+		}
+		
+		p = Tuple_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->Len ; i++ )
+				fprintf(DSC_debug_output, "linked map value : %lli\n", p->Items[i].Int64);
 			Tuple_Free(&p);
 		}
 	}
@@ -1232,6 +1360,68 @@ void TestDSConversions(void)
 				fprintf(DSC_debug_output, "tuple value : %lli\n", p->Vertices[i].Data.Int64);
 			Graph_Free(&p);
 		}
+		
+		p = Graph_NewFromLinkMap(&linkmap);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( size_t i=0 ; i<p->VertexCount ; i++ )
+				fprintf(DSC_debug_output, "linked map value : %lli\n", p->Vertices[i].Data.Int64);
+			Graph_Free(&p);
+		}
+	}
+	
+	// test linked map conversion.
+	fputs("\ndata struct conversions :: test linked map conversions.\n", DSC_debug_output);
+	{
+		struct LinkMap *p = NULL;
+		
+		p = LinkMap_NewFromUniLinkedList(&unilist);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "unilist value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
+		
+		p = LinkMap_NewFromMap(&map);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "map value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
+		
+		p = LinkMap_NewFromVector(&vec);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "vec value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
+		
+		p = LinkMap_NewFromBiLinkedList(&bilist);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "bilist value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
+		
+		p = LinkMap_NewFromTuple(&tuple);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "tuple value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
+		
+		p = LinkMap_NewFromGraph(&graph);
+		if( p ) {
+			fputs("ptr is valid\n", DSC_debug_output);
+			for( struct LinkNode *l=p->Head ; l ; l=l->After )
+				fprintf(DSC_debug_output, "graph value : %lli\n", l->Data.Int64);
+			LinkMap_Free(&p);
+		}
 	}
 	
 	Vector_Del(&vec);
@@ -1240,7 +1430,9 @@ void TestDSConversions(void)
 	BiLinkedList_Del(&bilist);
 	Tuple_Del(&tuple);
 	Graph_Del(&graph);
+	LinkMap_Del(&linkmap);
 }
+
 
 #if OS_WINDOWS
 	#include <direct.h>
@@ -1254,7 +1446,7 @@ void TestPlugins(void)
 		return;
 	
 	struct PluginManager pm = (struct PluginManager){0};
-	char currdir[FILENAME_MAX];
+	char currdir[FILENAME_MAX]; // FILENAME_MAX is defined in <stdio.h>
 #if OS_WINDOWS
 	if( GetCurrentDirectory(sizeof currdir, currdir) )
 #else

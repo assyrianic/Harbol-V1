@@ -376,6 +376,15 @@ void UniLinkedList_FromGraph(struct UniLinkedList *const __restrict unilist, con
 		UniLinkedList_InsertValueAtTail(unilist, graph->Vertices[i].Data);
 }
 
+void UniLinkedList_FromLinkMap(struct UniLinkedList *const __restrict unilist, const struct LinkMap *const __restrict map)
+{
+	if( !unilist or !map )
+		return;
+	
+	for( struct LinkNode *n=map->Head ; n ; n = n->After )
+		UniLinkedList_InsertValueAtTail(unilist, n->Data);
+}
+
 
 struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *const __restrict bilist)
 {
@@ -419,5 +428,14 @@ struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *const __res
 		return NULL;
 	struct UniLinkedList *unilist = UniLinkedList_New(NULL);
 	UniLinkedList_FromGraph(unilist, graph);
+	return unilist;
+}
+
+struct UniLinkedList *UniLinkedList_NewFromLinkMap(const struct LinkMap *const __restrict map)
+{
+	if( !map )
+		return NULL;
+	struct UniLinkedList *unilist = UniLinkedList_New(map->Destructor);
+	UniLinkedList_FromLinkMap(unilist, map);
 	return unilist;
 }
