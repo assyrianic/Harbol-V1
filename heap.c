@@ -10,9 +10,9 @@ static inline size_t AlignSize(const size_t size, const size_t align)
 }
 
 #ifdef DSC_NO_MALLOC
-void Heap_Init(struct Heap *const __restrict heap)
+void Heap_Init(struct Heap *const restrict heap)
 #else
-void Heap_Init(struct Heap *const __restrict heap, const size_t size)
+void Heap_Init(struct Heap *const restrict heap, const size_t size)
 #endif
 {
 	if( !heap )
@@ -36,7 +36,7 @@ void Heap_Init(struct Heap *const __restrict heap, const size_t size)
 #endif
 }
 
-void Heap_Del(struct Heap *const __restrict heap)
+void Heap_Del(struct Heap *const restrict heap)
 {
 	if( !heap )
 		return;
@@ -48,7 +48,7 @@ void Heap_Del(struct Heap *const __restrict heap)
 	*heap = (struct Heap){0};
 }
 
-void *Heap_Alloc(struct Heap *const __restrict heap, const size_t size)
+void *Heap_Alloc(struct Heap *const restrict heap, const size_t size)
 {
 	if( !heap or !size )
 		return NULL;
@@ -71,16 +71,17 @@ void *Heap_Alloc(struct Heap *const __restrict heap, const size_t size)
 		
 		// if we got here, that means we found a size that's good.
 		if( *FreeNode ) {
-			puts("Heap_Alloc :: *FreeNode is valid.");
+			struct AllocNode *n = *FreeNode;
+			//puts("Heap_Alloc :: *FreeNode is valid.");
 			assert(
-				(uintptr_t)*FreeNode >= (uintptr_t)heap->HeapMem
-				and ((uintptr_t)*FreeNode - (uintptr_t)heap->HeapMem) < heap->HeapSize
+				(uintptr_t)n >= (uintptr_t)heap->HeapMem
+				and ((uintptr_t)n - (uintptr_t)heap->HeapMem) < heap->HeapSize
 			);
 			
-			assert((*FreeNode)->Size < heap->HeapSize and (*FreeNode)->Size > 0);
+			assert(n->Size < heap->HeapSize and n->Size > 0);
 			const size_t Memory_Split = 16;
-			if( (*FreeNode)->Size < AllocSize + Memory_Split ) {
-				puts("Heap_Alloc :: allocating close sized node");
+			if( n->Size < AllocSize + Memory_Split ) {
+				//puts("Heap_Alloc :: allocating close sized node");
 				/* close in size - reduce fragmentation by not splitting */
 				NewMem = *FreeNode;
 				assert(
@@ -91,19 +92,19 @@ void *Heap_Alloc(struct Heap *const __restrict heap, const size_t size)
 			}
 			else {
 				/* split this big memory chunk */
-				puts("Heap_Alloc :: allocating split up node");
-				NewMem = (struct AllocNode *)( (uint8_t *)*FreeNode + ((*FreeNode)->Size - AllocSize) );
+				//puts("Heap_Alloc :: allocating split up node");
+				NewMem = (struct AllocNode *)( (uint8_t *)n + (n->Size - AllocSize) );
 				assert(
 					(uintptr_t)NewMem >= (uintptr_t)heap->HeapMem
 					and (uintptr_t)NewMem - (uintptr_t)heap->HeapMem < heap->HeapSize
 				);
-				(*FreeNode)->Size -= AllocSize;
+				n->Size -= AllocSize;
 				NewMem->Size = AllocSize;
 			}
 		}
 	}
 	if( !NewMem ) {
-		puts("Heap_Alloc :: allocating from main heap.");
+		//puts("Heap_Alloc :: allocating from main heap.");
 		// couldn't allocate from a freelist
 		if( heap->HeapBottom-AllocSize < heap->HeapMem )
 			return NULL;
@@ -131,7 +132,7 @@ void *Heap_Alloc(struct Heap *const __restrict heap, const size_t size)
 	return ReturnMem;
 }
 
-void Heap_Release(struct Heap *const __restrict heap, void *ptr)
+void Heap_Release(struct Heap *const restrict heap, void *ptr)
 {
 	if( !ptr )
 		return;
@@ -162,7 +163,7 @@ void Heap_Release(struct Heap *const __restrict heap, void *ptr)
 	}
 }
 
-size_t Heap_Remaining(const struct Heap *const __restrict heap)
+size_t Heap_Remaining(const struct Heap *const restrict heap)
 {
 	if( !heap or !heap->HeapMem )
 		return 0;
@@ -173,11 +174,11 @@ size_t Heap_Remaining(const struct Heap *const __restrict heap)
 	return total_remaining;
 }
 
-size_t Heap_Size(const struct Heap *const __restrict heap)
+size_t Heap_Size(const struct Heap *const restrict heap)
 {
 	return !heap or !heap->HeapMem ? 0 : heap->HeapSize;
 }
-struct AllocNode *Heap_GetFreeList(const struct Heap *const __restrict heap)
+struct AllocNode *Heap_GetFreeList(const struct Heap *const restrict heap)
 {
 	return !heap ? NULL : heap->FreeList;
 }

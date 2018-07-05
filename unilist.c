@@ -7,18 +7,22 @@
 /////////////////////////////////////////
 struct UniListNode *UniListNode_New(void)
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct UniListNode));
+#else
 	return calloc(1, sizeof(struct UniListNode));
+#endif
 }
 
 struct UniListNode *UniListNode_NewVal(const union Value val)
 {
-	struct UniListNode *node = calloc(1, sizeof *node);
+	struct UniListNode *node = UniListNode_New();
 	if( node )
 		node->Data = val;
 	return node;
 }
 
-void UniListNode_Del(struct UniListNode *const __restrict node, bool (*dtor)())
+void UniListNode_Del(struct UniListNode *const restrict node, bool (*dtor)())
 {
 	if( !node )
 		return;
@@ -30,20 +34,25 @@ void UniListNode_Del(struct UniListNode *const __restrict node, bool (*dtor)())
 		UniListNode_Free(&node->Next, dtor);
 }
 
-void UniListNode_Free(struct UniListNode **__restrict noderef, bool (*dtor)())
+void UniListNode_Free(struct UniListNode **restrict noderef, bool (*dtor)())
 {
 	if( !*noderef )
 		return;
 	
 	UniListNode_Del(*noderef, dtor);
-	free(*noderef); *noderef=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *noderef);
+#else
+	free(*noderef);
+#endif
+	*noderef=NULL;
 }
 
-struct UniListNode *UniListNode_GetNextNode(const struct UniListNode *const __restrict node)
+struct UniListNode *UniListNode_GetNextNode(const struct UniListNode *const restrict node)
 {
 	return node ? node->Next : NULL;
 }
-union Value UniListNode_GetValue(const struct UniListNode *const __restrict node)
+union Value UniListNode_GetValue(const struct UniListNode *const restrict node)
 {
 	return node ? node->Data : (union Value){0};
 }
@@ -54,12 +63,16 @@ union Value UniListNode_GetValue(const struct UniListNode *const __restrict node
 /////////////////////////////////////////
 struct UniLinkedList *UniLinkedList_New(bool (*dtor)())
 {
+#ifdef DSC_NO_MALLOC
+	struct UniLinkedList *list = Heap_Alloc(&__heappool, sizeof *list);
+#else
 	struct UniLinkedList *list = calloc(1, sizeof *list);
+#endif
 	UniLinkedList_SetDestructor(list, dtor);
 	return list;
 }
 
-void UniLinkedList_Del(struct UniLinkedList *const __restrict list)
+void UniLinkedList_Del(struct UniLinkedList *const restrict list)
 {
 	if( !list )
 		return;
@@ -68,16 +81,21 @@ void UniLinkedList_Del(struct UniLinkedList *const __restrict list)
 	*list = (struct UniLinkedList){0};
 }
 
-void UniLinkedList_Free(struct UniLinkedList **__restrict list)
+void UniLinkedList_Free(struct UniLinkedList **restrict listref)
 {
-	if( !*list )
+	if( !*listref )
 		return;
 	
-	UniLinkedList_Del(*list);
-	free(*list), *list=NULL;
+	UniLinkedList_Del(*listref);
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *listref);
+#else
+	free(*listref);
+#endif
+	*listref=NULL;
 }
 
-void UniLinkedList_Init(struct UniLinkedList *const __restrict list, bool (*dtor)())
+void UniLinkedList_Init(struct UniLinkedList *const restrict list, bool (*dtor)())
 {
 	if( !list )
 		return;
@@ -86,12 +104,12 @@ void UniLinkedList_Init(struct UniLinkedList *const __restrict list, bool (*dtor
 	UniLinkedList_SetDestructor(list, dtor);
 }
 
-size_t UniLinkedList_Len(const struct UniLinkedList *const __restrict list)
+size_t UniLinkedList_Len(const struct UniLinkedList *const restrict list)
 {
 	return list ? list->Len : 0;
 }
 
-bool UniLinkedList_InsertNodeAtHead(struct UniLinkedList *const __restrict list, struct UniListNode *const __restrict node)
+bool UniLinkedList_InsertNodeAtHead(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node)
 {
 	if( !list or !node )
 		return false;
@@ -104,7 +122,7 @@ bool UniLinkedList_InsertNodeAtHead(struct UniLinkedList *const __restrict list,
 	return true;
 }
 
-bool UniLinkedList_InsertNodeAtTail(struct UniLinkedList *const __restrict list, struct UniListNode *const __restrict node)
+bool UniLinkedList_InsertNodeAtTail(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node)
 {
 	if( !list or !node )
 		return false;
@@ -119,7 +137,7 @@ bool UniLinkedList_InsertNodeAtTail(struct UniLinkedList *const __restrict list,
 	return true;
 }
 
-bool UniLinkedList_InsertNodeAtIndex(struct UniLinkedList *const __restrict list, struct UniListNode *const __restrict node, const size_t index)
+bool UniLinkedList_InsertNodeAtIndex(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node, const size_t index)
 {
 	if( !list or !node )
 		return false;
@@ -150,7 +168,7 @@ bool UniLinkedList_InsertNodeAtIndex(struct UniLinkedList *const __restrict list
 	return false;
 }
 
-bool UniLinkedList_InsertValueAtHead(struct UniLinkedList *const __restrict list, const union Value val)
+bool UniLinkedList_InsertValueAtHead(struct UniLinkedList *const restrict list, const union Value val)
 {
 	if( !list )
 		return false;
@@ -158,7 +176,7 @@ bool UniLinkedList_InsertValueAtHead(struct UniLinkedList *const __restrict list
 	return UniLinkedList_InsertNodeAtHead(list, UniListNode_NewVal(val));
 }
 
-bool UniLinkedList_InsertValueAtTail(struct UniLinkedList *const __restrict list, const union Value val)
+bool UniLinkedList_InsertValueAtTail(struct UniLinkedList *const restrict list, const union Value val)
 {
 	if( !list )
 		return false;
@@ -166,7 +184,7 @@ bool UniLinkedList_InsertValueAtTail(struct UniLinkedList *const __restrict list
 	return UniLinkedList_InsertNodeAtTail(list, UniListNode_NewVal(val));
 }
 
-bool UniLinkedList_InsertValueAtIndex(struct UniLinkedList *const __restrict list, const union Value val, const size_t index)
+bool UniLinkedList_InsertValueAtIndex(struct UniLinkedList *const restrict list, const union Value val, const size_t index)
 {
 	if( !list )
 		return false;
@@ -174,7 +192,7 @@ bool UniLinkedList_InsertValueAtIndex(struct UniLinkedList *const __restrict lis
 	return UniLinkedList_InsertNodeAtIndex(list, UniListNode_NewVal(val), index);
 }
 
-struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const __restrict list, const size_t index)
+struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const restrict list, const size_t index)
 {
 	if( !list )
 		return NULL;
@@ -192,7 +210,7 @@ struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const __re
 	return NULL;
 }
 
-struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *const __restrict list, const union Value val)
+struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *const restrict list, const union Value val)
 {
 	if( !list )
 		return NULL;
@@ -202,7 +220,7 @@ struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *con
 	return NULL;
 }
 
-union Value UniLinkedList_GetValue(const struct UniLinkedList *const __restrict list, const size_t index)
+union Value UniLinkedList_GetValue(const struct UniLinkedList *const restrict list, const size_t index)
 {
 	if( !list )
 		return (union Value){0};
@@ -222,7 +240,7 @@ union Value UniLinkedList_GetValue(const struct UniLinkedList *const __restrict 
 	return (union Value){0};
 }
 
-void UniLinkedList_SetValue(struct UniLinkedList *const __restrict list, const size_t index, const union Value val)
+void UniLinkedList_SetValue(struct UniLinkedList *const restrict list, const size_t index, const union Value val)
 {
 	if( !list )
 		return;
@@ -247,7 +265,7 @@ void UniLinkedList_SetValue(struct UniLinkedList *const __restrict list, const s
 	}
 }
 
-bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const __restrict list, const size_t index)
+bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const restrict list, const size_t index)
 {
 	if( !list or !list->Len )
 		return false;
@@ -275,7 +293,12 @@ bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const __restrict list, c
 	
 	if( list->Destructor )
 		(*list->Destructor)(&node->Data.Ptr);
-	free(node), node=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, node);
+#else
+	free(node);
+#endif
+	node=NULL;
 	
 	list->Len--;
 	if( !list->Len )
@@ -283,7 +306,7 @@ bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const __restrict list, c
 	return true;
 }
 
-bool UniLinkedList_DelNodeByRef(struct UniLinkedList *const __restrict list, struct UniListNode **__restrict noderef)
+bool UniLinkedList_DelNodeByRef(struct UniLinkedList *const restrict list, struct UniListNode **restrict noderef)
 {
 	if( !list or !*noderef )
 		return false;
@@ -308,13 +331,17 @@ bool UniLinkedList_DelNodeByRef(struct UniLinkedList *const __restrict list, str
 	
 	if( list->Destructor )
 		(*list->Destructor)(&node->Data.Ptr);
-	
-	free(*noderef), *noderef=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *noderef);
+#else
+	free(*noderef);
+#endif
+	*noderef=NULL;
 	list->Len--;
 	return true;
 }
 
-void UniLinkedList_SetDestructor(struct UniLinkedList *const __restrict list, bool (*dtor)())
+void UniLinkedList_SetDestructor(struct UniLinkedList *const restrict list, bool (*dtor)())
 {
 	if( !list )
 		return;
@@ -322,16 +349,16 @@ void UniLinkedList_SetDestructor(struct UniLinkedList *const __restrict list, bo
 	list->Destructor = dtor;
 }
 
-struct UniListNode *UniLinkedList_GetHead(const struct UniLinkedList *const __restrict list)
+struct UniListNode *UniLinkedList_GetHead(const struct UniLinkedList *const restrict list)
 {
 	return list ? list->Head : NULL;
 }
-struct UniListNode *UniLinkedList_GetTail(const struct UniLinkedList *const __restrict list)
+struct UniListNode *UniLinkedList_GetTail(const struct UniLinkedList *const restrict list)
 {
 	return list ? list->Tail : NULL;
 }
 
-void UniLinkedList_FromBiLinkedList(struct UniLinkedList *const __restrict unilist, const struct BiLinkedList *const __restrict bilist)
+void UniLinkedList_FromBiLinkedList(struct UniLinkedList *const restrict unilist, const struct BiLinkedList *const restrict bilist)
 {
 	if( !unilist or !bilist )
 		return;
@@ -340,7 +367,7 @@ void UniLinkedList_FromBiLinkedList(struct UniLinkedList *const __restrict unili
 		UniLinkedList_InsertValueAtTail(unilist, n->Data);
 }
 
-void UniLinkedList_FromMap(struct UniLinkedList *const __restrict unilist, const struct Hashmap *const __restrict map)
+void UniLinkedList_FromMap(struct UniLinkedList *const restrict unilist, const struct Hashmap *const restrict map)
 {
 	if( !unilist or !map )
 		return;
@@ -350,7 +377,7 @@ void UniLinkedList_FromMap(struct UniLinkedList *const __restrict unilist, const
 			UniLinkedList_InsertValueAtTail(unilist, n->Data);
 }
 
-void UniLinkedList_FromVector(struct UniLinkedList *const __restrict unilist, const struct Vector *const __restrict v)
+void UniLinkedList_FromVector(struct UniLinkedList *const restrict unilist, const struct Vector *const restrict v)
 {
 	if( !unilist or !v )
 		return;
@@ -359,7 +386,7 @@ void UniLinkedList_FromVector(struct UniLinkedList *const __restrict unilist, co
 		UniLinkedList_InsertValueAtTail(unilist, v->Table[i]);
 }
 
-void UniLinkedList_FromTuple(struct UniLinkedList *const __restrict unilist, const struct Tuple *const __restrict tup)
+void UniLinkedList_FromTuple(struct UniLinkedList *const restrict unilist, const struct Tuple *const restrict tup)
 {
 	if( !unilist or !tup or !tup->Items or !tup->Len )
 		return;
@@ -368,7 +395,7 @@ void UniLinkedList_FromTuple(struct UniLinkedList *const __restrict unilist, con
 		UniLinkedList_InsertValueAtTail(unilist, tup->Items[i]);
 }
 
-void UniLinkedList_FromGraph(struct UniLinkedList *const __restrict unilist, const struct Graph *const __restrict graph)
+void UniLinkedList_FromGraph(struct UniLinkedList *const restrict unilist, const struct Graph *const restrict graph)
 {
 	if( !unilist or !graph )
 		return;
@@ -376,7 +403,7 @@ void UniLinkedList_FromGraph(struct UniLinkedList *const __restrict unilist, con
 		UniLinkedList_InsertValueAtTail(unilist, graph->Vertices[i].Data);
 }
 
-void UniLinkedList_FromLinkMap(struct UniLinkedList *const __restrict unilist, const struct LinkMap *const __restrict map)
+void UniLinkedList_FromLinkMap(struct UniLinkedList *const restrict unilist, const struct LinkMap *const restrict map)
 {
 	if( !unilist or !map )
 		return;
@@ -386,7 +413,7 @@ void UniLinkedList_FromLinkMap(struct UniLinkedList *const __restrict unilist, c
 }
 
 
-struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *const __restrict bilist)
+struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *const restrict bilist)
 {
 	if( !bilist )
 		return NULL;
@@ -395,7 +422,7 @@ struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedLis
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *const __restrict map)
+struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *const restrict map)
 {
 	if( !map )
 		return NULL;
@@ -404,7 +431,7 @@ struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *const __res
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *const __restrict v)
+struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *const restrict v)
 {
 	if( !v )
 		return NULL;
@@ -413,7 +440,7 @@ struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *const __r
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *const __restrict tup)
+struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *const restrict tup)
 {
 	if( !tup or !tup->Items or !tup->Len )
 		return NULL;
@@ -422,7 +449,7 @@ struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *const __res
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *const __restrict graph)
+struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *const restrict graph)
 {
 	if( !graph )
 		return NULL;
@@ -431,7 +458,7 @@ struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *const __res
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromLinkMap(const struct LinkMap *const __restrict map)
+struct UniLinkedList *UniLinkedList_NewFromLinkMap(const struct LinkMap *const restrict map)
 {
 	if( !map )
 		return NULL;

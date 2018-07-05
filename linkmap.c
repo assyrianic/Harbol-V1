@@ -6,12 +6,16 @@
 
 struct LinkNode *LinkNode_New(void)
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct LinkNode));
+#else
 	return calloc(1, sizeof(struct LinkNode));
+#endif
 }
 
-struct LinkNode *LinkNode_NewSP(const char *__restrict cstr, const union Value val)
+struct LinkNode *LinkNode_NewSP(const char *restrict cstr, const union Value val)
 {
-	struct LinkNode *n = calloc(1, sizeof *n);
+	struct LinkNode *n = LinkNode_New();
 	if( n ) {
 		String_InitStr(&n->KeyName, cstr);
 		n->Data = val;
@@ -19,7 +23,7 @@ struct LinkNode *LinkNode_NewSP(const char *__restrict cstr, const union Value v
 	return n;
 }
 
-void LinkNode_Del(struct LinkNode *const __restrict n, bool (*dtor)())
+void LinkNode_Del(struct LinkNode *const restrict n, bool (*dtor)())
 {
 	if( !n )
 		return;
@@ -31,13 +35,18 @@ void LinkNode_Del(struct LinkNode *const __restrict n, bool (*dtor)())
 		LinkNode_Free(&n->After, dtor);
 }
 
-bool LinkNode_Free(struct LinkNode **__restrict noderef, bool (*dtor)())
+bool LinkNode_Free(struct LinkNode **restrict noderef, bool (*dtor)())
 {
 	if( !*noderef )
 		return false;
 	
 	LinkNode_Del(*noderef, dtor);
-	free(*noderef), *noderef=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *noderef);
+#else
+	free(*noderef);
+#endif
+	*noderef=NULL;
 	return true;
 }
 
@@ -49,7 +58,7 @@ static size_t GenHash(const char *cstr)
 	if( !cstr )
 		return h;
 	
-	for( const char *__restrict us = cstr ; *us ; us++ )
+	for( const char *restrict us = cstr ; *us ; us++ )
 		h = 37 * h + *us;
 	return h;
 }
@@ -57,13 +66,17 @@ static size_t GenHash(const char *cstr)
 
 struct LinkMap *LinkMap_New(bool (*dtor)())
 {
+#ifdef DSC_NO_MALLOC
+	struct LinkMap *linkmap = Heap_Alloc(&__heappool, sizeof *linkmap);
+#else
 	struct LinkMap *linkmap = calloc(1, sizeof *linkmap);
+#endif
 	if( linkmap )
 		linkmap->Destructor = dtor;
 	return linkmap;
 }
 
-void LinkMap_Init(struct LinkMap *const __restrict linkmap, bool (*dtor)())
+void LinkMap_Init(struct LinkMap *const restrict linkmap, bool (*dtor)())
 {
 	if( !linkmap )
 		return;
@@ -71,7 +84,7 @@ void LinkMap_Init(struct LinkMap *const __restrict linkmap, bool (*dtor)())
 	*linkmap = (struct LinkMap){0};
 	linkmap->Destructor = dtor;
 }
-void LinkMap_Del(struct LinkMap *const __restrict linkmap)
+void LinkMap_Del(struct LinkMap *const restrict linkmap)
 {
 	if( !linkmap )
 		return;
@@ -79,28 +92,37 @@ void LinkMap_Del(struct LinkMap *const __restrict linkmap)
 	LinkNode_Free(&linkmap->Head, linkmap->Destructor);
 	
 	if( linkmap->Table )
+	#ifdef DSC_NO_MALLOC
+		Heap_Release(&__heappool, linkmap->Table);
+	#else
 		free(linkmap->Table);
+	#endif
 	LinkMap_Init(linkmap, linkmap->Destructor);
 }
 
-void LinkMap_Free(struct LinkMap **__restrict linkmapref)
+void LinkMap_Free(struct LinkMap **restrict linkmapref)
 {
 	if( !*linkmapref )
 		return;
 	
 	LinkMap_Del(*linkmapref);
-	free(*linkmapref), *linkmapref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *linkmapref);
+#else
+	free(*linkmapref);
+#endif
+	*linkmapref=NULL;
 }
 
-size_t LinkMap_Count(const struct LinkMap *const __restrict linkmap)
+size_t LinkMap_Count(const struct LinkMap *const restrict linkmap)
 {
 	return linkmap ? linkmap->Count : 0;
 }
-size_t LinkMap_Len(const struct LinkMap *const __restrict linkmap)
+size_t LinkMap_Len(const struct LinkMap *const restrict linkmap)
 {
 	return linkmap ? linkmap->Len : 0;
 }
-bool LinkMap_Rehash(struct LinkMap *const __restrict linkmap)
+bool LinkMap_Rehash(struct LinkMap *const restrict linkmap)
 {
 	if( !linkmap )
 		return false;
@@ -109,7 +131,12 @@ bool LinkMap_Rehash(struct LinkMap *const __restrict linkmap)
 	linkmap->Count = 0;
 	
 	struct LinkMap newlinkmap = (struct LinkMap){0};
+	
+#ifdef DSC_NO_MALLOC
+	newlinkmap.Table = Heap_Alloc(&__heappool, linkmap->Len * sizeof *newlinkmap.Table);
+#else
 	newlinkmap.Table = calloc(linkmap->Len, sizeof *newlinkmap.Table);
+#endif
 	if( !newlinkmap.Table ) {
 		linkmap->Len >>= 1;
 		return false;
@@ -122,18 +149,27 @@ bool LinkMap_Rehash(struct LinkMap *const __restrict linkmap)
 		after = kv->After;
 		LinkMap_InsertNode(&newlinkmap, kv);
 	}
-	free(linkmap->Table), linkmap->Table=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, linkmap->Table);
+#else
+	free(linkmap->Table);
+#endif
+	linkmap->Table=NULL;
 	*linkmap = newlinkmap;
 	return true;
 }
 
-bool LinkMap_InsertNode(struct LinkMap *const __restrict linkmap, struct LinkNode *node)
+bool LinkMap_InsertNode(struct LinkMap *const restrict linkmap, struct LinkNode *node)
 {
 	if( !linkmap or !node )
 		return false;
 	else if( !linkmap->Table ) {
 		linkmap->Len = 4;
+	#ifdef DSC_NO_MALLOC
+		linkmap->Table = Heap_Alloc(&__heappool, linkmap->Len * sizeof *linkmap->Table);
+	#else
 		linkmap->Table = calloc(linkmap->Len, sizeof *linkmap->Table);
+	#endif
 		if( !linkmap->Table ) {
 			linkmap->Len = 0;
 			return false;
@@ -164,7 +200,7 @@ bool LinkMap_InsertNode(struct LinkMap *const __restrict linkmap, struct LinkNod
 	++linkmap->Count;
 	return true;
 }
-bool LinkMap_Insert(struct LinkMap *const __restrict linkmap, const char *__restrict strkey, const union Value val)
+bool LinkMap_Insert(struct LinkMap *const restrict linkmap, const char *restrict strkey, const union Value val)
 {
 	if( !linkmap or !strkey )
 		return false;
@@ -176,7 +212,7 @@ bool LinkMap_Insert(struct LinkMap *const __restrict linkmap, const char *__rest
 	return b;
 }
 
-struct LinkNode *LinkMap_GetNodeByIndex(const struct LinkMap *const __restrict linkmap, const size_t index)
+struct LinkNode *LinkMap_GetNodeByIndex(const struct LinkMap *const restrict linkmap, const size_t index)
 {
 	if( !linkmap or !linkmap->Table )
 		return NULL;
@@ -197,19 +233,19 @@ struct LinkNode *LinkMap_GetNodeByIndex(const struct LinkMap *const __restrict l
 	return NULL;
 }
 
-union Value LinkMap_Get(const struct LinkMap *const __restrict linkmap, const char *__restrict strkey)
+union Value LinkMap_Get(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
 {
 	if( !linkmap or !linkmap->Table or !LinkMap_HasKey(linkmap, strkey) )
 		return (union Value){0};
 	
 	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *__restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
+	for( struct LinkNode *restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
+		if( !String_CmpCStr(&kv->KeyName, strkey) )
 			return kv->Data;
 	
 	return (union Value){0};
 }
-void LinkMap_Set(struct LinkMap *const __restrict linkmap, const char *__restrict strkey, const union Value val)
+void LinkMap_Set(struct LinkMap *const restrict linkmap, const char *restrict strkey, const union Value val)
 {
 	if( !linkmap )
 		return;
@@ -220,12 +256,12 @@ void LinkMap_Set(struct LinkMap *const __restrict linkmap, const char *__restric
 	}
 	
 	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *__restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
+	for( struct LinkNode *restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
+		if( !String_CmpCStr(&kv->KeyName, strkey) )
 			kv->Data = val;
 }
 
-union Value LinkMap_GetByIndex(const struct LinkMap *const __restrict linkmap, const size_t index)
+union Value LinkMap_GetByIndex(const struct LinkMap *const restrict linkmap, const size_t index)
 {
 	if( !linkmap or !linkmap->Table )
 		return (union Value){0};
@@ -236,7 +272,7 @@ union Value LinkMap_GetByIndex(const struct LinkMap *const __restrict linkmap, c
 	return (union Value){0};
 }
 
-void LinkMap_SetByIndex(struct LinkMap *const __restrict linkmap, const size_t index, const union Value val)
+void LinkMap_SetByIndex(struct LinkMap *const restrict linkmap, const size_t index, const union Value val)
 {
 	if( !linkmap or !linkmap->Table )
 		return;
@@ -246,7 +282,7 @@ void LinkMap_SetByIndex(struct LinkMap *const __restrict linkmap, const size_t i
 		node->Data = val;
 }
 
-void LinkMap_SetItemDestructor(struct LinkMap *const __restrict linkmap, bool (*dtor)())
+void LinkMap_SetItemDestructor(struct LinkMap *const restrict linkmap, bool (*dtor)())
 {
 	if( !linkmap )
 		return;
@@ -254,7 +290,7 @@ void LinkMap_SetItemDestructor(struct LinkMap *const __restrict linkmap, bool (*
 	linkmap->Destructor = dtor;
 }
 
-void LinkMap_Delete(struct LinkMap *const __restrict linkmap, const char *__restrict strkey)
+void LinkMap_Delete(struct LinkMap *const restrict linkmap, const char *restrict strkey)
 {
 	if( !linkmap or !linkmap->Table or !LinkMap_HasKey(linkmap, strkey) )
 		return;
@@ -263,7 +299,7 @@ void LinkMap_Delete(struct LinkMap *const __restrict linkmap, const char *__rest
 	for( struct LinkNode *kv=linkmap->Table[hash], *next=NULL ; kv ; kv=next ) {
 		next = kv->Next;
 		
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) ) {
+		if( !String_CmpCStr(&kv->KeyName, strkey) ) {
 			linkmap->Table[hash] = kv->Next;
 			kv->Next = NULL;
 			kv->Before ? (kv->Before->After = kv->After) : (linkmap->Head = kv->After);
@@ -272,13 +308,18 @@ void LinkMap_Delete(struct LinkMap *const __restrict linkmap, const char *__rest
 			if( linkmap->Destructor )
 				(*linkmap->Destructor)(&kv->Data.Ptr);
 			String_Del(&kv->KeyName);
-			free(kv), kv=NULL;
+		#ifdef DSC_NO_MALLOC
+			Heap_Release(&__heappool, kv);
+		#else
+			free(kv);
+		#endif
+			kv=NULL;
 			linkmap->Count--;
 		}
 	}
 }
 
-void LinkMap_DeleteByIndex(struct LinkMap *const __restrict linkmap, const size_t index)
+void LinkMap_DeleteByIndex(struct LinkMap *const restrict linkmap, const size_t index)
 {
 	if( !linkmap or !linkmap->Table )
 		return;
@@ -296,42 +337,82 @@ void LinkMap_DeleteByIndex(struct LinkMap *const __restrict linkmap, const size_
 	if( linkmap->Destructor )
 		(*linkmap->Destructor)(&kv->Data.Ptr);
 	String_Del(&kv->KeyName);
-	free(kv), kv=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, kv);
+#else
+	free(kv);
+#endif
+	kv=NULL;
 	linkmap->Count--;
 }
 
-bool LinkMap_HasKey(const struct LinkMap *const __restrict linkmap, const char *__restrict strkey)
+bool LinkMap_HasKey(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
 {
 	if( !linkmap or !linkmap->Table )
 		return false;
 	
 	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *__restrict n = linkmap->Table[hash] ; n ; n=n->Next )
-		if( !String_StrCmpCStr(&n->KeyName, strkey) )
+	for( struct LinkNode *restrict n = linkmap->Table[hash] ; n ; n=n->Next )
+		if( !String_CmpCStr(&n->KeyName, strkey) )
 			return true;
 	
 	return false;
 }
-struct LinkNode *LinkMap_GetNodeByKey(const struct LinkMap *const __restrict linkmap, const char *__restrict strkey)
+struct LinkNode *LinkMap_GetNodeByKey(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
 {
 	if( !linkmap or !linkmap->Table )
 		return NULL;
 	
 	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *__restrict n = linkmap->Table[hash] ; n ; n=n->Next )
-		if( !String_StrCmpCStr(&n->KeyName, strkey) )
+	for( struct LinkNode *restrict n = linkmap->Table[hash] ; n ; n=n->Next )
+		if( !String_CmpCStr(&n->KeyName, strkey) )
 			return n;
 	
 	return NULL;
 }
-struct LinkNode **LinkMap_GetKeyTable(const struct LinkMap *const __restrict linkmap)
+struct LinkNode **LinkMap_GetKeyTable(const struct LinkMap *const restrict linkmap)
 {
 	return linkmap ? linkmap->Table : NULL;
 }
 
+size_t LinkMap_GetIndexByName(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
+{
+	if( !linkmap or !strkey )
+		return SIZE_MAX;
+	
+	size_t index = 0;
+	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
+		if( !String_CmpCStr(&n->KeyName, strkey) )
+			return index;
+	return SIZE_MAX;
+}
+
+size_t LinkMap_GetIndexByNode(const struct LinkMap *const restrict linkmap, struct LinkNode *const restrict node)
+{
+	if( !linkmap or !node )
+		return SIZE_MAX;
+	
+	size_t index = 0;
+	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
+		if( n==node )
+			return index;
+	return SIZE_MAX;
+}
+
+size_t LinkMap_GetIndexByValue(const struct LinkMap *const restrict linkmap, const union Value val)
+{
+	if( !linkmap )
+		return SIZE_MAX;
+	
+	size_t index = 0;
+	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
+		if( n->Data.UInt64 == val.UInt64 )
+			return index;
+	return SIZE_MAX;
+}
 
 
-void LinkMap_FromMap(struct LinkMap *const __restrict linkmap, const struct Hashmap *const __restrict map)
+void LinkMap_FromMap(struct LinkMap *const restrict linkmap, const struct Hashmap *const restrict map)
 {
 	if( !linkmap or !map )
 		return;
@@ -340,7 +421,7 @@ void LinkMap_FromMap(struct LinkMap *const __restrict linkmap, const struct Hash
 		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
 			LinkMap_InsertNode(linkmap, LinkNode_NewSP(n->KeyName.CStr, n->Data));
 }
-void LinkMap_FromUniLinkedList(struct LinkMap *const __restrict linkmap, const struct UniLinkedList *const __restrict list)
+void LinkMap_FromUniLinkedList(struct LinkMap *const restrict linkmap, const struct UniLinkedList *const restrict list)
 {
 	if( !linkmap or !list )
 		return;
@@ -353,7 +434,7 @@ void LinkMap_FromUniLinkedList(struct LinkMap *const __restrict linkmap, const s
 		i++;
 	}
 }
-void LinkMap_FromBiLinkedList(struct LinkMap *const __restrict linkmap, const struct BiLinkedList *const __restrict list)
+void LinkMap_FromBiLinkedList(struct LinkMap *const restrict linkmap, const struct BiLinkedList *const restrict list)
 {
 	if( !linkmap or !list )
 		return;
@@ -366,7 +447,7 @@ void LinkMap_FromBiLinkedList(struct LinkMap *const __restrict linkmap, const st
 		i++;
 	}
 }
-void LinkMap_FromVector(struct LinkMap *const __restrict linkmap, const struct Vector *const __restrict v)
+void LinkMap_FromVector(struct LinkMap *const restrict linkmap, const struct Vector *const restrict v)
 {
 	if( !linkmap or !v )
 		return;
@@ -377,7 +458,7 @@ void LinkMap_FromVector(struct LinkMap *const __restrict linkmap, const struct V
 		LinkMap_Insert(linkmap, cstrkey, v->Table[i]);
 	}
 }
-void LinkMap_FromTuple(struct LinkMap *const __restrict linkmap, const struct Tuple *const __restrict tup)
+void LinkMap_FromTuple(struct LinkMap *const restrict linkmap, const struct Tuple *const restrict tup)
 {
 	if( !linkmap or !tup or !tup->Items or !tup->Len )
 		return;
@@ -388,7 +469,7 @@ void LinkMap_FromTuple(struct LinkMap *const __restrict linkmap, const struct Tu
 		LinkMap_Insert(linkmap, cstrkey, tup->Items[i]);
 	}
 }
-void LinkMap_FromGraph(struct LinkMap *const __restrict linkmap, const struct Graph *const __restrict graph)
+void LinkMap_FromGraph(struct LinkMap *const restrict linkmap, const struct Graph *const restrict graph)
 {
 	if( !linkmap or !graph )
 		return;
@@ -400,7 +481,7 @@ void LinkMap_FromGraph(struct LinkMap *const __restrict linkmap, const struct Gr
 	}
 }
 
-struct LinkMap *LinkMap_NewFromMap(const struct Hashmap *const __restrict map)
+struct LinkMap *LinkMap_NewFromMap(const struct Hashmap *const restrict map)
 {
 	if( !map )
 		return NULL;
@@ -409,7 +490,7 @@ struct LinkMap *LinkMap_NewFromMap(const struct Hashmap *const __restrict map)
 	LinkMap_FromMap(linkmap, map);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+struct LinkMap *LinkMap_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -418,7 +499,7 @@ struct LinkMap *LinkMap_NewFromUniLinkedList(const struct UniLinkedList *const _
 	LinkMap_FromUniLinkedList(linkmap, list);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+struct LinkMap *LinkMap_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -427,7 +508,7 @@ struct LinkMap *LinkMap_NewFromBiLinkedList(const struct BiLinkedList *const __r
 	LinkMap_FromBiLinkedList(linkmap, list);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromVector(const struct Vector *const __restrict vec)
+struct LinkMap *LinkMap_NewFromVector(const struct Vector *const restrict vec)
 {
 	if( !vec )
 		return NULL;
@@ -436,7 +517,7 @@ struct LinkMap *LinkMap_NewFromVector(const struct Vector *const __restrict vec)
 	LinkMap_FromVector(linkmap, vec);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromTuple(const struct Tuple *const __restrict tup)
+struct LinkMap *LinkMap_NewFromTuple(const struct Tuple *const restrict tup)
 {
 	if( !tup )
 		return NULL;
@@ -445,7 +526,7 @@ struct LinkMap *LinkMap_NewFromTuple(const struct Tuple *const __restrict tup)
 	LinkMap_FromTuple(linkmap, tup);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromGraph(const struct Graph *const __restrict graph)
+struct LinkMap *LinkMap_NewFromGraph(const struct Graph *const restrict graph)
 {
 	if( !graph )
 		return NULL;

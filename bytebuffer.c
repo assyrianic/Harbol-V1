@@ -7,7 +7,11 @@
 
 struct ByteBuffer *ByteBuffer_New(void)
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct ByteBuffer));
+#else
 	return calloc(1, sizeof(struct ByteBuffer));
+#endif
 }
 
 void ByteBuffer_Init(struct ByteBuffer *const __restrict p)
@@ -121,7 +125,11 @@ void ByteBuffer_Del(struct ByteBuffer *const __restrict p)
 		return;
 	
 	if( p->Buffer )
+	#ifdef DSC_NO_MALLOC
+		Heap_Release(&__heappool, p->Buffer);
+	#else
 		free(p->Buffer);
+	#endif
 	*p = (struct ByteBuffer){0};
 }
 
@@ -131,7 +139,12 @@ void ByteBuffer_Free(struct ByteBuffer **__restrict pref)
 		return;
 	
 	ByteBuffer_Del(*pref);
-	free(*pref); *pref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *pref);
+#else
+	free(*pref);
+#endif
+	*pref=NULL;
 }
 
 void ByteBuffer_Resize(struct ByteBuffer *const __restrict p)
@@ -147,29 +160,41 @@ void ByteBuffer_Resize(struct ByteBuffer *const __restrict p)
 		p->Len=4;
 	
 	// allocate new table.
+#ifdef DSC_NO_MALLOC
+	uint8_t *newdata = Heap_Alloc(&__heappool, p->Len * sizeof *newdata);
+#else
 	uint8_t *newdata = calloc(p->Len, sizeof *newdata);
+#endif
 	assert( newdata );
 	
 	// copy the old table to new then free old table.
 	if( p->Buffer ) {
 		memcpy(newdata, p->Buffer, oldsize);
-		free(p->Buffer); p->Buffer = NULL;
+	#ifdef DSC_NO_MALLOC
+		Heap_Release(&__heappool, p->Buffer);
+	#else
+		free(p->Buffer);
+	#endif
+		p->Buffer = NULL;
 	}
 	p->Buffer = newdata;
 }
 
-void ByteBuffer_DumpToFile(const struct ByteBuffer *const __restrict p, FILE *__restrict file)
+void ByteBuffer_DumpToFile(const struct ByteBuffer *const __restrict p, void *vfile)
 {
-	if( !p or !p->Buffer or !file )
+	if( !p or !p->Buffer or !vfile )
 		return;
 	
+	FILE *const __restrict file = vfile;
 	fwrite(p->Buffer, sizeof *p->Buffer, p->Count, file);
 }
 
-size_t ByteBuffer_ReadFromFile(struct ByteBuffer *const __restrict p, FILE *__restrict file)
+size_t ByteBuffer_ReadFromFile(struct ByteBuffer *const __restrict p, void *vfile)
 {
-	if( !p or !file )
+	if( !p or !vfile )
 		return 0;
+	
+	FILE *const __restrict file = vfile;
 	
 	// get the total file size.
 	size_t filesize = 0;

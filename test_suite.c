@@ -20,12 +20,19 @@ void TestPlugins(void);
 
 FILE *DSC_debug_output = NULL;
 
+#ifdef DSC_NO_MALLOC
+struct Heap __heappool;
+#endif
+
 int main()
 {
-	DSC_debug_output = fopen("data_structure_debug_output.txt", "w+");
+#ifdef DSC_NO_MALLOC
+	Heap_Init(&__heappool);
+#endif
+	DSC_debug_output = fopen("data_structure_debug_output.txt", "wa+");
 	if( !DSC_debug_output )
 		return -1;
-	/*
+	
 	TestStringObject();
 	TestVector();
 	TestHashmap();
@@ -33,14 +40,14 @@ int main()
 	TestBiList();
 	TestByteBuffer();
 	TestTuple();
-	TestHeapPool();
+	//TestHeapPool();
 	TestGraph();
 	TestTree();
-	*/
-	//TestPlugins();
-	//TestLinkMap();
-	TestDSConversions();
-	fclose(DSC_debug_output), DSC_debug_output=NULL;
+	TestPlugins();
+	TestLinkMap();
+	//TestDSConversions();
+	fclose(DSC_debug_output);
+	DSC_debug_output=NULL;
 }
 
 void TestStringObject(void)
@@ -715,6 +722,17 @@ void TestHeapPool(void)
 	Heap_Release(&i, node4), node4=NULL;
 	Heap_Release(&i, node5), node5=NULL;
 	Heap_Release(&i, list), list=NULL;
+	
+	// test "double freeing"
+	fputs("\nheap :: test double freeing.\n", DSC_debug_output);
+	p = Heap_Alloc(&i, sizeof *p);
+	fprintf(DSC_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+	if( p ) {
+		*p = 500;
+		fprintf(DSC_debug_output, "p's value: %i\n", *p);
+	}
+	Heap_Release(&i, p);
+	Heap_Release(&i, p);
 	
 	// free data
 	fputs("heap :: test destruction.\n", DSC_debug_output);
@@ -1453,8 +1471,11 @@ void TestPlugins(void)
 	if( getcwd(currdir, sizeof currdir) )
 #endif
 		PluginManager_Init(&pm, currdir);
+	
 	bool r = PluginManager_LoadModule(&pm, "testplugin", 0, NULL);
-	fprintf(DSC_debug_output, "module loaded?: %u\n", r);
-	PluginManager_UnloadAllModules(&pm, 0, NULL);
+	fprintf(DSC_debug_output, "module loaded testplugin.so?: %u\n", r);
+	r = PluginManager_LoadModule(&pm, "testplugin2", 0, NULL);
+	fprintf(DSC_debug_output, "module loaded testplugin2.so?: %u\n", r);
+	//PluginManager_UnloadAllModules(&pm, 0, NULL);
 	PluginManager_Del(&pm);
 }

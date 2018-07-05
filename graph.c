@@ -6,19 +6,23 @@
 /* Graph Edge Code */
 struct GraphEdge *GraphEdge_New(void)
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct GraphEdge));
+#else
 	return calloc(1, sizeof(struct GraphEdge));
+#endif
 }
 
-struct GraphEdge *GraphEdge_NewVP(const union Value val, struct GraphVertex *const __restrict vert)
+struct GraphEdge *GraphEdge_NewVP(const union Value val, struct GraphVertex *const restrict vert)
 {
-	struct GraphEdge *edge = calloc(1, sizeof *edge);
+	struct GraphEdge *edge = GraphEdge_New();
 	if( edge ) {
 		edge->Weight = val;
 		edge->VertexSocket = vert;
 	}
 	return edge;
 }
-void GraphEdge_Del(struct GraphEdge *const __restrict edge, bool (*edge_dtor)())
+void GraphEdge_Del(struct GraphEdge *const restrict edge, bool (*edge_dtor)())
 {
 	if( !edge )
 		return;
@@ -30,33 +34,38 @@ void GraphEdge_Del(struct GraphEdge *const __restrict edge, bool (*edge_dtor)())
 	*edge = (struct GraphEdge){0};
 }
 
-void GraphEdge_Free(struct GraphEdge **__restrict edgeref, bool (*edge_dtor)())
+void GraphEdge_Free(struct GraphEdge **restrict edgeref, bool (*edge_dtor)())
 {
 	if( !*edgeref )
 		return;
 	
 	GraphEdge_Del(*edgeref, edge_dtor);
-	free(*edgeref), *edgeref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *edgeref);
+#else
+	free(*edgeref);
+#endif
+	*edgeref=NULL;
 }
 
-union Value GraphEdge_GetWeight(const struct GraphEdge *const __restrict edge)
+union Value GraphEdge_GetWeight(const struct GraphEdge *const restrict edge)
 {
 	return edge ? edge->Weight : (union Value){0};
 }
 
-void GraphEdge_SetWeight(struct GraphEdge *const __restrict edge, const union Value val)
+void GraphEdge_SetWeight(struct GraphEdge *const restrict edge, const union Value val)
 {
 	if( !edge )
 		return;
 	edge->Weight = val;
 }
 
-struct GraphVertex *GraphEdge_GetVertex(const struct GraphEdge *const __restrict edge)
+struct GraphVertex *GraphEdge_GetVertex(const struct GraphEdge *const restrict edge)
 {
 	return edge ? edge->VertexSocket : NULL;
 }
 
-void GraphEdge_SetVertex(struct GraphEdge *const __restrict edge, struct GraphVertex *const vert)
+void GraphEdge_SetVertex(struct GraphEdge *const restrict edge, struct GraphVertex *const vert)
 {
 	if( !edge )
 		return;
@@ -67,7 +76,7 @@ void GraphEdge_SetVertex(struct GraphEdge *const __restrict edge, struct GraphVe
 
 
 /* Graph Vertex Code */
-void GraphVertex_Del(struct GraphVertex *const __restrict vert, bool (*edge_dtor)(), bool (*vert_dtor)())
+void GraphVertex_Del(struct GraphVertex *const restrict vert, bool (*edge_dtor)(), bool (*vert_dtor)())
 {
 	if( !vert )
 		return;
@@ -79,17 +88,17 @@ void GraphVertex_Del(struct GraphVertex *const __restrict vert, bool (*edge_dtor
 	*vert = (struct GraphVertex){0};
 }
 
-struct GraphEdge *GraphVertex_GetEdges(struct GraphVertex *const __restrict vert)
+struct GraphEdge *GraphVertex_GetEdges(struct GraphVertex *const restrict vert)
 {
 	return vert ? vert->EdgeHead : NULL;
 }
 
-union Value GraphVertex_GetData(const struct GraphVertex *const __restrict vert)
+union Value GraphVertex_GetData(const struct GraphVertex *const restrict vert)
 {
 	return vert ? vert->Data : (union Value){0};
 }
 
-void GraphVertex_SetData(struct GraphVertex *const __restrict vert, const union Value val)
+void GraphVertex_SetData(struct GraphVertex *const restrict vert, const union Value val)
 {
 	if( !vert )
 		return;
@@ -102,12 +111,16 @@ void GraphVertex_SetData(struct GraphVertex *const __restrict vert, const union 
 /* Graph Code Implementation */
 struct Graph *Graph_New(bool (*edgedtor)(), bool (*vertdtor)())
 {
+#ifdef DSC_NO_MALLOC
+	struct Graph *graph = Heap_Alloc(&__heappool, sizeof *graph);
+#else
 	struct Graph *graph = calloc(1, sizeof *graph);
+#endif
 	Graph_SetItemDestructors(graph, edgedtor, vertdtor);
 	return graph;
 }
 
-void Graph_Init(struct Graph *const __restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
+void Graph_Init(struct Graph *const restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
 {
 	if( !graph )
 		return;
@@ -115,27 +128,36 @@ void Graph_Init(struct Graph *const __restrict graph, bool (*edgedtor)(), bool (
 	Graph_SetItemDestructors(graph, edgedtor, vertdtor);
 }
 
-void Graph_Del(struct Graph *const __restrict graph)
+void Graph_Del(struct Graph *const restrict graph)
 {
 	if( !graph )
 		return;
 	
 	for( size_t i=0 ; i<graph->VertexCount ; i++ )
 		GraphVertex_Del(graph->Vertices+i, graph->EdgeDestructor, graph->VertexDestructor);
-	free(graph->Vertices), graph->Vertices=NULL;
-	graph->VertexCount = graph->VertexLen = 0;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, graph->Vertices);
+#else
+	free(graph->Vertices);
+#endif
+	Graph_Init(graph, graph->EdgeDestructor, graph->VertexDestructor);
 }
 
-void Graph_Free(struct Graph **__restrict graphref)
+void Graph_Free(struct Graph **restrict graphref)
 {
 	if( !*graphref )
 		return;
 	
 	Graph_Del(*graphref);
-	free(*graphref), *graphref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *graphref);
+#else
+	free(*graphref);
+#endif
+	*graphref=NULL;
 }
 
-bool Graph_InsertVertexByValue(struct Graph *const __restrict graph, const union Value val)
+bool Graph_InsertVertexByValue(struct Graph *const restrict graph, const union Value val)
 {
 	if( !graph )
 		return false;
@@ -146,7 +168,7 @@ bool Graph_InsertVertexByValue(struct Graph *const __restrict graph, const union
 	return true;
 }
 
-bool Graph_RemoveVertexByValue(struct Graph *const __restrict graph, const union Value val)
+bool Graph_RemoveVertexByValue(struct Graph *const restrict graph, const union Value val)
 {
 	if( !graph )
 		return false;
@@ -176,7 +198,7 @@ bool Graph_RemoveVertexByValue(struct Graph *const __restrict graph, const union
 	return false;
 }
 
-bool Graph_RemoveVertexByIndex(struct Graph *const __restrict graph, const size_t index)
+bool Graph_RemoveVertexByIndex(struct Graph *const restrict graph, const size_t index)
 {
 	if( !graph )
 		return false;
@@ -210,7 +232,7 @@ bool Graph_RemoveVertexByIndex(struct Graph *const __restrict graph, const size_
 	return true;
 }
 
-bool Graph_InsertEdgeBtwnVerts(struct Graph *const __restrict graph, const size_t index, const size_t otherindex, const union Value weight)
+bool Graph_InsertEdgeBtwnVerts(struct Graph *const restrict graph, const size_t index, const size_t otherindex, const union Value weight)
 {
 	if( !graph )
 		return false;
@@ -234,7 +256,7 @@ bool Graph_InsertEdgeBtwnVerts(struct Graph *const __restrict graph, const size_
 	return true;
 }
 
-bool Graph_RemoveEdgeBtwnVerts(struct Graph *const __restrict graph, const size_t index, const size_t otherindex)
+bool Graph_RemoveEdgeBtwnVerts(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
 {
 	if( !graph )
 		return false;
@@ -275,7 +297,7 @@ bool Graph_RemoveEdgeBtwnVerts(struct Graph *const __restrict graph, const size_
 	return true;
 }
 
-struct GraphVertex *Graph_GetVertexByIndex(struct Graph *const __restrict graph, const size_t index)
+struct GraphVertex *Graph_GetVertexByIndex(struct Graph *const restrict graph, const size_t index)
 {
 	if( !graph or !graph->Vertices or index >= graph->VertexCount )
 		return NULL;
@@ -283,21 +305,21 @@ struct GraphVertex *Graph_GetVertexByIndex(struct Graph *const __restrict graph,
 	return graph->Vertices + index;
 }
 
-union Value Graph_GetVertexDataByIndex(struct Graph *const __restrict graph, const size_t index)
+union Value Graph_GetVertexDataByIndex(struct Graph *const restrict graph, const size_t index)
 {
 	if( !graph or !graph->Vertices or index>=graph->VertexCount )
 		return (union Value){0};
 	return graph->Vertices[index].Data;
 }
 
-void Graph_SetVertexDataByIndex(struct Graph *const __restrict graph, const size_t index, const union Value val)
+void Graph_SetVertexDataByIndex(struct Graph *const restrict graph, const size_t index, const union Value val)
 {
 	if( !graph or !graph->Vertices or index>=graph->VertexCount )
 		return;
 	graph->Vertices[index].Data = val;
 }
 
-struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *const __restrict graph, const size_t index, const size_t otherindex)
+struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
 {
 	if( !graph )
 		return NULL;
@@ -314,7 +336,7 @@ struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *const __restrict graph
 	return NULL;
 }
 
-bool Graph_IsVertexAdjacent(struct Graph *const __restrict graph, const size_t index, const size_t otherindex)
+bool Graph_IsVertexAdjacent(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
 {
 	if( !graph )
 		return false;
@@ -330,7 +352,7 @@ bool Graph_IsVertexAdjacent(struct Graph *const __restrict graph, const size_t i
 	return false;
 }
 
-struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *const __restrict graph, const size_t index)
+struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *const restrict graph, const size_t index)
 {
 	if( !graph or index >= graph->VertexCount )
 		return NULL;
@@ -338,17 +360,17 @@ struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *const __restrict graph,
 	return graph->Vertices[index].EdgeHead;
 }
 
-struct GraphVertex *Graph_GetVertexArray(struct Graph *const __restrict graph)
+struct GraphVertex *Graph_GetVertexArray(struct Graph *const restrict graph)
 {
 	return graph ? graph->Vertices : NULL;
 }
 
-size_t Graph_GetVerticeCount(const struct Graph *const __restrict graph)
+size_t Graph_GetVerticeCount(const struct Graph *const restrict graph)
 {
 	return graph ? graph->VertexCount : 0;
 }
 
-size_t Graph_GetEdgeCount(const struct Graph *const __restrict graph)
+size_t Graph_GetEdgeCount(const struct Graph *const restrict graph)
 {
 	if( !graph )
 		return 0;
@@ -359,7 +381,7 @@ size_t Graph_GetEdgeCount(const struct Graph *const __restrict graph)
 	return totaledges;
 }
 
-void Graph_SetItemDestructors(struct Graph *const __restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
+void Graph_SetItemDestructors(struct Graph *const restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
 {
 	if( !graph )
 		return;
@@ -368,7 +390,7 @@ void Graph_SetItemDestructors(struct Graph *const __restrict graph, bool (*edged
 	graph->VertexDestructor = vertdtor;
 }
 
-void Graph_Resize(struct Graph *const __restrict graph)
+void Graph_Resize(struct Graph *const restrict graph)
 {
 	if( !graph )
 		return;
@@ -377,8 +399,11 @@ void Graph_Resize(struct Graph *const __restrict graph)
 	graph->VertexLen <<= 1;
 	if( !graph->VertexLen )
 		graph->VertexLen = 2;
-	
+#ifdef DSC_NO_MALLOC
+	struct GraphVertex *newdata = Heap_Alloc(&__heappool, graph->VertexLen * sizeof *newdata);
+#else
 	struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
+#endif
 	if( !newdata ) {
 		graph->VertexLen >>= 1;
 		if( graph->VertexLen == 1 )
@@ -388,31 +413,45 @@ void Graph_Resize(struct Graph *const __restrict graph)
 	
 	if( graph->Vertices ) {
 		memcpy(newdata, graph->Vertices, sizeof *newdata * oldsize);
-		free(graph->Vertices); graph->Vertices = NULL;
+	#ifdef DSC_NO_MALLOC
+		Heap_Release(&__heappool, graph->Vertices);
+	#else
+		free(graph->Vertices);
+	#endif
+		graph->Vertices = NULL;
 	}
 	graph->Vertices = newdata;
 }
 
-void Graph_Truncate(struct Graph *const __restrict graph)
+void Graph_Truncate(struct Graph *const restrict graph)
 {
 	if( !graph )
 		return;
 	
 	if( graph->VertexCount < graph->VertexLen>>1 ) {
 		graph->VertexLen >>= 1;
+	#ifdef DSC_NO_MALLOC
+		struct GraphVertex *newdata = Heap_Alloc(&__heappool, graph->VertexLen * sizeof *newdata);
+	#else
 		struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
+	#endif
 		if( !newdata )
 			return;
 		
 		if( graph->Vertices ) {
 			memcpy(newdata, graph->Vertices, sizeof *newdata * graph->VertexLen);
-			free(graph->Vertices), graph->Vertices = NULL;
+		#ifdef DSC_NO_MALLOC
+			Heap_Release(&__heappool, graph->Vertices);
+		#else
+			free(graph->Vertices);
+		#endif
+			graph->Vertices = NULL;
 		}
 		graph->Vertices = newdata;
 	}
 }
 
-void Graph_FromVector(struct Graph *const __restrict graph, const struct Vector *const __restrict vec)
+void Graph_FromVector(struct Graph *const restrict graph, const struct Vector *const restrict vec)
 {
 	if( !graph or !vec )
 		return;
@@ -420,7 +459,7 @@ void Graph_FromVector(struct Graph *const __restrict graph, const struct Vector 
 		Graph_InsertVertexByValue(graph, vec->Table[i]);
 }
 
-void Graph_FromMap(struct Graph *const __restrict graph, const struct Hashmap *const __restrict map)
+void Graph_FromMap(struct Graph *const restrict graph, const struct Hashmap *const restrict map)
 {
 	if( !graph or !map )
 		return;
@@ -429,7 +468,7 @@ void Graph_FromMap(struct Graph *const __restrict graph, const struct Hashmap *c
 		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
 			Graph_InsertVertexByValue(graph, n->Data);
 }
-void Graph_FromUniLinkedList(struct Graph *const __restrict graph, const struct UniLinkedList *const __restrict list)
+void Graph_FromUniLinkedList(struct Graph *const restrict graph, const struct UniLinkedList *const restrict list)
 {
 	if( !graph or !list )
 		return;
@@ -437,7 +476,7 @@ void Graph_FromUniLinkedList(struct Graph *const __restrict graph, const struct 
 	for( struct UniListNode *n=list->Head ; n ; n=n->Next )
 		Graph_InsertVertexByValue(graph, n->Data);
 }
-void Graph_FromBiLinkedList(struct Graph *const __restrict graph, const struct BiLinkedList *const __restrict list)
+void Graph_FromBiLinkedList(struct Graph *const restrict graph, const struct BiLinkedList *const restrict list)
 {
 	if( !graph or !list )
 		return;
@@ -445,14 +484,14 @@ void Graph_FromBiLinkedList(struct Graph *const __restrict graph, const struct B
 	for( struct BiListNode *n=list->Head ; n ; n=n->Next )
 		Graph_InsertVertexByValue(graph, n->Data);
 }
-void Graph_FromTuple(struct Graph *const __restrict graph, const struct Tuple *const __restrict tup)
+void Graph_FromTuple(struct Graph *const restrict graph, const struct Tuple *const restrict tup)
 {
 	if( !graph or !tup )
 		return;
 	for( size_t i=0 ; i<tup->Len ; i++ )
 		Graph_InsertVertexByValue(graph, tup->Items[i]);
 }
-void Graph_FromLinkMap(struct Graph *const __restrict graph, const struct LinkMap *const __restrict map)
+void Graph_FromLinkMap(struct Graph *const restrict graph, const struct LinkMap *const restrict map)
 {
 	if( !graph or !map )
 		return;
@@ -462,7 +501,7 @@ void Graph_FromLinkMap(struct Graph *const __restrict graph, const struct LinkMa
 }
 
 
-struct Graph *Graph_NewFromVector(const struct Vector *const __restrict vec)
+struct Graph *Graph_NewFromVector(const struct Vector *const restrict vec)
 {
 	if( !vec )
 		return NULL;
@@ -471,7 +510,7 @@ struct Graph *Graph_NewFromVector(const struct Vector *const __restrict vec)
 	return graph;
 }
 
-struct Graph *Graph_NewFromMap(const struct Hashmap *const __restrict map)
+struct Graph *Graph_NewFromMap(const struct Hashmap *const restrict map)
 {
 	if( !map )
 		return NULL;
@@ -479,7 +518,7 @@ struct Graph *Graph_NewFromMap(const struct Hashmap *const __restrict map)
 	Graph_FromMap(graph, map);
 	return graph;
 }
-struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -487,7 +526,7 @@ struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *const __res
 	Graph_FromUniLinkedList(graph, list);
 	return graph;
 }
-struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -495,7 +534,7 @@ struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 	Graph_FromBiLinkedList(graph, list);
 	return graph;
 }
-struct Graph *Graph_NewFromTuple(const struct Tuple *const __restrict tup)
+struct Graph *Graph_NewFromTuple(const struct Tuple *const restrict tup)
 {
 	if( !tup )
 		return NULL;
@@ -503,7 +542,7 @@ struct Graph *Graph_NewFromTuple(const struct Tuple *const __restrict tup)
 	Graph_FromTuple(graph, tup);
 	return graph;
 }
-struct Graph *Graph_NewFromLinkMap(const struct LinkMap *const __restrict map)
+struct Graph *Graph_NewFromLinkMap(const struct LinkMap *const restrict map)
 {
 	if( !map )
 		return NULL;

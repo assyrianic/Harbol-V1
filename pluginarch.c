@@ -12,10 +12,14 @@
 
 struct PluginData *Plugin_New(void)
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct PluginData));
+#else
 	return calloc(1, sizeof(struct PluginData));
+#endif
 }
 
-void Plugin_Del(struct PluginData *const __restrict plugin)
+void Plugin_Del(struct PluginData *const restrict plugin)
 {
 	if( !plugin )
 		return;
@@ -35,60 +39,65 @@ void Plugin_Del(struct PluginData *const __restrict plugin)
 	String_Del(&plugin->Descr);
 }
 
-void Plugin_Free(struct PluginData **__restrict pluginref)
+void Plugin_Free(struct PluginData **restrict pluginref)
 {
 	if( !*pluginref )
 		return;
 	Plugin_Del(*pluginref);
-	free(*pluginref), *pluginref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *pluginref);
+#else
+	free(*pluginref);
+#endif
+	*pluginref=NULL;
 }
-const char *Plugin_GetName(const struct PluginData *const __restrict plugin)
+const char *Plugin_GetName(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->Name.CStr : NULL;
 }
-const char *Plugin_GetVersion(const struct PluginData *const __restrict plugin)
+const char *Plugin_GetVersion(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->Version.CStr : NULL;
 }
-const char *Plugin_GetAuthor(const struct PluginData *const __restrict plugin)
+const char *Plugin_GetAuthor(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->Author.CStr : NULL;
 }
-const char *Plugin_GetRuntimeName(const struct PluginData *const __restrict plugin)
+const char *Plugin_GetRuntimeName(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->RunTimeName.CStr : NULL;
 }
-const char *Plugin_GetDescription(const struct PluginData *const __restrict plugin)
+const char *Plugin_GetDescription(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->Descr.CStr : NULL;
 }
-void *Plugin_GetModulePtr(const struct PluginData *const __restrict plugin)
+void *Plugin_GetModulePtr(const struct PluginData *const restrict plugin)
 {
 	return plugin ? plugin->ModulePtr : NULL;
 }
-void *Plugin_GetExportedSymbol(const struct PluginData *const __restrict plugin, const char *__restrict cstrName)
+void *Plugin_GetExportedSymbol(const struct PluginData *const restrict plugin, const char *restrict cstrName)
 {
 	return plugin ? Map_Get(&plugin->Symbols, cstrName).Ptr : NULL;
 }
-void Plugin_SetName(struct PluginData *const __restrict plugin, const char *__restrict cstrName)
+void Plugin_SetName(struct PluginData *const restrict plugin, const char *restrict cstrName)
 {
 	if( !plugin or !cstrName )
 		return;
 	String_CopyStr(&plugin->Name, cstrName);
 }
-void Plugin_SetVersion(struct PluginData *const __restrict plugin, const char *__restrict cstrVer)
+void Plugin_SetVersion(struct PluginData *const restrict plugin, const char *restrict cstrVer)
 {
 	if( !plugin or !cstrVer )
 		return;
 	String_CopyStr(&plugin->Version, cstrVer);
 }
-void Plugin_SetAuthor(struct PluginData *const __restrict plugin, const char *__restrict cstrAuthor)
+void Plugin_SetAuthor(struct PluginData *const restrict plugin, const char *restrict cstrAuthor)
 {
 	if( !plugin or !cstrAuthor )
 		return;
 	String_CopyStr(&plugin->Author, cstrAuthor);
 }
-void Plugin_SetDescription(struct PluginData *const __restrict plugin, const char *__restrict cstrDesc)
+void Plugin_SetDescription(struct PluginData *const restrict plugin, const char *restrict cstrDesc)
 {
 	if( !plugin or !cstrDesc )
 		return;
@@ -97,54 +106,60 @@ void Plugin_SetDescription(struct PluginData *const __restrict plugin, const cha
 
 
 
-struct PluginManager *PluginManager_New(const char *__restrict plugindir)
+struct PluginManager *PluginManager_New(const char *restrict plugindir)
 {
+#ifdef DSC_NO_MALLOC
+	struct PluginManager *pm = Heap_Alloc(&__heappool, sizeof *pm);
+#else
 	struct PluginManager *pm = calloc(1, sizeof *pm);
+#endif
 	if( pm ) {
-		Map_Init(&pm->ModuleMap, (bool(*)())Plugin_Free);
-		Vector_Init(&pm->ModuleVec, NULL);
+		LinkMap_Init(&pm->ModuleMap, (bool(*)())Plugin_Free);
 		String_InitStr(&pm->PluginDir, plugindir);
 	}
 	return pm;
 }
 
-void PluginManager_Init(struct PluginManager *const __restrict pm, const char *__restrict plugindir)
+void PluginManager_Init(struct PluginManager *const restrict pm, const char *restrict plugindir)
 {
 	if( !pm )
 		return;
 	
-	Map_Init(&pm->ModuleMap, (bool(*)())Plugin_Free);
-	Vector_Init(&pm->ModuleVec, NULL);
+	LinkMap_Init(&pm->ModuleMap, (bool(*)())Plugin_Free);
 	String_InitStr(&pm->PluginDir, plugindir);
 }
 
-void PluginManager_Del(struct PluginManager *const __restrict pm)
+void PluginManager_Del(struct PluginManager *const restrict pm)
 {
 	if( !pm )
 		return;
-	for( size_t i=0 ; i<pm->ModuleVec.Count ; i++ ) {
-		struct PluginData *plugin = pm->ModuleVec.Table[i].Ptr;
+	for( struct LinkNode *n=pm->ModuleMap.Head ; n ; n = n->After ) {
+		struct PluginData *plugin = n->Data.Ptr;
 		if( plugin ) {
 			int32_t (*OnPluginUnload)() = Map_Get(&plugin->Symbols, "OnPluginUnload").Int32Func;
 			if( OnPluginUnload )
 				(*OnPluginUnload)(plugin, 0, NULL);
 		}
 	}
-	Map_Del(&pm->ModuleMap);
-	Vector_Del(&pm->ModuleVec);
+	LinkMap_Del(&pm->ModuleMap);
 	String_Del(&pm->PluginDir);
 }
 
-void PluginManager_Free(struct PluginManager **__restrict pmref)
+void PluginManager_Free(struct PluginManager **restrict pmref)
 {
 	if( !*pmref )
 		return;
 	
 	PluginManager_Del(*pmref);
-	free(*pmref), *pmref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *pmref);
+#else
+	free(*pmref);
+#endif
+	*pmref=NULL;
 }
 
-bool PluginManager_LoadModule(struct PluginManager *const __restrict pm, const char *__restrict modname, const size_t argcount, void *params[static argcount])
+bool PluginManager_LoadModule(struct PluginManager *const restrict pm, const char *restrict modname, const size_t argcount, void *params[static argcount])
 {
 	if( !pm )
 		return false;
@@ -166,6 +181,7 @@ bool PluginManager_LoadModule(struct PluginManager *const __restrict pm, const c
 #else
 	plugin->ModulePtr = dlopen(plugindir.CStr, RTLD_LAZY);
 #endif
+	
 	String_Del(&plugindir);
 	if( !plugin->ModulePtr ) {
 		Plugin_Free(&plugin);
@@ -175,12 +191,13 @@ bool PluginManager_LoadModule(struct PluginManager *const __restrict pm, const c
 	
 	// Retrieve the OnPluginLoad function so we can allow the plugins can initialize their data.
 	// the function signature should look something like.
-	// int32_t OnPluginLoad(struct PluginData *plugin, const size_t argcount, void *params[__restrict static argcount]);
+	// int32_t OnPluginLoad(struct PluginData *plugin, const size_t argcount, void *params[restrict static argcount]);
 #if OS_WINDOWS
 	int32_t (*OnPluginLoad)() = (int32_t (*)()) GetProcAddress(plugin->ModulePtr, "OnPluginLoad");
 #else
 	int32_t (*OnPluginLoad)() = dlsym(plugin->ModulePtr, "OnPluginLoad");
 #endif
+	
 	// if it exists, call it then save the pointer to our symbol map.
 	if( OnPluginLoad ) {
 		(*OnPluginLoad)(plugin, argcount, params);
@@ -194,21 +211,21 @@ bool PluginManager_LoadModule(struct PluginManager *const __restrict pm, const c
 #else
 	int32_t (*OnPluginUnload)() = dlsym(plugin->ModulePtr, "OnPluginUnload");
 #endif
+	
 	if( OnPluginUnload )
 		Map_Insert(&plugin->Symbols, "OnPluginUnload", (union Value){.Int32Func=OnPluginUnload});
 	
 	// we're done, for now, add the plugin to our plugin manager.
-	Map_Insert(&pm->ModuleMap, modname, (union Value){.Ptr=plugin});
-	Vector_Insert(&pm->ModuleVec, (union Value){.Ptr=plugin});
+	LinkMap_Insert(&pm->ModuleMap, modname, (union Value){.Ptr=plugin});
 	return true;
 }
 
-bool PluginManager_ReloadModule(struct PluginManager *const __restrict pm, const char *__restrict modname, const size_t argcount, void *params[static argcount])
+bool PluginManager_ReloadModule(struct PluginManager *const restrict pm, const char *restrict modname, const size_t argcount, void *params[static argcount])
 {
 	if( !pm )
 		return false;
 	
-	struct PluginData *plugin = Map_Get(&pm->ModuleMap, modname).Ptr;
+	struct PluginData *plugin = LinkMap_Get(&pm->ModuleMap, modname).Ptr;
 	if( !plugin )
 		return false;
 	
@@ -239,7 +256,7 @@ bool PluginManager_ReloadModule(struct PluginManager *const __restrict pm, const
 	
 	// Retrieve the OnPluginLoad function so we can allow the plugins can initialize their data.
 	// the function signature should look something like.
-	// int32_t OnPluginLoad(struct PluginData *plugin, const size_t argcount, void *params[__restrict static argcount]);
+	// int32_t OnPluginLoad(struct PluginData *plugin, const size_t argcount, void *params[restrict static argcount]);
 #if OS_WINDOWS
 	int32_t (*OnPluginLoad)() = (int32_t (*)()) GetProcAddress(plugin->ModulePtr, "OnPluginLoad");
 #else
@@ -263,25 +280,25 @@ bool PluginManager_ReloadModule(struct PluginManager *const __restrict pm, const
 	return true;
 }
 
-bool PluginManager_ReloadAllModules(struct PluginManager *const __restrict pm, const size_t argcount, void *params[static argcount])
+bool PluginManager_ReloadAllModules(struct PluginManager *const restrict pm, const size_t argcount, void *params[static argcount])
 {
 	if( !pm )
 		return false;
 	
-	for( size_t i=0 ; i<pm->ModuleVec.Count ; i++ ) {
-		struct PluginData *plugin = pm->ModuleVec.Table[i].Ptr;
+	for( struct LinkNode *n=pm->ModuleMap.Head ; n ; n=n->After ) {
+		struct PluginData *plugin = n->Data.Ptr;
 		if( plugin )
 			PluginManager_ReloadModule(pm, plugin->RunTimeName.CStr, argcount, params);
 	}
 	return true;
 }
 
-bool PluginManager_UnloadModule(struct PluginManager *const __restrict pm, const char *__restrict modname, const size_t argcount, void *params[static argcount])
+bool PluginManager_UnloadModule(struct PluginManager *const restrict pm, const char *restrict modname, const size_t argcount, void *params[static argcount])
 {
 	if( !pm )
 		return false;
 	
-	struct PluginData *plugin = Map_Get(&pm->ModuleMap, modname).Ptr;
+	struct PluginData *plugin = LinkMap_Get(&pm->ModuleMap, modname).Ptr;
 	if( !plugin )
 		return false;
 	
@@ -289,32 +306,24 @@ bool PluginManager_UnloadModule(struct PluginManager *const __restrict pm, const
 	if( OnPluginUnload )
 		(*OnPluginUnload)(plugin, argcount, params);
 	
-	for( size_t i=0 ; i<pm->ModuleVec.Count ; i++ ) {
-		struct PluginData *iter = pm->ModuleVec.Table[i].Ptr;
-		if( iter==plugin ) {
-			Vector_Delete(&pm->ModuleVec, i);
-			break;
-		}
-	}
-	Map_Delete(&pm->ModuleMap, modname);
+	LinkMap_Delete(&pm->ModuleMap, modname);
 	return true;
 }
 
-bool PluginManager_UnloadAllModules(struct PluginManager *const __restrict pm, const size_t argcount, void *params[static argcount])
+bool PluginManager_UnloadAllModules(struct PluginManager *const restrict pm, const size_t argcount, void *params[static argcount])
 {
 	if( !pm )
 		return false;
 	
 	// iterate all plugins and call their Unload function.
-	for( size_t i=0 ; i<pm->ModuleVec.Count ; i++ ) {
-		struct PluginData *plugin = pm->ModuleVec.Table[i].Ptr;
+	for( struct LinkNode *n=pm->ModuleMap.Head ; n ; n=n->After ) {
+		struct PluginData *plugin = n->Data.Ptr;
 		if( plugin ) {
 			int32_t (*OnPluginUnload)() = Map_Get(&plugin->Symbols, "OnPluginUnload").Int32Func;
 			if( OnPluginUnload )
 				(*OnPluginUnload)(plugin, argcount, params);
 		}
 	}
-	Map_Del(&pm->ModuleMap);
-	Vector_Del(&pm->ModuleVec);
+	LinkMap_Del(&pm->ModuleMap);
 	return true;
 }

@@ -6,12 +6,16 @@
 
 struct KeyNode *KeyNode_New()
 {
+#ifdef DSC_NO_MALLOC
+	return Heap_Alloc(&__heappool, sizeof(struct KeyNode));
+#else
 	return calloc(1, sizeof(struct KeyNode));
+#endif
 }
 
-struct KeyNode *KeyNode_NewSP(const char *__restrict cstr, const union Value val)
+struct KeyNode *KeyNode_NewSP(const char *restrict cstr, const union Value val)
 {
-	struct KeyNode *n = calloc(1, sizeof *n);
+	struct KeyNode *n = KeyNode_New();
 	if( n ) {
 		String_InitStr(&n->KeyName, cstr);
 		n->Data = val;
@@ -19,7 +23,7 @@ struct KeyNode *KeyNode_NewSP(const char *__restrict cstr, const union Value val
 	return n;
 }
 
-void KeyNode_Del(struct KeyNode *const __restrict n, bool (*dtor)())
+void KeyNode_Del(struct KeyNode *const restrict n, bool (*dtor)())
 {
 	if( !n )
 		return;
@@ -31,13 +35,18 @@ void KeyNode_Del(struct KeyNode *const __restrict n, bool (*dtor)())
 		KeyNode_Free(&n->Next, dtor);
 }
 
-bool KeyNode_Free(struct KeyNode **__restrict noderef, bool (*dtor)())
+bool KeyNode_Free(struct KeyNode **restrict noderef, bool (*dtor)())
 {
 	if( !*noderef )
 		return false;
 	
 	KeyNode_Del(*noderef, dtor);
-	free(*noderef), *noderef=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *noderef);
+#else
+	free(*noderef);
+#endif
+	*noderef=NULL;
 	return true;
 }
 
@@ -49,19 +58,23 @@ static size_t GenHash(const char *cstr)
 	if( !cstr )
 		return h;
 	
-	for( const char *__restrict us = cstr ; *us ; us++ )
+	for( const char *restrict us = cstr ; *us ; us++ )
 		h = 37 * h + *us;
 	return h;
 }
 
 struct Hashmap *Map_New(bool (*dtor)())
 {
+#ifdef DSC_NO_MALLOC
+	struct Hashmap *map = Heap_Alloc(&__heappool, sizeof *map);
+#else
 	struct Hashmap *map = calloc(1, sizeof *map);
+#endif
 	Map_SetItemDestructor(map, dtor);
 	return map;
 }
 
-void Map_Init(struct Hashmap *const __restrict map, bool (*dtor)())
+void Map_Init(struct Hashmap *const restrict map, bool (*dtor)())
 {
 	if( !map )
 		return;
@@ -70,7 +83,7 @@ void Map_Init(struct Hashmap *const __restrict map, bool (*dtor)())
 	Map_SetItemDestructor(map, dtor);
 }
 
-void Map_Del(struct Hashmap *const __restrict map)
+void Map_Del(struct Hashmap *const restrict map)
 {
 	if( !map or !map->Table )
 		return;
@@ -79,30 +92,39 @@ void Map_Del(struct Hashmap *const __restrict map)
 		KeyNode_Free(map->Table+i, map->Destructor);
 	
 	if( map->Table )
+	#ifdef DSC_NO_MALLOC
+		Heap_Release(&__heappool, map->Table);
+	#else
 		free(map->Table);
+	#endif
 	Map_Init(map, map->Destructor);
 }
 
-void Map_Free(struct Hashmap **__restrict mapref)
+void Map_Free(struct Hashmap **restrict mapref)
 {
 	if( !*mapref )
 		return;
 	
 	Map_Del(*mapref);
-	free(*mapref), *mapref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *mapref);
+#else
+	free(*mapref);
+#endif
+	*mapref=NULL;
 }
 
-inline size_t Map_Count(const struct Hashmap *const __restrict map)
+inline size_t Map_Count(const struct Hashmap *const restrict map)
 {
 	return map ? map->Count : 0;
 }
 
-inline size_t Map_Len(const struct Hashmap *const __restrict map)
+inline size_t Map_Len(const struct Hashmap *const restrict map)
 {
 	return map ? map->Len : 0;
 }
 
-bool Map_Rehash(struct Hashmap *const __restrict map)
+bool Map_Rehash(struct Hashmap *const restrict map)
 {
 	if( !map or !map->Table )
 		return false;
@@ -112,7 +134,11 @@ bool Map_Rehash(struct Hashmap *const __restrict map)
 	map->Count = 0;
 	
 	struct KeyNode **curr, **temp;
+#ifdef DSC_NO_MALLOC
+	temp = Heap_Alloc(&__heappool, map->Len * sizeof *temp);
+#else
 	temp = calloc(map->Len, sizeof *temp);
+#endif
 	if( !temp ) {
 		puts("**** Memory Allocation Error **** Map_Rehash::temp is NULL\n");
 		map->Len = 0;
@@ -130,17 +156,26 @@ bool Map_Rehash(struct Hashmap *const __restrict map)
 			Map_InsertNode(map, kv);
 		}
 	}
-	free(curr), curr=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, curr);
+#else
+	free(curr);
+#endif
+	curr=NULL;
 	return true;
 }
 
-bool Map_InsertNode(struct Hashmap *const __restrict map, struct KeyNode *__restrict node)
+bool Map_InsertNode(struct Hashmap *const restrict map, struct KeyNode *restrict node)
 {
 	if( !map or !node )
 		return false;
 	else if( !map->Len ) {
 		map->Len = 8;
+	#ifdef DSC_NO_MALLOC
+		map->Table = Heap_Alloc(&__heappool, map->Len * sizeof *map->Table);
+	#else
 		map->Table = calloc(map->Len, sizeof *map->Table);
+	#endif
 		if( !map->Table ) {
 			puts("**** Memory Allocation Error **** Map_InsertNode::map->Table is NULL\n");
 			map->Len = 0;
@@ -162,7 +197,7 @@ bool Map_InsertNode(struct Hashmap *const __restrict map, struct KeyNode *__rest
 }
 
 
-bool Map_Insert(struct Hashmap *const __restrict map, const char *__restrict strkey, const union Value val)
+bool Map_Insert(struct Hashmap *const restrict map, const char *restrict strkey, const union Value val)
 {
 	if( !map or !strkey )
 		return false;
@@ -174,20 +209,20 @@ bool Map_Insert(struct Hashmap *const __restrict map, const char *__restrict str
 	return b;
 }
 
-union Value Map_Get(const struct Hashmap *const __restrict map, const char *__restrict strkey)
+union Value Map_Get(const struct Hashmap *const restrict map, const char *restrict strkey)
 {
 	if( !map or !map->Table or !Map_HasKey(map, strkey) )
 		return (union Value){0};
 	
 	const size_t hash = GenHash(strkey) % map->Len;
-	for( struct KeyNode *__restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
+	for( struct KeyNode *restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
+		if( !String_CmpCStr(&kv->KeyName, strkey) )
 			return kv->Data;
 	
 	return (union Value){0};
 }
 
-void Map_Set(struct Hashmap *const __restrict map, const char *__restrict strkey, const union Value val)
+void Map_Set(struct Hashmap *const restrict map, const char *restrict strkey, const union Value val)
 {
 	if( !map )
 		return;
@@ -198,12 +233,12 @@ void Map_Set(struct Hashmap *const __restrict map, const char *__restrict strkey
 	}
 	
 	const size_t hash = GenHash(strkey) % map->Len;
-	for( struct KeyNode *__restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) )
+	for( struct KeyNode *restrict kv=map->Table[hash] ; kv ; kv=kv->Next )
+		if( !String_CmpCStr(&kv->KeyName, strkey) )
 			kv->Data = val;
 }
 
-void Map_SetItemDestructor(struct Hashmap *const __restrict map, bool (*destructor)())
+void Map_SetItemDestructor(struct Hashmap *const restrict map, bool (*destructor)())
 {
 	if( !map )
 		return;
@@ -211,7 +246,7 @@ void Map_SetItemDestructor(struct Hashmap *const __restrict map, bool (*destruct
 	map->Destructor = destructor;
 }
 
-void Map_Delete(struct Hashmap *const __restrict map, const char *__restrict strkey)
+void Map_Delete(struct Hashmap *const restrict map, const char *restrict strkey)
 {
 	if( !map or !map->Table or !Map_HasKey(map, strkey) )
 		return;
@@ -220,7 +255,7 @@ void Map_Delete(struct Hashmap *const __restrict map, const char *__restrict str
 	for( struct KeyNode *kv=map->Table[hash], *next=NULL ; kv ; kv=next ) {
 		next = kv->Next;
 		
-		if( !String_StrCmpCStr(&kv->KeyName, strkey) ) {
+		if( !String_CmpCStr(&kv->KeyName, strkey) ) {
 			map->Table[hash] = kv->Next;
 			kv->Next = NULL;
 			
@@ -232,38 +267,38 @@ void Map_Delete(struct Hashmap *const __restrict map, const char *__restrict str
 	}
 }
 
-bool Map_HasKey(const struct Hashmap *const __restrict map, const char *__restrict strkey)
+bool Map_HasKey(const struct Hashmap *const restrict map, const char *restrict strkey)
 {
 	if( !map or !map->Table )
 		return false;
 	
 	const size_t hash = GenHash(strkey) % map->Len;
-	for( struct KeyNode *__restrict n = map->Table[hash] ; n ; n=n->Next )
-		if( !String_StrCmpCStr(&n->KeyName, strkey) )
+	for( struct KeyNode *restrict n = map->Table[hash] ; n ; n=n->Next )
+		if( !String_CmpCStr(&n->KeyName, strkey) )
 			return true;
 	
 	return false;
 }
 
-struct KeyNode *Map_GetKeyNode(const struct Hashmap *const __restrict map, const char *__restrict strkey)
+struct KeyNode *Map_GetKeyNode(const struct Hashmap *const restrict map, const char *restrict strkey)
 {
 	if( !map or !strkey or !map->Table )
 		return NULL;
 	
 	const size_t hash = GenHash(strkey) % map->Len;
-	for( struct KeyNode *__restrict n = map->Table[hash] ; n ; n=n->Next )
-		if( !String_StrCmpCStr(&n->KeyName, strkey) )
+	for( struct KeyNode *restrict n = map->Table[hash] ; n ; n=n->Next )
+		if( !String_CmpCStr(&n->KeyName, strkey) )
 			return n;
 	
 	return NULL;
 }
 
-struct KeyNode **Map_GetKeyTable(const struct Hashmap *const __restrict map)
+struct KeyNode **Map_GetKeyTable(const struct Hashmap *const restrict map)
 {
 	return map ? map->Table : NULL;
 }
 
-void Map_FromUniLinkedList(struct Hashmap *const __restrict map, const struct UniLinkedList *const __restrict list)
+void Map_FromUniLinkedList(struct Hashmap *const restrict map, const struct UniLinkedList *const restrict list)
 {
 	if( !map or !list )
 		return;
@@ -277,7 +312,7 @@ void Map_FromUniLinkedList(struct Hashmap *const __restrict map, const struct Un
 	}
 }
 
-void Map_FromBiLinkedList(struct Hashmap *const __restrict map, const struct BiLinkedList *const __restrict list)
+void Map_FromBiLinkedList(struct Hashmap *const restrict map, const struct BiLinkedList *const restrict list)
 {
 	if( !map or !list )
 		return;
@@ -291,7 +326,7 @@ void Map_FromBiLinkedList(struct Hashmap *const __restrict map, const struct BiL
 	}
 }
 
-void Map_FromVector(struct Hashmap *const __restrict map, const struct Vector *const __restrict v)
+void Map_FromVector(struct Hashmap *const restrict map, const struct Vector *const restrict v)
 {
 	if( !map or !v )
 		return;
@@ -303,7 +338,7 @@ void Map_FromVector(struct Hashmap *const __restrict map, const struct Vector *c
 	}
 }
 
-void Map_FromTuple(struct Hashmap *const __restrict map, const struct Tuple *const __restrict tup)
+void Map_FromTuple(struct Hashmap *const restrict map, const struct Tuple *const restrict tup)
 {
 	if( !map or !tup or !tup->Items or !tup->Len )
 		return;
@@ -315,7 +350,7 @@ void Map_FromTuple(struct Hashmap *const __restrict map, const struct Tuple *con
 	}
 }
 
-void Map_FromGraph(struct Hashmap *const __restrict map, const struct Graph *const __restrict graph)
+void Map_FromGraph(struct Hashmap *const restrict map, const struct Graph *const restrict graph)
 {
 	if( !map or !graph )
 		return;
@@ -327,7 +362,7 @@ void Map_FromGraph(struct Hashmap *const __restrict map, const struct Graph *con
 	}
 }
 
-void Map_FromLinkMap(struct Hashmap *const __restrict map, const struct LinkMap *const __restrict linkmap)
+void Map_FromLinkMap(struct Hashmap *const restrict map, const struct LinkMap *const restrict linkmap)
 {
 	if( !map or !linkmap )
 		return;
@@ -337,7 +372,7 @@ void Map_FromLinkMap(struct Hashmap *const __restrict map, const struct LinkMap 
 }
 
 
-struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -347,7 +382,7 @@ struct Hashmap *Map_NewFromUniLinkedList(const struct UniLinkedList *const __res
 	return map;
 }
 
-struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -357,7 +392,7 @@ struct Hashmap *Map_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 	return map;
 }
 
-struct Hashmap *Map_NewFromVector(const struct Vector *const __restrict v)
+struct Hashmap *Map_NewFromVector(const struct Vector *const restrict v)
 {
 	if( !v )
 		return NULL;
@@ -367,7 +402,7 @@ struct Hashmap *Map_NewFromVector(const struct Vector *const __restrict v)
 	return map;
 }
 
-struct Hashmap *Map_NewFromTuple(const struct Tuple *const __restrict tup)
+struct Hashmap *Map_NewFromTuple(const struct Tuple *const restrict tup)
 {
 	if( !tup or !tup->Items or !tup->Len )
 		return NULL;
@@ -377,7 +412,7 @@ struct Hashmap *Map_NewFromTuple(const struct Tuple *const __restrict tup)
 	return map;
 }
 
-struct Hashmap *Map_NewFromGraph(const struct Graph *const __restrict graph)
+struct Hashmap *Map_NewFromGraph(const struct Graph *const restrict graph)
 {
 	if( !graph )
 		return NULL;
@@ -387,7 +422,7 @@ struct Hashmap *Map_NewFromGraph(const struct Graph *const __restrict graph)
 	return map;
 }
 
-struct Hashmap *Map_NewFromLinkMap(const struct LinkMap *const __restrict linkmap)
+struct Hashmap *Map_NewFromLinkMap(const struct LinkMap *const restrict linkmap)
 {
 	if( !linkmap )
 		return NULL;

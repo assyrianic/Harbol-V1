@@ -3,54 +3,71 @@
 #include <stdio.h>
 #include "dsc.h"
 
-struct Tuple *Tuple_New(const size_t arrlen, union Value items[__restrict static arrlen])
+struct Tuple *Tuple_New(const size_t arrlen, union Value items[restrict static arrlen])
 {
+#ifdef DSC_NO_MALLOC
+	struct Tuple *tup = Heap_Alloc(&__heappool, sizeof *tup);
+#else
 	struct Tuple *tup = calloc(1, sizeof *tup);
+#endif
 	if( tup )
 		Tuple_Init(tup, arrlen, items);
 	return tup;
 }
 
-void Tuple_Free(struct Tuple **__restrict tupref)
+void Tuple_Free(struct Tuple **restrict tupref)
 {
 	if( !*tupref )
 		return;
 	Tuple_Del(*tupref);
-	free(*tupref), *tupref=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, *tupref);
+#else
+	free(*tupref);
+#endif
+	*tupref=NULL;
 }
 
-void Tuple_Init(struct Tuple *const __restrict tup, const size_t arrlen, union Value items[__restrict static arrlen])
+void Tuple_Init(struct Tuple *const restrict tup, const size_t arrlen, union Value items[restrict static arrlen])
 {
 	if( !tup )
 		return;
 	*tup = (struct Tuple){0};
+#ifdef DSC_NO_MALLOC
+	tup->Items = Heap_Alloc(&__heappool, arrlen * sizeof *tup->Items);
+#else
 	tup->Items = calloc(arrlen, sizeof *tup->Items);
+#endif
 	if( !tup->Items )
 		return;
 	memcpy(tup->Items, items, sizeof *tup->Items * arrlen);
 	tup->Len = arrlen;
 }
 
-void Tuple_Del(struct Tuple *const __restrict tup)
+void Tuple_Del(struct Tuple *const restrict tup)
 {
 	if( !tup or !tup->Items )
 		return;
-	
-	free(tup->Items), tup->Items=NULL;
+#ifdef DSC_NO_MALLOC
+	Heap_Release(&__heappool, tup->Items);
+#else
+	free(tup->Items);
+#endif
+	tup->Items=NULL;
 	*tup = (struct Tuple){0};
 }
 
-size_t Tuple_Len(const struct Tuple *const __restrict tup)
+size_t Tuple_Len(const struct Tuple *const restrict tup)
 {
 	return tup ? tup->Len : 0 ;
 }
 
-union Value *Tuple_GetItems(const struct Tuple *const __restrict tup)
+union Value *Tuple_GetItems(const struct Tuple *const restrict tup)
 {
 	return tup ? tup->Items : NULL ;
 }
 
-union Value Tuple_GetItem(const struct Tuple *const __restrict tup, const size_t index)
+union Value Tuple_GetItem(const struct Tuple *const restrict tup, const size_t index)
 {
 	if( !tup or !tup->Items or index >= tup->Len )
 		return (union Value){0};
@@ -58,7 +75,7 @@ union Value Tuple_GetItem(const struct Tuple *const __restrict tup, const size_t
 	return tup->Items[index];
 }
 
-void Tuple_FromUniLinkedList(struct Tuple *const __restrict tup, const struct UniLinkedList *const __restrict list)
+void Tuple_FromUniLinkedList(struct Tuple *const restrict tup, const struct UniLinkedList *const restrict list)
 {
 	if( !tup or !list )
 		return;
@@ -74,7 +91,7 @@ void Tuple_FromUniLinkedList(struct Tuple *const __restrict tup, const struct Un
 	Tuple_Init(tup, i, list_items);
 }
 
-void Tuple_FromMap(struct Tuple *const __restrict tup, const struct Hashmap *const __restrict map)
+void Tuple_FromMap(struct Tuple *const restrict tup, const struct Hashmap *const restrict map)
 {
 	if( !tup or !map )
 		return;
@@ -91,7 +108,7 @@ void Tuple_FromMap(struct Tuple *const __restrict tup, const struct Hashmap *con
 	Tuple_Init(tup, x, list_items);
 }
 
-void Tuple_FromVector(struct Tuple *const __restrict tup, const struct Vector *const __restrict vec)
+void Tuple_FromVector(struct Tuple *const restrict tup, const struct Vector *const restrict vec)
 {
 	if( !tup or !vec )
 		return;
@@ -103,7 +120,7 @@ void Tuple_FromVector(struct Tuple *const __restrict tup, const struct Vector *c
 	Tuple_Init(tup, vec->Count, vec->Table);
 }
 
-void Tuple_FromBiLinkedList(struct Tuple *const __restrict tup, const struct BiLinkedList *const __restrict list)
+void Tuple_FromBiLinkedList(struct Tuple *const restrict tup, const struct BiLinkedList *const restrict list)
 {
 	if( !tup or !list )
 		return;
@@ -119,7 +136,7 @@ void Tuple_FromBiLinkedList(struct Tuple *const __restrict tup, const struct BiL
 	Tuple_Init(tup, i, list_items);
 }
 
-void Tuple_FromGraph(struct Tuple *const __restrict tup, const struct Graph *const __restrict graph)
+void Tuple_FromGraph(struct Tuple *const restrict tup, const struct Graph *const restrict graph)
 {
 	if( !tup or !graph )
 		return;
@@ -134,7 +151,7 @@ void Tuple_FromGraph(struct Tuple *const __restrict tup, const struct Graph *con
 	Tuple_Init(tup, graph->VertexCount, list_items);
 }
 
-void Tuple_FromLinkMap(struct Tuple *const __restrict tup, const struct LinkMap *const __restrict map)
+void Tuple_FromLinkMap(struct Tuple *const restrict tup, const struct LinkMap *const restrict map)
 {
 	if( tup->Items )
 		Tuple_Del(tup);
@@ -148,7 +165,7 @@ void Tuple_FromLinkMap(struct Tuple *const __restrict tup, const struct LinkMap 
 }
 
 
-struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const __restrict list)
+struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -156,7 +173,7 @@ struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const __res
 	Tuple_FromUniLinkedList(tup, list);
 	return tup;
 }
-struct Tuple *Tuple_NewFromMap(const struct Hashmap *const __restrict map)
+struct Tuple *Tuple_NewFromMap(const struct Hashmap *const restrict map)
 {
 	if( !map )
 		return NULL;
@@ -164,7 +181,7 @@ struct Tuple *Tuple_NewFromMap(const struct Hashmap *const __restrict map)
 	Tuple_FromMap(tup, map);
 	return tup;
 }
-struct Tuple *Tuple_NewFromVector(const struct Vector *const __restrict vec)
+struct Tuple *Tuple_NewFromVector(const struct Vector *const restrict vec)
 {
 	if( !vec )
 		return NULL;
@@ -172,7 +189,7 @@ struct Tuple *Tuple_NewFromVector(const struct Vector *const __restrict vec)
 	Tuple_FromVector(tup, vec);
 	return tup;
 }
-struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *const __restrict list)
+struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
 {
 	if( !list )
 		return NULL;
@@ -180,7 +197,7 @@ struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *const __restr
 	Tuple_FromBiLinkedList(tup, list);
 	return tup;
 }
-struct Tuple *Tuple_NewFromGraph(const struct Graph *const __restrict graph)
+struct Tuple *Tuple_NewFromGraph(const struct Graph *const restrict graph)
 {
 	if( !graph )
 		return NULL;
@@ -188,7 +205,7 @@ struct Tuple *Tuple_NewFromGraph(const struct Graph *const __restrict graph)
 	Tuple_FromGraph(tup, graph);
 	return tup;
 }
-struct Tuple *Tuple_NewFromLinkMap(const struct LinkMap *const __restrict map)
+struct Tuple *Tuple_NewFromLinkMap(const struct LinkMap *const restrict map)
 {
 	if( !map )
 		return NULL;
