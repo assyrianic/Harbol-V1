@@ -2,113 +2,126 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <assert.h>
-#include "dsc.h"
-
-
-struct ByteBuffer *ByteBuffer_New(void)
-{
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct ByteBuffer));
-#else
-	return calloc(1, sizeof(struct ByteBuffer));
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
 #endif
+#include "harbol.h"
+
+
+HARBOL_EXPORT struct HarbolByteBuffer *HarbolByteBuffer_New(void)
+{
+	return calloc(1, sizeof(struct HarbolByteBuffer));
 }
 
-void ByteBuffer_Init(struct ByteBuffer *const __restrict p)
+HARBOL_EXPORT void HarbolByteBuffer_Init(struct HarbolByteBuffer *const p)
 {
 	if( !p )
 		return;
 	
-	*p = (struct ByteBuffer){0};
+	memset(p, 0, sizeof *p);
 }
 
-size_t ByteBuffer_Len(const struct ByteBuffer *const __restrict p)
+HARBOL_EXPORT size_t HarbolByteBuffer_Len(const struct HarbolByteBuffer *const p)
 {
 	return p ? p->Len : 0;
 }
-size_t ByteBuffer_Count(const struct ByteBuffer *const __restrict p)
+
+HARBOL_EXPORT size_t HarbolByteBuffer_Count(const struct HarbolByteBuffer *const p)
 {
 	return p ? p->Count : 0;
 }
-uint8_t	*ByteBuffer_GetBuffer(const struct ByteBuffer *const __restrict p)
+
+HARBOL_EXPORT uint8_t *HarbolByteBuffer_GetBuffer(const struct HarbolByteBuffer *const p)
 {
 	return p ? p->Buffer : NULL;
 }
 
-void ByteBuffer_InsertByte(struct ByteBuffer *const __restrict p, const uint8_t byte)
+HARBOL_EXPORT void HarbolByteBuffer_InsertByte(struct HarbolByteBuffer *const p, const uint8_t byte)
 {
 	if( !p )
 		return;
 	else if( p->Count >= p->Len )
-		ByteBuffer_Resize(p);
+		HarbolByteBuffer_Resize(p);
 	
 	p->Buffer[p->Count++] = byte;
 }
 
-void ByteBuffer_InsertInt(struct ByteBuffer *const __restrict p, const uint64_t value, const size_t bytes)
+HARBOL_EXPORT void HarbolByteBuffer_InsertInt(struct HarbolByteBuffer *const p, const uint64_t value, const size_t bytes)
 {
 	if( !p )
 		return;
 	else if( p->Count+bytes >= p->Len )
 		while( p->Count+bytes >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, &value, bytes);
 	p->Count += bytes;
 }
 
-void ByteBuffer_InsertFloat(struct ByteBuffer *const __restrict p, const float fval)
+HARBOL_EXPORT void HarbolByteBuffer_InsertFloat(struct HarbolByteBuffer *const p, const float fval)
 {
 	if( !p )
 		return;
 	else if( p->Count+sizeof fval >= p->Len )
 		while( p->Count+sizeof fval >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, &fval, sizeof fval);
 	p->Count += sizeof fval;
 }
 
-void ByteBuffer_InsertDouble(struct ByteBuffer *const __restrict p, const double fval)
+HARBOL_EXPORT void HarbolByteBuffer_InsertDouble(struct HarbolByteBuffer *const p, const double fval)
 {
 	if( !p )
 		return;
 	else if( p->Count+sizeof fval >= p->Len )
 		while( p->Count+sizeof fval >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, &fval, sizeof fval);
 	p->Count += sizeof fval;
 }
 
-void ByteBuffer_InsertString(struct ByteBuffer *const __restrict p, const char *__restrict str, const size_t strsize)
+HARBOL_EXPORT void HarbolByteBuffer_InsertHarbolString(struct HarbolByteBuffer *const restrict p, const char *restrict str, const size_t strsize)
 {
 	if( !p )
 		return;
 	else if( p->Count+strsize+1 >= p->Len )
 		while( p->Count+strsize+1 >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, str, strsize);
 	p->Count += strsize;
-	p->Buffer[p->Count++] = 0;	// add null terminator.
+	p->Buffer[p->Count++] = 0;	// add null terminat||.
 }
 
-void ByteBuffer_InsertObject(struct ByteBuffer *const __restrict p, const void *__restrict o, const size_t size)
+HARBOL_EXPORT void HarbolByteBuffer_InsertObject(struct HarbolByteBuffer *const restrict p, const void *restrict o, const size_t size)
 {
 	if( !p )
 		return;
 	else if( p->Count+size >= p->Len )
 		while( p->Count+size >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, o, size);
 	p->Count += size;
 }
 
-void ByteBuffer_Delete(struct ByteBuffer *const __restrict p, const size_t index)
+HARBOL_EXPORT void HarbolByteBuffer_InsertZeroes(struct HarbolByteBuffer *const p, const size_t zeroes)
 {
-	if( !p or index >= p->Count )
+	if( !p )
+		return;
+	else if( p->Count+zeroes >= p->Len )
+		while( p->Count+zeroes >= p->Len )
+			HarbolByteBuffer_Resize(p);
+	
+	memset(p->Buffer+p->Count, 0, zeroes);
+	p->Count += zeroes;
+}
+
+HARBOL_EXPORT void HarbolByteBuffer_Delete(struct HarbolByteBuffer *const p, const size_t index)
+{
+	if( !p || index >= p->Count )
 		return;
 	
 	const size_t
@@ -119,35 +132,27 @@ void ByteBuffer_Delete(struct ByteBuffer *const __restrict p, const size_t index
 	p->Count--;
 }
 
-void ByteBuffer_Del(struct ByteBuffer *const __restrict p)
+HARBOL_EXPORT void HarbolByteBuffer_Del(struct HarbolByteBuffer *const p)
 {
 	if( !p )
 		return;
 	
 	if( p->Buffer )
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, p->Buffer);
-	#else
 		free(p->Buffer);
-	#endif
-	*p = (struct ByteBuffer){0};
+	
+	memset(p, 0, sizeof *p);
 }
 
-void ByteBuffer_Free(struct ByteBuffer **__restrict pref)
+HARBOL_EXPORT void HarbolByteBuffer_Free(struct HarbolByteBuffer **pref)
 {
 	if( !*pref )
 		return;
 	
-	ByteBuffer_Del(*pref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *pref);
-#else
-	free(*pref);
-#endif
-	*pref=NULL;
+	HarbolByteBuffer_Del(*pref);
+	free(*pref), *pref=NULL;
 }
 
-void ByteBuffer_Resize(struct ByteBuffer *const __restrict p)
+HARBOL_EXPORT void HarbolByteBuffer_Resize(struct HarbolByteBuffer *const restrict p)
 {
 	if( !p )
 		return;
@@ -160,55 +165,43 @@ void ByteBuffer_Resize(struct ByteBuffer *const __restrict p)
 		p->Len=4;
 	
 	// allocate new table.
-#ifdef DSC_NO_MALLOC
-	uint8_t *newdata = Heap_Alloc(&__heappool, p->Len * sizeof *newdata);
-#else
 	uint8_t *newdata = calloc(p->Len, sizeof *newdata);
-#endif
 	assert( newdata );
 	
 	// copy the old table to new then free old table.
 	if( p->Buffer ) {
 		memcpy(newdata, p->Buffer, oldsize);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, p->Buffer);
-	#else
-		free(p->Buffer);
-	#endif
-		p->Buffer = NULL;
+		free(p->Buffer), p->Buffer = NULL;
 	}
 	p->Buffer = newdata;
 }
 
-void ByteBuffer_DumpToFile(const struct ByteBuffer *const __restrict p, void *vfile)
+HARBOL_EXPORT void HarbolByteBuffer_DumpToFile(const struct HarbolByteBuffer *const p, FILE *const file)
 {
-	if( !p or !p->Buffer or !vfile )
+	if( !p || !p->Buffer || !file )
 		return;
 	
-	FILE *const __restrict file = vfile;
 	fwrite(p->Buffer, sizeof *p->Buffer, p->Count, file);
 }
 
-size_t ByteBuffer_ReadFromFile(struct ByteBuffer *const __restrict p, void *vfile)
+HARBOL_EXPORT size_t HarbolByteBuffer_ReadFromFile(struct HarbolByteBuffer *const p, FILE *const file)
 {
-	if( !p or !vfile )
+	if( !p || !file )
 		return 0;
 	
-	FILE *const __restrict file = vfile;
-	
 	// get the total file size.
-	size_t filesize = 0;
-	if( !fseek(file, 0, SEEK_END) ) {
-		if( ftell(file) != -1L )
-			filesize = (size_t)ftell(file);
-		rewind(file);
-	}
+	fseek(file, 0, SEEK_END);
+	const int64_t filesize = ftell(file);
+	if( filesize <= -1 )
+		return 0;
+	
+	rewind(file);
 	
 	// check if buffer can hold it.
 	// if not, resize until it can.
 	if( p->Count+filesize >= p->Len )
 		while( p->Count+filesize >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	// read in the data.
 	const size_t val = fread(p->Buffer, sizeof *p->Buffer, filesize, file);
@@ -216,14 +209,14 @@ size_t ByteBuffer_ReadFromFile(struct ByteBuffer *const __restrict p, void *vfil
 	return val;
 }
 
-void ByteBuffer_Append(struct ByteBuffer *__restrict p, struct ByteBuffer *o)
+HARBOL_EXPORT void HarbolByteBuffer_Append(struct HarbolByteBuffer *restrict p, struct HarbolByteBuffer *restrict o)
 {
-	if( !p or !o or !o->Buffer )
+	if( !p || !o || !o->Buffer || p==o )
 		return;
 	
 	if( p->Count+o->Count >= p->Len )
 		while( p->Count+o->Count >= p->Len )
-			ByteBuffer_Resize(p);
+			HarbolByteBuffer_Resize(p);
 	
 	memcpy(p->Buffer+p->Count, o->Buffer, o->Count);
 	p->Count += o->Count;

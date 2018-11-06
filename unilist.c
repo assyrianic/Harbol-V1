@@ -1,28 +1,24 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
+#include "harbol.h"
 
 /* Singly Linked List Node code */
 /////////////////////////////////////////
-struct UniListNode *UniListNode_New(void)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniListNode_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct UniListNode));
-#else
-	return calloc(1, sizeof(struct UniListNode));
-#endif
+	return calloc(1, sizeof(struct HarbolUniListNode));
 }
 
-struct UniListNode *UniListNode_NewVal(const union Value val)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniListNode_NewVal(const union HarbolValue val)
 {
-	struct UniListNode *node = UniListNode_New();
+	struct HarbolUniListNode *node = HarbolUniListNode_New();
 	if( node )
 		node->Data = val;
 	return node;
 }
 
-void UniListNode_Del(struct UniListNode *const restrict node, bool (*dtor)())
+HARBOL_EXPORT void HarbolUniListNode_Del(struct HarbolUniListNode *const node, fnDestructor *const dtor)
 {
 	if( !node )
 		return;
@@ -31,103 +27,88 @@ void UniListNode_Del(struct UniListNode *const restrict node, bool (*dtor)())
 		(*dtor)(&node->Data.Ptr);
 	
 	if( node->Next )
-		UniListNode_Free(&node->Next, dtor);
+		HarbolUniListNode_Free(&node->Next, dtor);
 }
 
-void UniListNode_Free(struct UniListNode **restrict noderef, bool (*dtor)())
+HARBOL_EXPORT void HarbolUniListNode_Free(struct HarbolUniListNode **noderef, fnDestructor *const dtor)
 {
-	if( !*noderef )
+	if( !noderef || !*noderef )
 		return;
 	
-	UniListNode_Del(*noderef, dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *noderef);
-#else
-	free(*noderef);
-#endif
-	*noderef=NULL;
+	HarbolUniListNode_Del(*noderef, dtor);
+	free(*noderef); *noderef=NULL;
 }
 
-struct UniListNode *UniListNode_GetNextNode(const struct UniListNode *const restrict node)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniListNode_GetNextNode(const struct HarbolUniListNode *const node)
 {
 	return node ? node->Next : NULL;
 }
-union Value UniListNode_GetValue(const struct UniListNode *const restrict node)
+
+HARBOL_EXPORT union HarbolValue HarbolUniListNode_GetValue(const struct HarbolUniListNode *const node)
 {
-	return node ? node->Data : (union Value){0};
+	return node ? node->Data : (union HarbolValue){0};
 }
 /////////////////////////////////////////
 
 
 /* Singly Linked List code */
 /////////////////////////////////////////
-struct UniLinkedList *UniLinkedList_New(bool (*dtor)())
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	struct UniLinkedList *list = Heap_Alloc(&__heappool, sizeof *list);
-#else
-	struct UniLinkedList *list = calloc(1, sizeof *list);
-#endif
-	UniLinkedList_SetDestructor(list, dtor);
+	struct HarbolUniList *list = calloc(1, sizeof *list);
 	return list;
 }
 
-void UniLinkedList_Del(struct UniLinkedList *const restrict list)
+HARBOL_EXPORT void HarbolUniList_Del(struct HarbolUniList *const list, fnDestructor *const dtor)
 {
 	if( !list )
 		return;
 	
-	UniListNode_Free(&list->Head, list->Destructor);
-	*list = (struct UniLinkedList){0};
+	HarbolUniListNode_Free(&list->Head, dtor);
+	memset(list, 0, sizeof *list);
 }
 
-void UniLinkedList_Free(struct UniLinkedList **restrict listref)
+HARBOL_EXPORT void HarbolUniList_Free(struct HarbolUniList **listref, fnDestructor *const dtor)
 {
 	if( !*listref )
 		return;
 	
-	UniLinkedList_Del(*listref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *listref);
-#else
-	free(*listref);
-#endif
-	*listref=NULL;
+	HarbolUniList_Del(*listref, dtor);
+	free(*listref); *listref=NULL;
 }
 
-void UniLinkedList_Init(struct UniLinkedList *const restrict list, bool (*dtor)())
+HARBOL_EXPORT void HarbolUniList_Init(struct HarbolUniList *const list)
 {
 	if( !list )
 		return;
 	
-	*list = (struct UniLinkedList){0};
-	UniLinkedList_SetDestructor(list, dtor);
+	memset(list, 0, sizeof *list);
 }
 
-size_t UniLinkedList_Len(const struct UniLinkedList *const restrict list)
+HARBOL_EXPORT size_t HarbolUniList_Len(const struct HarbolUniList *const list)
 {
 	return list ? list->Len : 0;
 }
 
-bool UniLinkedList_InsertNodeAtHead(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node)
+HARBOL_EXPORT bool HarbolUniList_InsertNodeAtHead(struct HarbolUniList *const list, struct HarbolUniListNode *const node)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
 	
 	node->Next = list->Head;
 	list->Head = node;
-	if( !list->Len )
+	if( !list->Tail )
 		list->Tail = node;
 	list->Len++;
 	return true;
 }
 
-bool UniLinkedList_InsertNodeAtTail(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node)
+HARBOL_EXPORT bool HarbolUniList_InsertNodeAtTail(struct HarbolUniList *const list, struct HarbolUniListNode *const node)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
 	
-	if( list->Len ) {
+	if( list->Head ) {
 		node->Next = NULL;
 		list->Tail->Next = node;
 		list->Tail = node;
@@ -137,22 +118,22 @@ bool UniLinkedList_InsertNodeAtTail(struct UniLinkedList *const restrict list, s
 	return true;
 }
 
-bool UniLinkedList_InsertNodeAtIndex(struct UniLinkedList *const restrict list, struct UniListNode *const restrict node, const size_t index)
+HARBOL_EXPORT bool HarbolUniList_InsertNodeAtIndex(struct HarbolUniList *const list, struct HarbolUniListNode *const node, const size_t index)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
-	else if( !list->Head or index==0 )
-		return UniLinkedList_InsertNodeAtHead(list, node);
+	else if( !list->Head || index==0 )
+		return HarbolUniList_InsertNodeAtHead(list, node);
 	// if index is out of bounds, append at tail end.
 	else if( index >= list->Len )
-		return UniLinkedList_InsertNodeAtTail(list, node);
+		return HarbolUniList_InsertNodeAtTail(list, node);
 	
-	struct UniListNode
+	struct HarbolUniListNode
 		*curr=list->Head,
 		*prev=NULL
 	;
 	size_t i=0;
-	while( curr->Next != NULL and i != index ) {
+	while( curr->Next != NULL && i != index ) {
 		prev = curr;
 		curr = curr->Next;
 		i++;
@@ -168,31 +149,49 @@ bool UniLinkedList_InsertNodeAtIndex(struct UniLinkedList *const restrict list, 
 	return false;
 }
 
-bool UniLinkedList_InsertValueAtHead(struct UniLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT bool HarbolUniList_InsertValueAtHead(struct HarbolUniList *const list, const union HarbolValue val)
 {
 	if( !list )
 		return false;
+	struct HarbolUniListNode *node = HarbolUniListNode_NewVal(val);
+	if( !node )
+		return false;
 	
-	return UniLinkedList_InsertNodeAtHead(list, UniListNode_NewVal(val));
+	const bool result = HarbolUniList_InsertNodeAtHead(list, node);
+	if( !result )
+		HarbolUniListNode_Free(&node, NULL);
+	return result;
 }
 
-bool UniLinkedList_InsertValueAtTail(struct UniLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT bool HarbolUniList_InsertValueAtTail(struct HarbolUniList *const list, const union HarbolValue val)
 {
 	if( !list )
 		return false;
+	struct HarbolUniListNode *node = HarbolUniListNode_NewVal(val);
+	if( !node )
+		return false;
 	
-	return UniLinkedList_InsertNodeAtTail(list, UniListNode_NewVal(val));
+	const bool result = HarbolUniList_InsertNodeAtTail(list, node);
+	if( !result )
+		HarbolUniListNode_Free(&node, NULL);
+	return result;
 }
 
-bool UniLinkedList_InsertValueAtIndex(struct UniLinkedList *const restrict list, const union Value val, const size_t index)
+HARBOL_EXPORT bool HarbolUniList_InsertValueAtIndex(struct HarbolUniList *const list, const union HarbolValue val, const size_t index)
 {
 	if( !list )
 		return false;
+	struct HarbolUniListNode *node = HarbolUniListNode_NewVal(val);
+	if( !node )
+		return false;
 	
-	return UniLinkedList_InsertNodeAtIndex(list, UniListNode_NewVal(val), index);
+	const bool result = HarbolUniList_InsertNodeAtIndex(list, node, index);
+	if( !result )
+		HarbolUniListNode_Free(&node, NULL);
+	return result;
 }
 
-struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const restrict list, const size_t index)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniList_GetNode(const struct HarbolUniList *const list, const size_t index)
 {
 	if( !list )
 		return NULL;
@@ -201,61 +200,61 @@ struct UniListNode *UniLinkedList_GetNode(const struct UniLinkedList *const rest
 	else if( index >= list->Len )
 		return list->Tail;
 	
-	struct UniListNode *node = list->Head;
+	struct HarbolUniListNode *node = list->Head;
 	for( size_t i=0 ; i<list->Len ; i++ ) {
-		if( node and i==index )
+		if( node && i==index )
 			return node;
 		node = node->Next;
 	}
 	return NULL;
 }
 
-struct UniListNode *UniLinkedList_GetNodeByValue(const struct UniLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniList_GetNodeByValue(const struct HarbolUniList *const list, const union HarbolValue val)
 {
 	if( !list )
 		return NULL;
-	for( struct UniListNode *i=list->Head ; i ; i=i->Next )
+	for( struct HarbolUniListNode *i=list->Head ; i ; i=i->Next )
 		if( !memcmp(&i->Data, &val, sizeof val) )
 			return i;
 	return NULL;
 }
 
-union Value UniLinkedList_GetValue(const struct UniLinkedList *const restrict list, const size_t index)
+HARBOL_EXPORT union HarbolValue HarbolUniList_GetValue(const struct HarbolUniList *const list, const size_t index)
 {
 	if( !list )
-		return (union Value){0};
-	else if( index==0 and list->Head )
+		return (union HarbolValue){0};
+	else if( index==0 && list->Head )
 		return list->Head->Data;
-	else if( index >= list->Len and list->Tail )
+	else if( index >= list->Len && list->Tail )
 		return list->Tail->Data;
 	
-	struct UniListNode *node = list->Head;
+	struct HarbolUniListNode *node = list->Head;
 	for( size_t i=0 ; i<list->Len ; i++ ) {
-		if( node and i==index )
+		if( node && i==index )
 			return node->Data;
 		if( !node->Next )
 			break;
 		node = node->Next;
 	}
-	return (union Value){0};
+	return (union HarbolValue){0};
 }
 
-void UniLinkedList_SetValue(struct UniLinkedList *const restrict list, const size_t index, const union Value val)
+HARBOL_EXPORT void HarbolUniList_SetValue(struct HarbolUniList *const list, const size_t index, const union HarbolValue val)
 {
 	if( !list )
 		return;
-	else if( index==0 and list->Head ) {
+	else if( index==0 && list->Head ) {
 		list->Head->Data = val;
 		return;
 	}
-	else if( index >= list->Len and list->Tail ) {
+	else if( index >= list->Len && list->Tail ) {
 		list->Tail->Data = val;
 		return;
 	}
 	
-	struct UniListNode *node = list->Head;
+	struct HarbolUniListNode *node = list->Head;
 	for( size_t i=0 ; i<list->Len ; i++ ) {
-		if( node and i==index ) {
+		if( node && i==index ) {
 			node->Data = val;
 			break;
 		}
@@ -265,19 +264,19 @@ void UniLinkedList_SetValue(struct UniLinkedList *const restrict list, const siz
 	}
 }
 
-bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const restrict list, const size_t index)
+HARBOL_EXPORT bool HarbolUniList_DelNodeByIndex(struct HarbolUniList *const list, const size_t index, fnDestructor *const dtor)
 {
-	if( !list or !list->Len )
+	if( !list || !list->Len )
 		return false;
 	
-	struct UniListNode *node = UniLinkedList_GetNode(list, index);
+	struct HarbolUniListNode *node = HarbolUniList_GetNode(list, index);
 	if( !node )
 		return false;
 	
 	if( node==list->Head )
 		list->Head = node->Next;
 	else {
-		struct UniListNode *travnode = list->Head;
+		struct HarbolUniListNode *travnode = list->Head;
 		for( size_t i=0 ; i<list->Len ; i++ ) {
 			if( travnode->Next == node ) {
 				if( list->Tail == node ) {
@@ -291,31 +290,26 @@ bool UniLinkedList_DelNodeByIndex(struct UniLinkedList *const restrict list, con
 		}
 	}
 	
-	if( list->Destructor )
-		(*list->Destructor)(&node->Data.Ptr);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, node);
-#else
-	free(node);
-#endif
-	node=NULL;
+	if( dtor )
+		(*dtor)(&node->Data.Ptr);
+	free(node); node=NULL;
 	
 	list->Len--;
-	if( !list->Len )
+	if( !list->Len && list->Tail )
 		list->Tail = NULL;
 	return true;
 }
 
-bool UniLinkedList_DelNodeByRef(struct UniLinkedList *const restrict list, struct UniListNode **restrict noderef)
+HARBOL_EXPORT bool HarbolUniList_DelNodeByRef(struct HarbolUniList *const list, struct HarbolUniListNode **noderef, fnDestructor *const dtor)
 {
-	if( !list or !*noderef )
+	if( !list || !*noderef )
 		return false;
 	
-	struct UniListNode *node = *noderef;
+	struct HarbolUniListNode *node = *noderef;
 	if( node==list->Head )
 		list->Head = node->Next;
 	else {
-		struct UniListNode *travnode = list->Head;
+		struct HarbolUniListNode *travnode = list->Head;
 		for( size_t i=0 ; i<list->Len ; i++ ) {
 			if( travnode->Next == node ) {
 				if( list->Tail == node ) {
@@ -329,140 +323,136 @@ bool UniLinkedList_DelNodeByRef(struct UniLinkedList *const restrict list, struc
 		}
 	}
 	
-	if( list->Destructor )
-		(*list->Destructor)(&node->Data.Ptr);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *noderef);
-#else
-	free(*noderef);
-#endif
-	*noderef=NULL;
+	if( dtor )
+		(*dtor)(&node->Data.Ptr);
+	free(*noderef); *noderef=NULL;
 	list->Len--;
 	return true;
 }
 
-void UniLinkedList_SetDestructor(struct UniLinkedList *const restrict list, bool (*dtor)())
-{
-	if( !list )
-		return;
-	
-	list->Destructor = dtor;
-}
-
-struct UniListNode *UniLinkedList_GetHead(const struct UniLinkedList *const restrict list)
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniList_GetHead(const struct HarbolUniList *const list)
 {
 	return list ? list->Head : NULL;
 }
-struct UniListNode *UniLinkedList_GetTail(const struct UniLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolUniListNode *HarbolUniList_GetTail(const struct HarbolUniList *const list)
 {
 	return list ? list->Tail : NULL;
 }
 
-void UniLinkedList_FromBiLinkedList(struct UniLinkedList *const restrict unilist, const struct BiLinkedList *const restrict bilist)
+HARBOL_EXPORT void HarbolUniList_FromHarbolBiList(struct HarbolUniList *const unilist, const struct HarbolBiList *const bilist)
 {
-	if( !unilist or !bilist )
+	if( !unilist || !bilist )
 		return;
 	
-	for( struct BiListNode *n=bilist->Head ; n ; n = n->Next )
-		UniLinkedList_InsertValueAtTail(unilist, n->Data);
+	for( struct HarbolBiListNode *n=bilist->Head ; n ; n = n->Next )
+		HarbolUniList_InsertValueAtTail(unilist, n->Data);
 }
 
-void UniLinkedList_FromMap(struct UniLinkedList *const restrict unilist, const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolUniList_FromHarbolHashmap(struct HarbolUniList *const unilist, const struct HarbolHashmap *const map)
 {
-	if( !unilist or !map )
+	if( !unilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			UniLinkedList_InsertValueAtTail(unilist, n->Data);
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			HarbolUniList_InsertValueAtTail(unilist, node->Data);
+		}
+	}
 }
 
-void UniLinkedList_FromVector(struct UniLinkedList *const restrict unilist, const struct Vector *const restrict v)
+HARBOL_EXPORT void HarbolUniList_FromHarbolVector(struct HarbolUniList *const unilist, const struct HarbolVector *const v)
 {
-	if( !unilist or !v )
+	if( !unilist || !v || !v->Table )
 		return;
 	
 	for( size_t i=0 ; i<v->Count ; i++ )
-		UniLinkedList_InsertValueAtTail(unilist, v->Table[i]);
+		HarbolUniList_InsertValueAtTail(unilist, v->Table[i]);
 }
 
-void UniLinkedList_FromTuple(struct UniLinkedList *const restrict unilist, const struct Tuple *const restrict tup)
+HARBOL_EXPORT void HarbolUniList_FromHarbolTuple(struct HarbolUniList *const unilist, const struct HarbolTuple *const tup)
 {
-	if( !unilist or !tup or !tup->Items or !tup->Len )
+	if( !unilist || !tup || !tup->Items || !tup->Len )
 		return;
 	
 	for( size_t i=0 ; i<tup->Len ; i++ )
-		UniLinkedList_InsertValueAtTail(unilist, tup->Items[i]);
+		HarbolUniList_InsertValueAtTail(unilist, tup->Items[i]);
 }
 
-void UniLinkedList_FromGraph(struct UniLinkedList *const restrict unilist, const struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolUniList_FromHarbolGraph(struct HarbolUniList *const unilist, const struct HarbolGraph *const graph)
 {
-	if( !unilist or !graph )
-		return;
-	for( size_t i=0 ; i<graph->VertexCount ; i++ )
-		UniLinkedList_InsertValueAtTail(unilist, graph->Vertices[i].Data);
-}
-
-void UniLinkedList_FromLinkMap(struct UniLinkedList *const restrict unilist, const struct LinkMap *const restrict map)
-{
-	if( !unilist or !map )
+	if( !unilist || !graph )
 		return;
 	
-	for( struct LinkNode *n=map->Head ; n ; n = n->After )
-		UniLinkedList_InsertValueAtTail(unilist, n->Data);
+	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
+		HarbolUniList_InsertValueAtTail(unilist, vert->Data);
+	}
 }
 
+HARBOL_EXPORT void HarbolUniList_FromHarbolLinkMap(struct HarbolUniList *const unilist, const struct HarbolLinkMap *const map)
+{
+	if( !unilist || !map )
+		return;
+	
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
+		HarbolUniList_InsertValueAtTail(unilist, n->Data);
+	}
+}
 
-struct UniLinkedList *UniLinkedList_NewFromBiLinkedList(const struct BiLinkedList *const restrict bilist)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolBiList(const struct HarbolBiList *const bilist)
 {
 	if( !bilist )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(bilist->Destructor);
-	UniLinkedList_FromBiLinkedList(unilist, bilist);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolBiList(unilist, bilist);
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromMap(const struct Hashmap *const restrict map)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(map->Destructor);
-	UniLinkedList_FromMap(unilist, map);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolHashmap(unilist, map);
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromVector(const struct Vector *const restrict v)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolVector(const struct HarbolVector *const v)
 {
 	if( !v )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(v->Destructor);
-	UniLinkedList_FromVector(unilist, v);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolVector(unilist, v);
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromTuple(const struct Tuple *const restrict tup)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolTuple(const struct HarbolTuple *const tup)
 {
-	if( !tup or !tup->Items or !tup->Len )
+	if( !tup || !tup->Items || !tup->Len )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(NULL);
-	UniLinkedList_FromTuple(unilist, tup);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolTuple(unilist, tup);
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromGraph(const struct Graph *const restrict graph)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolGraph(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(NULL);
-	UniLinkedList_FromGraph(unilist, graph);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolGraph(unilist, graph);
 	return unilist;
 }
 
-struct UniLinkedList *UniLinkedList_NewFromLinkMap(const struct LinkMap *const restrict map)
+HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolLinkMap(const struct HarbolLinkMap *const map)
 {
 	if( !map )
 		return NULL;
-	struct UniLinkedList *unilist = UniLinkedList_New(map->Destructor);
-	UniLinkedList_FromLinkMap(unilist, map);
+	struct HarbolUniList *const unilist = HarbolUniList_New();
+	HarbolUniList_FromHarbolLinkMap(unilist, map);
 	return unilist;
 }

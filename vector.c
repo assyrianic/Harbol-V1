@@ -1,98 +1,91 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
+#endif
+#include "harbol.h"
 
 /*
-struct Vector {
-	union Value *Table;
+struct HarbolVector {
+	union HarbolValue *Table;
 	size_t	Len, Count;
 };
 */
 
-struct Vector *Vector_New(bool (*dtor)())
+HARBOL_EXPORT struct HarbolVector *HarbolVector_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	struct Vector *v = Heap_Alloc(&__heappool, sizeof *v);
-#else
-	struct Vector *v = calloc(1, sizeof *v);
-#endif
-	Vector_SetItemDestructor(v, dtor);
+	struct HarbolVector *v = calloc(1, sizeof *v);
 	return v;
 }
 
-void Vector_Init(struct Vector *const restrict v, bool (*dtor)())
+HARBOL_EXPORT void HarbolVector_Init(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
 	
-	*v = (struct Vector){0};
-	Vector_SetItemDestructor(v, dtor);
+	memset(v, 0, sizeof *v);
 }
 
-void Vector_Del(struct Vector *const restrict v)
+HARBOL_EXPORT void HarbolVector_Del(struct HarbolVector *const v, fnDestructor *const dtor)
 {
-	if( !v or !v->Table )
+	if( !v || !v->Table )
 		return;
 	
-	for( size_t i=0 ; i<v->Len ; i++ ) {
-		if( v->Destructor )
-			(*v->Destructor)(&v->Table[i].Ptr);
-	}
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, v->Table);
-#else
-	free(v->Table);
-#endif
-	Vector_Init(v, v->Destructor);
+	if( dtor )
+		for( size_t i=0 ; i<v->Len ; i++ )
+			(*dtor)(&v->Table[i].Ptr);
+	
+	free(v->Table); memset(v, 0, sizeof *v);
 }
 
-void Vector_Free(struct Vector **restrict vecref)
+HARBOL_EXPORT void HarbolVector_Free(struct HarbolVector **vecref, fnDestructor *const dtor)
 {
 	if( !*vecref )
 		return;
 	
-	Vector_Del(*vecref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *vecref);
-#else
-	free(*vecref);
-#endif
-	*vecref=NULL;
+	HarbolVector_Del(*vecref, dtor);
+	free(*vecref), *vecref=NULL;
 }
 
-inline size_t Vector_Len(const struct Vector *const restrict v)
+HARBOL_EXPORT size_t HarbolVector_Len(const struct HarbolVector *const v)
 {
-	return v and v->Table ? v->Len : 0;
+	return v ? v->Len : 0;
 }
 
-inline size_t Vector_Count(const struct Vector *const restrict v)
+HARBOL_EXPORT size_t HarbolVector_Count(const struct HarbolVector *const v)
 {
-	return v and v->Table ? v->Count : 0;
+	return v && v->Table ? v->Count : 0;
 }
-union Value *Vector_GetTable(const struct Vector *const restrict v)
+
+HARBOL_EXPORT union HarbolValue *HarbolVector_GetIter(const struct HarbolVector *const v)
 {
 	return v ? v->Table : NULL;
 }
 
-void Vector_Resize(struct Vector *const restrict v)
+HARBOL_EXPORT union HarbolValue *HarbolVector_GetIterEndLen(const struct HarbolVector *const v)
+{
+	return v ? v->Table+v->Len : NULL;
+}
+
+HARBOL_EXPORT union HarbolValue *HarbolVector_GetIterEndCount(const struct HarbolVector *const v)
+{
+	return v ? v->Table+v->Count : NULL;
+}
+
+HARBOL_EXPORT void HarbolVector_Resize(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
 	
 	// first we get our old size.
 	// then resize the actual size.
-	size_t oldsize = v->Len;
+	const size_t oldsize = v->Len;
 	v->Len <<= 1;
 	if( !v->Len )
 		v->Len = 4;
 	
 	// allocate new table.
-#ifdef DSC_NO_MALLOC
-	union Value *newdata = Heap_Alloc(&__heappool, v->Len * sizeof *newdata);
-#else
-	union Value *newdata = calloc(v->Len, sizeof *newdata);
-#endif
+	union HarbolValue *newdata = calloc(v->Len, sizeof *newdata);
 	if( !newdata ) {
 		v->Len >>= 1;
 		if( v->Len == 1 )
@@ -103,17 +96,12 @@ void Vector_Resize(struct Vector *const restrict v)
 	// copy the old table to new then free old table.
 	if( v->Table ) {
 		memcpy(newdata, v->Table, sizeof *newdata * oldsize);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, v->Table);
-	#else
-		free(v->Table);
-	#endif
-		v->Table = NULL;
+		free(v->Table), v->Table = NULL;
 	}
 	v->Table = newdata;
 }
 
-void Vector_Truncate(struct Vector *const restrict v)
+HARBOL_EXPORT void HarbolVector_Truncate(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
@@ -121,236 +109,228 @@ void Vector_Truncate(struct Vector *const restrict v)
 	if( v->Count < v->Len>>1 ) {
 		v->Len >>= 1;
 		// allocate new table.
-	#ifdef DSC_NO_MALLOC
-		union Value *newdata = Heap_Alloc(&__heappool, v->Len * sizeof *newdata);
-	#else
-		union Value *newdata = calloc(v->Len, sizeof *newdata);
-	#endif
+		union HarbolValue *newdata = calloc(v->Len, sizeof *newdata);
 		if( !newdata )
 			return;
-	
+		
 		// copy the old table to new then free old table.
 		if( v->Table ) {
 			memcpy(newdata, v->Table, sizeof *newdata * v->Len);
-		#ifdef DSC_NO_MALLOC
-			Heap_Release(&__heappool, v->Table);
-		#else
-			free(v->Table);
-		#endif
-			v->Table = NULL;
+			free(v->Table), v->Table = NULL;
 		}
 		v->Table = newdata;
 	}
 }
 
-
-bool Vector_Insert(struct Vector *const restrict v, const union Value val)
+HARBOL_EXPORT bool HarbolVector_Insert(struct HarbolVector *const v, const union HarbolValue val)
 {
 	if( !v )
 		return false;
-	else if( !v->Table or v->Count >= v->Len )
-		Vector_Resize(v);
+	else if( !v->Table || v->Count >= v->Len )
+		HarbolVector_Resize(v);
 	
 	v->Table[v->Count++] = val;
 	return true;
 }
 
-union Value Vector_Get(const struct Vector *const restrict v, const size_t index)
+HARBOL_EXPORT union HarbolValue HarbolVector_Pop(struct HarbolVector *const v)
 {
-	if( !v or !v->Table or index >= v->Count )
-		return (union Value){0};
-	
-	return v->Table[index];
+	return ( !v || !v->Table || !v->Count ) ? (union HarbolValue){0} : v->Table[--v->Count];
 }
 
-void Vector_Set(struct Vector *const restrict v, const size_t index, const union Value val)
+HARBOL_EXPORT union HarbolValue HarbolVector_Get(const struct HarbolVector *const v, const size_t index)
 {
-	if( !v or !v->Table or index >= v->Count )
+	return (!v || !v->Table || index >= v->Count) ? (union HarbolValue){0} : v->Table[index];
+}
+
+HARBOL_EXPORT void HarbolVector_Set(struct HarbolVector *const v, const size_t index, const union HarbolValue val)
+{
+	if( !v || !v->Table || index >= v->Count )
 		return;
 	
 	v->Table[index] = val;
 }
 
-void Vector_Delete(struct Vector *const restrict v, const size_t index)
+HARBOL_EXPORT void HarbolVector_Delete(struct HarbolVector *const v, const size_t index, fnDestructor *const dtor)
 {
-	if( !v or !v->Table or index >= v->Count )
+	if( !v || !v->Table || index >= v->Count )
 		return;
 	
-	if( v->Destructor )
-		(*v->Destructor)(&v->Table[index].Ptr);
+	if( dtor )
+		(*dtor)(&v->Table[index].Ptr);
 	
 	size_t
 		i=index+1,
 		j=index
 	;
-	while( i<v->Count )
-		v->Table[j++] = v->Table[i++];
 	v->Count--;
+	//while( i<v->Count )
+	//	v->Table[j++] = v->Table[i++];
+	memmove(v->Table+j, v->Table+i, (v->Count-j) * sizeof *v->Table);
 	// can't keep auto-truncating, allocating memory every time can be expensive.
 	// I'll let the programmers truncate whenever they need to.
-	//Vector_Truncate(v);
+	//HarbolVector_Truncate(v);
 }
 
-void Vector_Add(struct Vector *const restrict vA, const struct Vector *const restrict vB)
+HARBOL_EXPORT void HarbolVector_Add(struct HarbolVector *const restrict vA, const struct HarbolVector *const restrict vB)
 {
-	if( !vA or !vB or !vB->Table )
+	if( !vA || !vB || !vB->Table )
 		return;
 	
 	size_t i=0;
 	while( i<vB->Count ) {
-		if( !vA->Table or vA->Count >= vA->Len )
-			Vector_Resize(vA);
+		if( !vA->Table || vA->Count >= vA->Len )
+			HarbolVector_Resize(vA);
 		vA->Table[vA->Count++] = vB->Table[i++];
 	}
 }
 
-void Vector_Copy(struct Vector *const restrict vA, const struct Vector *const restrict vB)
+HARBOL_EXPORT void HarbolVector_Copy(struct HarbolVector *const restrict vA, const struct HarbolVector *const restrict vB)
 {
-	if( !vA or !vB or !vB->Table )
+	if( !vA || !vB || !vB->Table )
 		return;
 	
-	Vector_Del(vA);
+	HarbolVector_Del(vA, NULL);
 	size_t i=0;
 	while( i<vB->Count ) {
-		if( !vA->Table or vA->Count >= vA->Len )
-			Vector_Resize(vA);
+		if( !vA->Table || vA->Count >= vA->Len )
+			HarbolVector_Resize(vA);
 		vA->Table[vA->Count++] = vB->Table[i++];
 	}
 }
 
-void Vector_SetItemDestructor(struct Vector *const restrict v, bool (*dtor)())
+HARBOL_EXPORT void HarbolVector_FromHarbolUniList(struct HarbolVector *const v, const struct HarbolUniList *const list)
 {
-	if( !v )
+	if( !v || !list )
 		return;
-	
-	v->Destructor = dtor;
-}
-
-void Vector_FromUniLinkedList(struct Vector *const restrict v, const struct UniLinkedList *const restrict list)
-{
-	if( !v or !list )
-		return;
-	else if( !v->Table or v->Count+list->Len >= v->Len )
+	else if( !v->Table || v->Count+list->Len >= v->Len )
 		while( v->Count+list->Len >= v->Len )
-			Vector_Resize(v);
+			HarbolVector_Resize(v);
 	
-	for( struct UniListNode *n=list->Head ; n ; n = n->Next )
+	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next )
 		v->Table[v->Count++] = n->Data;
 }
 
-void Vector_FromBiLinkedList(struct Vector *const restrict v, const struct BiLinkedList *const restrict list)
+HARBOL_EXPORT void HarbolVector_FromHarbolBiList(struct HarbolVector *const v, const struct HarbolBiList *const list)
 {
-	if( !v or !list )
+	if( !v || !list )
 		return;
-	else if( !v->Table or v->Count+list->Len >= v->Len )
+	else if( !v->Table || v->Count+list->Len >= v->Len )
 		while( v->Count+list->Len >= v->Len )
-			Vector_Resize(v);
+			HarbolVector_Resize(v);
 	
-	for( struct BiListNode *n=list->Head ; n ; n = n->Next )
+	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next )
 		v->Table[v->Count++] = n->Data;
 }
 
-void Vector_FromMap(struct Vector *const restrict v, const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolVector_FromHarbolHashmap(struct HarbolVector *const restrict v, const struct HarbolHashmap *const map)
 {
-	if( !v or !map )
+	if( !v || !map )
 		return;
-	else if( !v->Table or v->Count+map->Count >= v->Len )
+	else if( !v->Table || v->Count+map->Count >= v->Len )
 		while( v->Count+map->Count >= v->Len )
-			Vector_Resize(v);
+			HarbolVector_Resize(v);
 	
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			v->Table[v->Count++] = n->Data;
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *restrict vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			v->Table[v->Count++] = node->Data;
+		}
+	}
 }
 
-void Vector_FromTuple(struct Vector *const restrict v, const struct Tuple *const restrict tup)
+HARBOL_EXPORT void HarbolVector_FromHarbolTuple(struct HarbolVector *const v, const struct HarbolTuple *const tup)
 {
-	if( !v or !tup or !tup->Items or !tup->Len )
+	if( !v || !tup || !tup->Items || !tup->Len )
 		return;
-	else if( !v->Table or v->Count+tup->Len >= v->Len )
+	else if( !v->Table || v->Count+tup->Len >= v->Len )
 		while( v->Count+tup->Len >= v->Len )
-			Vector_Resize(v);
+			HarbolVector_Resize(v);
 	
 	size_t i=0;
 	while( i<tup->Len )
 		v->Table[v->Count++] = tup->Items[i++];
 }
 
-void Vector_FromGraph(struct Vector *const restrict v, const struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolVector_FromHarbolGraph(struct HarbolVector *const v, const struct HarbolGraph *const graph)
 {
-	if( !v or !graph )
+	if( !v || !graph )
 		return;
-	else if( !v->Table or v->Count+graph->VertexCount >= v->Len )
-		while( v->Count+graph->VertexCount >= v->Len )
-			Vector_Resize(v);
+	else if( !v->Table || v->Count+graph->Vertices.Count >= v->Len )
+		while( v->Count+graph->Vertices.Count >= v->Len )
+			HarbolVector_Resize(v);
 	
-	size_t i=0;
-	while( i<graph->VertexCount )
-		v->Table[v->Count++] = graph->Vertices[i++].Data;
+	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
+		v->Table[v->Count++] = vert->Data;
+	}
 }
 
-void Vector_FromLinkMap(struct Vector *const restrict v, const struct LinkMap *const restrict map)
+HARBOL_EXPORT void HarbolVector_FromHarbolLinkMap(struct HarbolVector *const v, const struct HarbolLinkMap *const map)
 {
-	if( !v or !map )
+	if( !v || !map )
 		return;
-	else if( !v->Table or v->Count+map->Count >= v->Len )
+	else if( !v->Table || v->Count+map->Count >= v->Len )
 		while( v->Count+map->Count >= v->Len )
-			Vector_Resize(v);
+			HarbolVector_Resize(v);
 	
-	for( struct LinkNode *n = map->Head ; n ; n=n->After )
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
 		v->Table[v->Count++] = n->Data;
+	}
 }
 
-struct Vector *Vector_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolUniList(const struct HarbolUniList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Vector *v = Vector_New(list->Destructor);
-	Vector_FromUniLinkedList(v, list);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolUniList(v, list);
 	return v;
 }
 
-struct Vector *Vector_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolBiList(const struct HarbolBiList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Vector *v = Vector_New(list->Destructor);
-	Vector_FromBiLinkedList(v, list);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolBiList(v, list);
 	return v;
 }
 
-struct Vector *Vector_NewFromMap(const struct Hashmap *const restrict map)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Vector *v = Vector_New(map->Destructor);
-	Vector_FromMap(v, map);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolHashmap(v, map);
 	return v;
 }
 
-struct Vector *Vector_NewFromTuple(const struct Tuple *const restrict tup)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolTuple(const struct HarbolTuple *const tup)
 {
 	if( !tup )
 		return NULL;
-	struct Vector *v = Vector_New(NULL);
-	Vector_FromTuple(v, tup);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolTuple(v, tup);
 	return v;
 }
 
-struct Vector *Vector_NewFromGraph(const struct Graph *const restrict graph)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolGraph(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return NULL;
-	struct Vector *v = Vector_New(graph->VertexDestructor);
-	Vector_FromGraph(v, graph);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolGraph(v, graph);
 	return v;
 }
 
-struct Vector *Vector_NewFromLinkMap(const struct LinkMap *const restrict map)
+HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolLinkMap(const struct HarbolLinkMap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Vector *v = Vector_New(map->Destructor);
-	Vector_FromLinkMap(v, map);
+	struct HarbolVector *v = HarbolVector_New();
+	HarbolVector_FromHarbolLinkMap(v, map);
 	return v;
 }

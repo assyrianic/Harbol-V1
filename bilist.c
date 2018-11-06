@@ -1,28 +1,27 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
+
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
+#endif
+#include "harbol.h"
 
 /* Doubly Linked List Node code */
 /////////////////////////////////////////
-struct BiListNode *BiListNode_New(void)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiListNode_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct BiListNode));
-#else
-	return calloc(1, sizeof(struct BiListNode));
-#endif
+	return calloc(1, sizeof(struct HarbolBiListNode));
 }
 
-struct BiListNode *BiListNode_NewVal(const union Value val)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiListNode_NewVal(const union HarbolValue val)
 {
-	struct BiListNode *node = BiListNode_New();
+	struct HarbolBiListNode *node = calloc(1, sizeof *node);
 	if( node )
 		node->Data = val;
 	return node;
 }
 
-void BiListNode_Del(struct BiListNode *const restrict node, bool (*dtor)())
+HARBOL_EXPORT void HarbolBiListNode_Del(struct HarbolBiListNode *const node, fnDestructor *const dtor)
 {
 	if( !node )
 		return;
@@ -32,36 +31,31 @@ void BiListNode_Del(struct BiListNode *const restrict node, bool (*dtor)())
 		(*dtor)(&node->Data.Ptr);
 	
 	node->Prev = NULL;
-	BiListNode_Free(&node->Next, dtor);
+	HarbolBiListNode_Free(&node->Next, dtor);
 }
 
-void BiListNode_Free(struct BiListNode **restrict noderef, bool (*dtor)())
+HARBOL_EXPORT void HarbolBiListNode_Free(struct HarbolBiListNode ** noderef, fnDestructor *const dtor)
 {
 	if( !*noderef )
 		return;
 	
-	BiListNode_Del(*noderef, dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *noderef);
-#else
-	free(*noderef);
-#endif
-	*noderef=NULL;
+	HarbolBiListNode_Del(*noderef, dtor);
+	free(*noderef), *noderef=NULL;
 }
 
-struct BiListNode *BiListNode_GetNextNode(const struct BiListNode *const restrict node)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiListNode_GetNextNode(const struct HarbolBiListNode *const node)
 {
 	return node ? node->Next : NULL;
 }
 
-struct BiListNode *BiListNode_GetPrevNode(const struct BiListNode *const restrict node)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiListNode_GetPrevNode(const struct HarbolBiListNode *const node)
 {
 	return node ? node->Prev : NULL;
 }
 
-union Value BiListNode_GetValue(const struct BiListNode *const restrict node)
+HARBOL_EXPORT union HarbolValue HarbolBiListNode_GetValue(const struct HarbolBiListNode *const node)
 {
-	return node ? node->Data : (union Value){0};
+	return node ? node->Data : (union HarbolValue){0};
 }
 /////////////////////////////////////////
 
@@ -69,57 +63,46 @@ union Value BiListNode_GetValue(const struct BiListNode *const restrict node)
 
 /* Doubly Linked List code */
 /////////////////////////////////////////
-struct BiLinkedList *BiLinkedList_New(bool (*dtor)())
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	struct BiLinkedList *list = Heap_Alloc(&__heappool, sizeof *list);
-#else
-	struct BiLinkedList *list = calloc(1, sizeof *list);
-#endif
-	BiLinkedList_SetDestructor(list, dtor);
+	struct HarbolBiList *list = calloc(1, sizeof *list);
 	return list;
 }
 
-void BiLinkedList_Del(struct BiLinkedList *const restrict list)
+HARBOL_EXPORT void HarbolBiList_Del(struct HarbolBiList *const list, fnDestructor *const dtor)
 {
 	if( !list )
 		return;
 	
-	BiListNode_Free(&list->Head, list->Destructor);
-	*list = (struct BiLinkedList){0};
+	HarbolBiListNode_Free(&list->Head, dtor);
+	memset(list, 0, sizeof *list);
 }
 
-void BiLinkedList_Free(struct BiLinkedList **restrict listref)
+HARBOL_EXPORT void HarbolBiList_Free(struct HarbolBiList **listref, fnDestructor *const dtor)
 {
 	if( !*listref )
 		return;
 	
-	BiLinkedList_Del(*listref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *listref);
-#else
-	free(*listref);
-#endif
-	*listref=NULL;
+	HarbolBiList_Del(*listref, dtor);
+	free(*listref), *listref=NULL;
 }
 
-void BiLinkedList_Init(struct BiLinkedList *const restrict list, bool (*dtor)())
+HARBOL_EXPORT void HarbolBiList_Init(struct HarbolBiList *const list)
 {
 	if( !list )
 		return;
 	
-	*list = (struct BiLinkedList){0};
-	BiLinkedList_SetDestructor(list, dtor);
+	memset(list, 0, sizeof *list);
 }
 
-size_t BiLinkedList_Len(const struct BiLinkedList *const restrict list)
+HARBOL_EXPORT size_t HarbolBiList_Len(const struct HarbolBiList *const list)
 {
 	return list ? list->Len : 0;
 }
 
-bool BiLinkedList_InsertNodeAtHead(struct BiLinkedList *const restrict list, struct BiListNode *const restrict node)
+HARBOL_EXPORT bool HarbolBiList_InsertNodeAtHead(struct HarbolBiList *const list, struct HarbolBiListNode *const node)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
 	
 	if( !list->Head ) {
@@ -140,9 +123,9 @@ bool BiLinkedList_InsertNodeAtHead(struct BiLinkedList *const restrict list, str
 	return true;
 }
 
-bool BiLinkedList_InsertNodeAtTail(struct BiLinkedList *const restrict list, struct BiListNode *const restrict node)
+HARBOL_EXPORT bool HarbolBiList_InsertNodeAtTail(struct HarbolBiList *const list, struct HarbolBiListNode *const node)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
 	
 	if( list->Len ) {
@@ -163,20 +146,20 @@ bool BiLinkedList_InsertNodeAtTail(struct BiLinkedList *const restrict list, str
 	return true;
 }
 
-bool BiLinkedList_InsertNodeAtIndex(struct BiLinkedList *const restrict list, struct BiListNode *const restrict node, const size_t index)
+HARBOL_EXPORT bool HarbolBiList_InsertNodeAtIndex(struct HarbolBiList *const list, struct HarbolBiListNode *const node, const size_t index)
 {
-	if( !list or !node )
+	if( !list || !node )
 		return false;
-	else if( !list->Head or index==0 )
-		return BiLinkedList_InsertNodeAtHead(list, node);
+	else if( !list->Head || index==0 )
+		return HarbolBiList_InsertNodeAtHead(list, node);
 	// if index is out of bounds, append at tail end.
 	else if( index >= list->Len )
-		return BiLinkedList_InsertNodeAtTail(list, node);
+		return HarbolBiList_InsertNodeAtTail(list, node);
 	
-	bool prev_dir = ( index >= list->Len/2 );
-	struct BiListNode *curr = prev_dir ? list->Tail : list->Head;
+	const bool prev_dir = ( index >= list->Len/2 );
+	struct HarbolBiListNode *curr = prev_dir ? list->Tail : list->Head;
 	size_t i=prev_dir ? list->Len-1 : 0;
-	while( (prev_dir ? curr->Prev != NULL : curr->Next != NULL) and i != index ) {
+	while( (prev_dir ? curr->Prev != NULL : curr->Next != NULL) && i != index ) {
 		curr = prev_dir ? curr->Prev : curr->Next;
 		prev_dir ? i-- : i++;
 	}
@@ -196,32 +179,22 @@ bool BiLinkedList_InsertNodeAtIndex(struct BiLinkedList *const restrict list, st
 	return false;
 }
 
-bool BiLinkedList_InsertValueAtHead(struct BiLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT bool HarbolBiList_InsertValueAtHead(struct HarbolBiList *const list, const union HarbolValue val)
 {
-	if( !list )
-		return false;
-	
-	return BiLinkedList_InsertNodeAtHead(list, BiListNode_NewVal(val));
+	return ( !list ) ? false : HarbolBiList_InsertNodeAtHead(list, HarbolBiListNode_NewVal(val));
 }
 
-bool BiLinkedList_InsertValueAtTail(struct BiLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT bool HarbolBiList_InsertValueAtTail(struct HarbolBiList *const list, const union HarbolValue val)
 {
-	if( !list )
-		return false;
-	
-	return BiLinkedList_InsertNodeAtTail(list, BiListNode_NewVal(val));
+	return ( !list ) ? false : HarbolBiList_InsertNodeAtTail(list, HarbolBiListNode_NewVal(val));
 }
 
-bool BiLinkedList_InsertValueAtIndex(struct BiLinkedList *const restrict list, const union Value val, const size_t index)
+HARBOL_EXPORT bool HarbolBiList_InsertValueAtIndex(struct HarbolBiList *const list, const union HarbolValue val, const size_t index)
 {
-	if( !list )
-		return false;
-	
-	return BiLinkedList_InsertNodeAtIndex(list, BiListNode_NewVal(val), index);
+	return ( !list ) ? false : HarbolBiList_InsertNodeAtIndex(list, HarbolBiListNode_NewVal(val), index);
 }
 
-
-struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *const restrict list, const size_t index)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiList_GetNode(const struct HarbolBiList *const list, const size_t index)
 {
 	if( !list )
 		return NULL;
@@ -230,237 +203,231 @@ struct BiListNode *BiLinkedList_GetNode(const struct BiLinkedList *const restric
 	else if( index >= list->Len )
 		return list->Tail;
 	
-	bool prev_dir = ( index >= list->Len/2 );
-	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	const bool prev_dir = ( index >= list->Len/2 );
+	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
 	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
-		if( node and i==index )
+		if( node && i==index )
 			return node;
 		node = prev_dir ? node->Prev : node->Next;
 	}
 	return NULL;
 }
 
-struct BiListNode *BiLinkedList_GetNodeByValue(const struct BiLinkedList *const restrict list, const union Value val)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiList_GetNodeByValue(const struct HarbolBiList *const list, const union HarbolValue val)
 {
 	if( !list )
 		return NULL;
-	for( struct BiListNode *i=list->Head ; i ; i=i->Next )
+	for( struct HarbolBiListNode *i=list->Head ; i ; i=i->Next )
 		if( !memcmp(&i->Data, &val, sizeof val) )
 			return i;
 	return NULL;
 }
 
-union Value BiLinkedList_GetValue(const struct BiLinkedList *const restrict list, const size_t index)
+HARBOL_EXPORT union HarbolValue HarbolBiList_GetValue(const struct HarbolBiList *const list, const size_t index)
 {
 	if( !list )
-		return (union Value){0};
-	else if( index==0 and list->Head )
+		return (union HarbolValue){0};
+	else if( index==0 && list->Head )
 		return list->Head->Data;
-	else if( index >= list->Len and list->Tail )
+	else if( index >= list->Len && list->Tail )
 		return list->Tail->Data;
 	
-	bool prev_dir = ( index >= list->Len/2 );
-	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	const bool prev_dir = ( index >= list->Len/2 );
+	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
 	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
-		if( node and i==index )
+		if( node && i==index )
 			return node->Data;
-		if( (prev_dir and !node->Prev) or (!prev_dir and !node->Next) )
+		if( (prev_dir && !node->Prev) || (!prev_dir && !node->Next) )
 			break;
 		node = prev_dir ? node->Prev : node->Next;
 	}
-	return (union Value){0};
+	return (union HarbolValue){0};
 }
 
-void BiLinkedList_SetValue(struct BiLinkedList *const restrict list, const size_t index, const union Value val)
+HARBOL_EXPORT void HarbolBiList_SetValue(struct HarbolBiList *const list, const size_t index, const union HarbolValue val)
 {
 	if( !list )
 		return;
-	else if( index==0 and list->Head ) {
+	else if( index==0 && list->Head ) {
 		list->Head->Data = val;
 		return;
 	}
-	else if( index >= list->Len and list->Tail ) {
+	else if( index >= list->Len && list->Tail ) {
 		list->Tail->Data = val;
 		return;
 	}
 	
-	bool prev_dir = ( index >= list->Len/2 );
-	struct BiListNode *node = prev_dir ? list->Tail : list->Head;
+	const bool prev_dir = ( index >= list->Len/2 );
+	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
 	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
-		if( node and i==index ) {
+		if( node && i==index ) {
 			node->Data = val;
 			break;
 		}
-		if( (prev_dir and !node->Prev) or (!prev_dir and !node->Next) )
+		if( (prev_dir && !node->Prev) || (!prev_dir && !node->Next) )
 			break;
 		node = prev_dir ? node->Prev : node->Next;
 	}
 }
-bool BiLinkedList_DelNodeByIndex(struct BiLinkedList *const restrict list, const size_t index)
+
+HARBOL_EXPORT bool HarbolBiList_DelNodeByIndex(struct HarbolBiList *const list, const size_t index, fnDestructor *const dtor)
 {
-	if( !list or !list->Len )
+	if( !list || !list->Len )
 		return false;
 	
-	struct BiListNode *node = BiLinkedList_GetNode(list, index);
+	struct HarbolBiListNode *node = HarbolBiList_GetNode(list, index);
 	node->Prev ? (node->Prev->Next = node->Next) : (list->Head = node->Next);
 	node->Next ? (node->Next->Prev = node->Prev) : (list->Tail = node->Prev);
 	
-	if( list->Destructor )
-		(*list->Destructor)(&node->Data.Ptr);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, node);
-#else
-	free(node);
-#endif
-	node=NULL;
+	if( dtor )
+		(*dtor)(&node->Data.Ptr);
+	
+	free(node), node=NULL;
 	list->Len--;
 	return true;
 }
 
-bool BiLinkedList_DelNodeByRef(struct BiLinkedList *const restrict list, struct BiListNode **restrict noderef)
+HARBOL_EXPORT bool HarbolBiList_DelNodeByRef(struct HarbolBiList *const list, struct HarbolBiListNode **noderef, fnDestructor *const dtor)
 {
-	if( !list or !*noderef )
+	if( !list || !*noderef )
 		return false;
 	
-	struct BiListNode *node = *noderef;
+	struct HarbolBiListNode *node = *noderef;
 	node->Prev ? (node->Prev->Next = node->Next) : (list->Head = node->Next);
 	node->Next ? (node->Next->Prev = node->Prev) : (list->Tail = node->Prev);
 	
-	if( list->Destructor )
-		(*list->Destructor)(&node->Data.Ptr);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *noderef);
-#else
-	free(*noderef);
-#endif
-	*noderef=NULL;
+	if( dtor )
+		(*dtor)(&node->Data.Ptr);
+	
+	free(*noderef), *noderef=NULL;
 	node = NULL;
 	list->Len--;
 	return true;
 }
 
-void BiLinkedList_SetDestructor(struct BiLinkedList *const restrict list, bool (*dtor)())
-{
-	if( !list )
-		return;
-	
-	list->Destructor = dtor;
-}
-
-struct BiListNode *BiLinkedList_GetHead(const struct BiLinkedList *const restrict list)
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiList_GetHead(const struct HarbolBiList *const list)
 {
 	return list ? list->Head : NULL;
 }
-struct BiListNode *BiLinkedList_GetTail(const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolBiListNode *HarbolBiList_GetTail(const struct HarbolBiList *const list)
 {
 	return list ? list->Tail : NULL;
 }
 
-void BiLinkedList_FromUniLinkedList(struct BiLinkedList *const restrict bilist, const struct UniLinkedList *const restrict unilist)
+HARBOL_EXPORT void HarbolBiList_FromHarbolUniList(struct HarbolBiList *const bilist, const struct HarbolUniList *const unilist)
 {
-	if( !bilist or !unilist )
+	if( !bilist || !unilist )
 		return;
 	
-	for( struct UniListNode *n=unilist->Head ; n ; n = n->Next )
-		BiLinkedList_InsertValueAtTail(bilist, n->Data);
+	for( struct HarbolUniListNode *n=unilist->Head ; n ; n = n->Next )
+		HarbolBiList_InsertValueAtTail(bilist, n->Data);
 }
 
-void BiLinkedList_FromMap(struct BiLinkedList *const restrict bilist, const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolBiList_FromHarbolHashmap(struct HarbolBiList *const bilist, const struct HarbolHashmap *const map)
 {
-	if( !bilist or !map )
+	if( !bilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			BiLinkedList_InsertValueAtTail(bilist, n->Data);
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			HarbolBiList_InsertValueAtTail(bilist, node->Data);
+		}
+	}
 }
 
-void BiLinkedList_FromVector(struct BiLinkedList *const restrict bilist, const struct Vector *const restrict v)
+HARBOL_EXPORT void HarbolBiList_FromHarbolVector(struct HarbolBiList *const bilist, const struct HarbolVector *const v)
 {
-	if( !bilist or !v )
+	if( !bilist || !v )
 		return;
 	
 	for( size_t i=0 ; i<v->Count ; i++ )
-		BiLinkedList_InsertValueAtTail(bilist, v->Table[i]);
+		HarbolBiList_InsertValueAtTail(bilist, v->Table[i]);
 }
 
-void BiLinkedList_FromTuple(struct BiLinkedList *const restrict bilist, const struct Tuple *const restrict tup)
+HARBOL_EXPORT void HarbolBiList_FromHarbolTuple(struct HarbolBiList *const bilist, const struct HarbolTuple *const tup)
 {
-	if( !bilist or !tup or !tup->Items or !tup->Len )
+	if( !bilist || !tup || !tup->Items || !tup->Len )
 		return;
 	
 	for( size_t i=0 ; i<tup->Len ; i++ )
-		BiLinkedList_InsertValueAtTail(bilist, tup->Items[i]);
+		HarbolBiList_InsertValueAtTail(bilist, tup->Items[i]);
 }
 
-void BiLinkedList_FromGraph(struct BiLinkedList *const restrict bilist, const struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolBiList_FromHarbolGraph(struct HarbolBiList *const bilist, const struct HarbolGraph *const graph)
 {
-	if( !bilist or !graph )
-		return;
-	for( size_t i=0 ; i<graph->VertexCount ; i++ )
-		BiLinkedList_InsertValueAtTail(bilist, graph->Vertices[i].Data);
-}
-
-void BiLinkedList_FromLinkMap(struct BiLinkedList *const restrict bilist, const struct LinkMap *const restrict map)
-{
-	if( !bilist or !map )
+	if( !bilist || !graph || !graph->Vertices.Table )
 		return;
 	
-	for( struct LinkNode *n=map->Head ; n ; n = n->After )
-		BiLinkedList_InsertValueAtTail(bilist, n->Data);
+	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
+		HarbolBiList_InsertValueAtTail(bilist, vert->Data);
+	}
 }
 
+HARBOL_EXPORT void HarbolBiList_FromHarbolLinkMap(struct HarbolBiList *const bilist, const struct HarbolLinkMap *const map)
+{
+	if( !bilist || !map )
+		return;
+	
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
+		HarbolBiList_InsertValueAtTail(bilist, n->Data);
+	}
+}
 
-struct BiLinkedList *BiLinkedList_NewFromUniLinkedList(const struct UniLinkedList *const restrict unilist)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolUniList(const struct HarbolUniList *const unilist)
 {
 	if( !unilist )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(unilist->Destructor);
-	BiLinkedList_FromUniLinkedList(bilist, unilist);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolUniList(bilist, unilist);
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewFromMap(const struct Hashmap *const restrict map)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(map->Destructor);
-	BiLinkedList_FromMap(bilist, map);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolHashmap(bilist, map);
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewFromVector(const struct Vector *const restrict v)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolVector(const struct HarbolVector *const v)
 {
 	if( !v )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(v->Destructor);
-	BiLinkedList_FromVector(bilist, v);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolVector(bilist, v);
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewFromTuple(const struct Tuple *const restrict tup)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolTuple(const struct HarbolTuple *const tup)
 {
-	if( !tup or !tup->Items or !tup->Len )
+	if( !tup || !tup->Items || !tup->Len )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(NULL);
-	BiLinkedList_FromTuple(bilist, tup);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolTuple(bilist, tup);
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewFromGraph(const struct Graph *const restrict graph)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolGraph(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(NULL);
-	BiLinkedList_FromGraph(bilist, graph);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolGraph(bilist, graph);
 	return bilist;
 }
 
-struct BiLinkedList *BiLinkedList_NewFromLinkMap(const struct LinkMap *const restrict map)
+HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolLinkMap(const struct HarbolLinkMap *const map)
 {
 	if( !map )
 		return NULL;
-	struct BiLinkedList *bilist = BiLinkedList_New(map->Destructor);
-	BiLinkedList_FromLinkMap(bilist, map);
+	struct HarbolBiList *bilist = HarbolBiList_New();
+	HarbolBiList_FromHarbolLinkMap(bilist, map);
 	return bilist;
 }

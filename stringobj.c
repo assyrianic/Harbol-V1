@@ -1,107 +1,85 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
+#include <stdarg.h>
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
+#endif
+#include "harbol.h"
 
 /*
-typedef struct String {
+typedef struct HarbolString {
 	size_t Len;
 	char *CStr;
-} String;
+} HarbolString;
 */
 
-struct String *String_New(void)
+HARBOL_EXPORT struct HarbolString *HarbolString_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct String));
-#else
-	return calloc(1, sizeof(struct String));
-#endif
+	return calloc(1, sizeof(struct HarbolString));
 }
 
-struct String *String_NewStr(const char *restrict cstr)
+HARBOL_EXPORT struct HarbolString *HarbolString_NewStr(const char *restrict cstr)
 {
-#ifdef DSC_NO_MALLOC
-	struct String *str = Heap_Alloc(&__heappool, sizeof *str);
-#else
-	struct String *str = calloc(1, sizeof *str);
-#endif
+	struct HarbolString *restrict str = calloc(1, sizeof *str);
 	if( str )
-		String_CopyStr(str, cstr);
+		HarbolString_CopyStr(str, cstr);
 	return str;
 }
 
-void String_Del(struct String *const restrict strobj)
+HARBOL_EXPORT void HarbolString_Del(struct HarbolString *const strobj)
 {
 	if( !strobj )
 		return;
 	
 	if( strobj->CStr )
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobj->CStr);
-	#else
 		free(strobj->CStr);
-	#endif
-	strobj->CStr=NULL;
-	strobj->Len = 0;
+	memset(strobj, 0, sizeof *strobj);
 }
 
-void String_Free(struct String **restrict strobjref)
+HARBOL_EXPORT bool HarbolString_Free(struct HarbolString **strobjref)
 {
-	if( !*strobjref )
-		return;
+	if( !strobjref || !*strobjref )
+		return false;
 	
-	String_Del(*strobjref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *strobjref);
-#else
-	free(*strobjref);
-#endif
-	*strobjref=NULL;
+	HarbolString_Del(*strobjref);
+	free(*strobjref); *strobjref=NULL;
+	return *strobjref==NULL;
 }
 
-void String_Init(struct String *const restrict strobj)
+HARBOL_EXPORT void HarbolString_Init(struct HarbolString *const strobj)
 {
 	if( !strobj )
 		return;
 	
-	*strobj = (struct String){0};
+	memset(strobj, 0, sizeof *strobj);
 }
 
-void String_InitStr(struct String *const restrict strobj, const char *restrict cstr)
+HARBOL_EXPORT void HarbolString_InitStr(struct HarbolString *const restrict strobj, const char *restrict cstr)
 {
 	if( !strobj )
 		return;
 	
-	*strobj = (struct String){0};
-	String_CopyStr(strobj, cstr);
+	memset(strobj, 0, sizeof *strobj);
+	HarbolString_CopyStr(strobj, cstr);
 }
 
-void String_AddChar(struct String *const restrict strobj, const char c)
+HARBOL_EXPORT void HarbolString_AddChar(struct HarbolString *const restrict strobj, const char c)
 {
 	if( !strobj )
 		return;
 	
 	size_t oldsize = strobj->Len;
-	// adjust old size for new char and null-term.
-#ifdef DSC_NO_MALLOC
-	char *newstr = Heap_Alloc(&__heappool, (oldsize+2) * sizeof *newstr);
-#else
+	// adjust old size for new char && null-term.
 	char *newstr = calloc(oldsize+2, sizeof *newstr);
-#endif
 	if( !newstr )
 		return;
 	
-	// alot more efficient to use a vector of chars
-	// for adding chars as opposed to an immutable string...
+	// alot more efficient to use a vector of chars for adding chars as opposed to an immutable string...
+	// TODO: check if the array is filled before adding a new char so we can avoid reallocating.
 	strobj->Len++;
 	if( strobj->CStr ) {
 		memcpy(newstr, strobj->CStr, oldsize);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobj->CStr);
-	#else
 		free(strobj->CStr);
-	#endif
 		strobj->CStr=NULL;
 	}
 	strobj->CStr = newstr;
@@ -109,90 +87,64 @@ void String_AddChar(struct String *const restrict strobj, const char c)
 	strobj->CStr[strobj->Len] = 0;
 }
 
-void String_Add(struct String *const restrict strobjA, const struct String *const restrict strobjB)
+HARBOL_EXPORT void HarbolString_Add(struct HarbolString *const restrict strobjA, const struct HarbolString *const restrict strobjB)
 {
-	if( !strobjA or !strobjB or !strobjB->CStr )
+	if( !strobjA || !strobjB || !strobjB->CStr )
 		return;
 	
-#ifdef DSC_NO_MALLOC
-	char *newstr = Heap_Alloc(&__heappool, (strobjA->Len + strobjB->Len + 1) * sizeof *newstr);
-#else
 	char *newstr = calloc(strobjA->Len + strobjB->Len + 1, sizeof *newstr);
-#endif
 	if( !newstr )
 		return;
 	
 	strobjA->Len += strobjB->Len;
 	if( strobjA->CStr ) {
 		strcat(newstr, strobjA->CStr);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobjA->CStr);
-	#else
-		free(strobjA->CStr);
-	#endif
-		strobjA->CStr=NULL;
+		free(strobjA->CStr), strobjA->CStr=NULL;
 	}
 	strcat(newstr, strobjB->CStr);
 	strobjA->CStr = newstr;
 	strobjA->CStr[strobjA->Len] = 0;
 }
 
-void String_AddStr(struct String *const restrict strobj, const char *restrict cstr)
+HARBOL_EXPORT void HarbolString_AddStr(struct HarbolString *const restrict strobj, const char *restrict cstr)
 {
-	if( !strobj or !cstr )
+	if( !strobj || !cstr )
 		return;
 	
-#ifdef DSC_NO_MALLOC
-	char *newstr = Heap_Alloc(&__heappool, (strobj->Len + strlen(cstr) + 1) * sizeof *newstr);
-#else
 	char *newstr = calloc(strobj->Len + strlen(cstr) + 1, sizeof *newstr);
-#endif
 	if( !newstr )
 		return;
 	
 	strobj->Len += strlen(cstr);
 	if( strobj->CStr ) {
 		strcat(newstr, strobj->CStr);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobj->CStr);
-	#else
-		free(strobj->CStr);
-	#endif
-		strobj->CStr=NULL;
+		free(strobj->CStr), strobj->CStr=NULL;
 	}
 	strcat(newstr, cstr);
 	strobj->CStr = newstr;
 	strobj->CStr[strobj->Len] = 0;
 }
 
-char *String_GetStr(const struct String *const restrict strobj)
+HARBOL_EXPORT char *HarbolString_GetStr(const struct HarbolString *const strobj)
 {
 	return (strobj) ? strobj->CStr : NULL;
 }
 
-size_t String_Len(const struct String *const restrict strobj)
+HARBOL_EXPORT size_t HarbolString_Len(const struct HarbolString *const strobj)
 {
 	return (strobj) ? strobj->Len : 0;
 }
 
-void String_Copy(struct String *const restrict strobjA, const struct String *const restrict strobjB)
+HARBOL_EXPORT void HarbolString_Copy(struct HarbolString *const restrict strobjA, const struct HarbolString *const restrict strobjB)
 {
-	if( !strobjA or !strobjB or !strobjB->CStr )
+	if( !strobjA || !strobjB || !strobjB->CStr )
 		return;
 	
 	strobjA->Len = strobjB->Len;
 	if( strobjA->CStr )
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobjA->CStr), strobjA->CStr=NULL;
-	#else
 		free(strobjA->CStr), strobjA->CStr=NULL;
-	#endif
 	
-#ifdef DSC_NO_MALLOC
-	strobjA->CStr = Heap_Alloc(&__heappool, (strobjA->Len+1) * sizeof *strobjA->CStr);
-#else
 	strobjA->CStr = calloc(strobjA->Len+1, sizeof *strobjA->CStr);
-#endif
 	if( !strobjA->CStr )
 		return;
 	
@@ -200,24 +152,16 @@ void String_Copy(struct String *const restrict strobjA, const struct String *con
 	strobjA->CStr[strobjA->Len] = 0;
 }
 
-void String_CopyStr(struct String *const restrict strobj, const char *restrict cstr)
+HARBOL_EXPORT void HarbolString_CopyStr(struct HarbolString *const restrict strobj, const char *restrict cstr)
 {
-	if( !strobj or !cstr )
+	if( !strobj || !cstr )
 		return;
 	
 	strobj->Len = strlen(cstr);
 	if( strobj->CStr )
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, strobj->CStr), strobj->CStr=NULL;
-	#else
 		free(strobj->CStr), strobj->CStr=NULL;
-	#endif
 	
-#ifdef DSC_NO_MALLOC
-	strobj->CStr = Heap_Alloc(&__heappool, (strobj->Len+1) * sizeof *strobj->CStr);
-#else
 	strobj->CStr = calloc(strobj->Len+1, sizeof *strobj->CStr);
-#endif
 	if( !strobj->CStr )
 		return;
 	
@@ -225,66 +169,67 @@ void String_CopyStr(struct String *const restrict strobj, const char *restrict c
 	strobj->CStr[strobj->Len] = 0;
 }
 
-int32_t String_CmpCStr(const struct String *const restrict strobj, const char *restrict cstr)
+HARBOL_EXPORT int32_t HarbolString_Format(struct HarbolString *const restrict strobj, const char *restrict fmt, ...)
 {
-	if( !strobj or !cstr or !strobj->CStr )
+	if( !strobj || !fmt )
 		return -1;
 	
-	return strcmp(strobj->CStr, cstr);
+	va_list ap;
+	va_start(ap, fmt);
+	const int32_t result = vsnprintf(strobj->CStr, strobj->Len, fmt, ap);
+	va_end(ap);
+	return result;
 }
 
-int32_t String_CmpStr(const struct String *const restrict strobjA, const struct String *const restrict strobjB)
+HARBOL_EXPORT int32_t HarbolString_CmpCStr(const struct HarbolString *const restrict strobj, const char *restrict cstr)
 {
-	if( !strobjA or !strobjB or !strobjA->CStr or !strobjB->CStr )
-		return -1;
-	
-	return strcmp(strobjA->CStr, strobjB->CStr);
+	return ( !strobj || !cstr || !strobj->CStr ) ? -1 : strcmp(strobj->CStr, cstr);
 }
 
-int32_t String_NCmpCStr(const struct String *const restrict strobj, const char *restrict cstr, const size_t len)
+HARBOL_EXPORT int32_t HarbolString_CmpStr(const struct HarbolString *const restrict strobjA, const struct HarbolString *const restrict strobjB)
 {
-	if( !strobj or !cstr or !strobj->CStr )
-		return -1;
-	
-	return strncmp(strobj->CStr, cstr, len);
+	return ( !strobjA || !strobjB || !strobjA->CStr || !strobjB->CStr ) ? -1 : strcmp(strobjA->CStr, strobjB->CStr);
 }
 
-int32_t String_NCmpStr(const struct String *const restrict strobjA, const struct String *const restrict strobjB, const size_t len)
+HARBOL_EXPORT int32_t HarbolString_NCmpCStr(const struct HarbolString *const restrict strobj, const char *restrict cstr, const size_t len)
 {
-	if( !strobjA or !strobjB or !strobjA->CStr or !strobjB->CStr )
-		return -1;
-	
-	return strncmp(strobjA->CStr, strobjB->CStr, len);
+	return ( !strobj || !cstr || !strobj->CStr ) ? -1 : strncmp(strobj->CStr, cstr, len);
 }
 
-bool String_IsEmpty(const struct String *const restrict strobj)
+HARBOL_EXPORT int32_t HarbolString_NCmpStr(const struct HarbolString *const restrict strobjA, const struct HarbolString *const restrict strobjB, const size_t len)
 {
-	return( !strobj or strobj->Len==0 or strobj->CStr==NULL or strobj->CStr[0]==0 );
+	return ( !strobjA || !strobjB || !strobjA->CStr || !strobjB->CStr ) ? -1 : strncmp(strobjA->CStr, strobjB->CStr, len);
 }
 
-bool String_Reserve(struct String *const restrict strobj, const size_t size)
+HARBOL_EXPORT bool HarbolString_IsEmpty(const struct HarbolString *const strobj)
 {
-	if( !strobj or !size )
+	return( !strobj || strobj->Len==0 || strobj->CStr==NULL || strobj->CStr[0]==0 );
+}
+
+HARBOL_EXPORT bool HarbolString_Reserve(struct HarbolString *const strobj, const size_t size)
+{
+	if( !strobj || !size || strobj->Len<size )
 		return false;
 	
-#ifdef DSC_NO_MALLOC
-	strobj->CStr = Heap_Alloc(&__heappool, (size+1) * sizeof *strobj->CStr);
-#else
-	strobj->CStr = calloc(size+1, sizeof *strobj->CStr);
-#endif
-	if( !strobj->CStr )
-		return false;
+	char *reservation = calloc(size+1, sizeof *reservation);
+	if( strobj->CStr ) {
+		strncpy(reservation, strobj->CStr, size+1);
+		free(strobj->CStr), strobj->CStr=NULL;
+		strobj->CStr = reservation;
+	}
 	strobj->Len = size;
 	return true;
 }
 
-char *String_fgets(struct String *const restrict strobj, const size_t count, void *ptr)
+HARBOL_EXPORT char *HarbolString_fgets(struct HarbolString *const strobj, FILE *const file)
 {
-	if( !strobj or !ptr )
-		return NULL;
+	return ( !strobj || !file ) ? NULL : fgets(strobj->CStr, strobj->Len, file);
+}
+
+HARBOL_EXPORT void HarbolString_Empty(struct HarbolString *const strobj)
+{
+	if( !strobj || !strobj->CStr )
+		return;
 	
-	String_Del(strobj);
-	FILE *restrict file = ptr;
-	String_Reserve(strobj, count);
-	return fgets(strobj->CStr, count, file);
+	memset(strobj->CStr, 0, strobj->Len);
 }

@@ -1,71 +1,63 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
-
-/* Graph Edge Code */
-struct GraphEdge *GraphEdge_New(void)
-{
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct GraphEdge));
-#else
-	return calloc(1, sizeof(struct GraphEdge));
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
 #endif
+#include "harbol.h"
+
+/* HarbolGraph Edge Code */
+HARBOL_EXPORT struct HarbolGraphEdge *HarbolGraphEdge_New(void)
+{
+	return calloc(1, sizeof(struct HarbolGraphEdge));
 }
 
-struct GraphEdge *GraphEdge_NewVP(const union Value val, struct GraphVertex *const restrict vert)
+HARBOL_EXPORT struct HarbolGraphEdge *HarbolGraphEdge_NewVP(const union HarbolValue val, struct HarbolGraphVertex *const vert)
 {
-	struct GraphEdge *edge = GraphEdge_New();
+	struct HarbolGraphEdge *edge = HarbolGraphEdge_New();
 	if( edge ) {
 		edge->Weight = val;
 		edge->VertexSocket = vert;
 	}
 	return edge;
 }
-void GraphEdge_Del(struct GraphEdge *const restrict edge, bool (*edge_dtor)())
+
+HARBOL_EXPORT void HarbolGraphEdge_Del(struct HarbolGraphEdge *const edge, fnDestructor *const edge_dtor)
 {
 	if( !edge )
 		return;
 	
 	if( edge_dtor )
 		(*edge_dtor)(&edge->Weight.Ptr);
-	if( edge->NextEdge )
-		GraphEdge_Free(&edge->NextEdge, edge_dtor);
-	*edge = (struct GraphEdge){0};
+	memset(edge, 0, sizeof *edge);
 }
 
-void GraphEdge_Free(struct GraphEdge **restrict edgeref, bool (*edge_dtor)())
+HARBOL_EXPORT void HarbolGraphEdge_Free(struct HarbolGraphEdge **edgeref, fnDestructor *const edge_dtor)
 {
 	if( !*edgeref )
 		return;
 	
-	GraphEdge_Del(*edgeref, edge_dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *edgeref);
-#else
-	free(*edgeref);
-#endif
-	*edgeref=NULL;
+	HarbolGraphEdge_Del(*edgeref, edge_dtor);
+	free(*edgeref), *edgeref=NULL;
 }
 
-union Value GraphEdge_GetWeight(const struct GraphEdge *const restrict edge)
+HARBOL_EXPORT union HarbolValue HarbolGraphEdge_GetWeight(const struct HarbolGraphEdge *const edge)
 {
-	return edge ? edge->Weight : (union Value){0};
+	return edge ? edge->Weight : (union HarbolValue){0};
 }
 
-void GraphEdge_SetWeight(struct GraphEdge *const restrict edge, const union Value val)
+HARBOL_EXPORT void HarbolGraphEdge_SetWeight(struct HarbolGraphEdge *const edge, const union HarbolValue val)
 {
 	if( !edge )
 		return;
 	edge->Weight = val;
 }
 
-struct GraphVertex *GraphEdge_GetVertex(const struct GraphEdge *const restrict edge)
+HARBOL_EXPORT struct HarbolGraphVertex *HarbolGraphEdge_GetVertex(const struct HarbolGraphEdge *const edge)
 {
 	return edge ? edge->VertexSocket : NULL;
 }
 
-void GraphEdge_SetVertex(struct GraphEdge *const restrict edge, struct GraphVertex *const vert)
+HARBOL_EXPORT void HarbolGraphEdge_SetVertex(struct HarbolGraphEdge *const edge, struct HarbolGraphVertex *const vert)
 {
 	if( !edge )
 		return;
@@ -75,8 +67,23 @@ void GraphEdge_SetVertex(struct GraphEdge *const restrict edge, struct GraphVert
 /**************************************/
 
 
-/* Graph Vertex Code */
-void GraphVertex_Del(struct GraphVertex *const restrict vert, bool (*edge_dtor)(), bool (*vert_dtor)())
+/* HarbolGraph Vertex Code */
+HARBOL_EXPORT struct HarbolGraphVertex *HarbolGraphVertex_New(const union HarbolValue val)
+{
+	struct HarbolGraphVertex *vert = calloc(1, sizeof *vert);
+	HarbolGraphVertex_Init(vert, val);
+	return vert;
+}
+
+HARBOL_EXPORT void HarbolGraphVertex_Init(struct HarbolGraphVertex *const vert, const union HarbolValue val)
+{
+	if( !vert )
+		return;
+	
+	vert->Data = val;
+}
+
+HARBOL_EXPORT void HarbolGraphVertex_Del(struct HarbolGraphVertex *const vert, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
 {
 	if( !vert )
 		return;
@@ -84,21 +91,39 @@ void GraphVertex_Del(struct GraphVertex *const restrict vert, bool (*edge_dtor)(
 	if( vert_dtor )
 		(*vert_dtor)(&vert->Data.Ptr);
 	
-	GraphEdge_Free(&vert->EdgeHead, edge_dtor);
-	*vert = (struct GraphVertex){0};
+	for( size_t i=0 ; i<vert->Edges.Count ; i++ ) {
+		struct HarbolGraphEdge *edge = vert->Edges.Table[i].Ptr;
+		HarbolGraphEdge_Free(&edge, edge_dtor);
+	}
+	HarbolVector_Del(&vert->Edges, NULL);
+	memset(vert, 0, sizeof *vert);
 }
 
-struct GraphEdge *GraphVertex_GetEdges(struct GraphVertex *const restrict vert)
+HARBOL_EXPORT void HarbolGraphVertex_Free(struct HarbolGraphVertex **vertref, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
 {
-	return vert ? vert->EdgeHead : NULL;
+	if( !vertref || !*vertref )
+		return;
+	
+	HarbolGraphVertex_Del(*vertref, edge_dtor, vert_dtor);
+	free(*vertref), *vertref=NULL;
 }
 
-union Value GraphVertex_GetData(const struct GraphVertex *const restrict vert)
+HARBOL_EXPORT bool HarbolGraphVertex_AddEdge(struct HarbolGraphVertex *const vert, struct HarbolGraphEdge *const edge)
 {
-	return vert ? vert->Data : (union Value){0};
+	return !vert || !edge ? false : HarbolVector_Insert(&vert->Edges, (union HarbolValue){.Ptr=edge});
 }
 
-void GraphVertex_SetData(struct GraphVertex *const restrict vert, const union Value val)
+HARBOL_EXPORT struct HarbolVector *HarbolGraphVertex_GetEdges(struct HarbolGraphVertex *const vert)
+{
+	return vert ? &vert->Edges : NULL;
+}
+
+HARBOL_EXPORT union HarbolValue HarbolGraphVertex_GetData(const struct HarbolGraphVertex *const vert)
+{
+	return vert ? vert->Data : (union HarbolValue){0};
+}
+
+HARBOL_EXPORT void HarbolGraphVertex_SetData(struct HarbolGraphVertex *const vert, const union HarbolValue val)
 {
 	if( !vert )
 		return;
@@ -108,446 +133,375 @@ void GraphVertex_SetData(struct GraphVertex *const restrict vert, const union Va
 /**************************************/
 
 
-/* Graph Code Implementation */
-struct Graph *Graph_New(bool (*edgedtor)(), bool (*vertdtor)())
+/* HarbolGraph Code Implementation */
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_New(void)
 {
-#ifdef DSC_NO_MALLOC
-	struct Graph *graph = Heap_Alloc(&__heappool, sizeof *graph);
-#else
-	struct Graph *graph = calloc(1, sizeof *graph);
-#endif
-	Graph_SetItemDestructors(graph, edgedtor, vertdtor);
+	struct HarbolGraph *graph = calloc(1, sizeof *graph);
 	return graph;
 }
 
-void Graph_Init(struct Graph *const restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
+HARBOL_EXPORT void HarbolGraph_Init(struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return;
-	*graph = (struct Graph){0};
-	Graph_SetItemDestructors(graph, edgedtor, vertdtor);
+	memset(graph, 0, sizeof *graph);
 }
 
-void Graph_Del(struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolGraph_Del(struct HarbolGraph *const graph, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
 {
 	if( !graph )
 		return;
 	
-	for( size_t i=0 ; i<graph->VertexCount ; i++ )
-		GraphVertex_Del(graph->Vertices+i, graph->EdgeDestructor, graph->VertexDestructor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, graph->Vertices);
-#else
-	free(graph->Vertices);
-#endif
-	Graph_Init(graph, graph->EdgeDestructor, graph->VertexDestructor);
+	for( size_t i=0 ; i<graph->Count ; i++ ) {
+		struct HarbolGraphVertex *vertex = graph->Table[i].Ptr;
+		HarbolGraphVertex_Free(&vertex, edge_dtor, vert_dtor);
+	}
+	HarbolVector_Del(&graph->Vertices, NULL);
 }
 
-void Graph_Free(struct Graph **restrict graphref)
+HARBOL_EXPORT void HarbolGraph_Free(struct HarbolGraph **graphref, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
 {
 	if( !*graphref )
 		return;
 	
-	Graph_Del(*graphref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *graphref);
-#else
-	free(*graphref);
-#endif
-	*graphref=NULL;
+	HarbolGraph_Del(*graphref, edge_dtor, vert_dtor);
+	free(*graphref), *graphref=NULL;
 }
 
-bool Graph_InsertVertexByValue(struct Graph *const restrict graph, const union Value val)
-{
-	if( !graph )
-		return false;
-	else if( !graph->Vertices or graph->VertexCount >= graph->VertexLen )
-		Graph_Resize(graph);
-	
-	graph->Vertices[graph->VertexCount++].Data = val;
-	return true;
-}
-
-bool Graph_RemoveVertexByValue(struct Graph *const restrict graph, const union Value val)
+HARBOL_EXPORT bool HarbolGraph_InsertVertexByValue(struct HarbolGraph *const graph, const union HarbolValue val)
 {
 	if( !graph )
 		return false;
 	
-	struct GraphVertex *vert = NULL;
+	struct HarbolGraphVertex *vert = HarbolGraphVertex_New(val);
+	return !vert ? false : HarbolVector_Insert(&graph->Vertices, (union HarbolValue){.Ptr=vert});
+}
+
+HARBOL_EXPORT bool HarbolGraph_RemoveVertexByValue(struct HarbolGraph *const graph, const union HarbolValue val, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
+{
+	if( !graph )
+		return false;
+	
 	size_t index=0;
-	for( index=0 ; index<graph->VertexCount ; index++ ) {
-		if( !vert and graph->Vertices[index].Data.UInt64==val.UInt64 )
-			vert = graph->Vertices + index;
-		// value exists, cut its links with other VertexCount.
-		for( struct GraphEdge *edge=graph->Vertices[index].EdgeHead ; edge ; edge=edge->NextEdge ) {
+	struct HarbolGraphVertex *vert = NULL;
+	while( !vert && index<graph->Count ) {
+		struct HarbolGraphVertex *iter = graph->Table[index].Ptr;
+		if( iter->Data.UInt64==val.UInt64 ) {
+			vert = iter;
+			break;
+		}
+		index++;
+	}
+	
+	if( !vert )
+		return true;
+	
+	// value exists, cut its links with other vertices.
+	for( size_t i=0 ; i<graph->Count ; i++ ) {
+		struct HarbolGraphVertex *iter = graph->Table[i].Ptr;
+		if( iter==vert )
+			continue;
+		
+		for( size_t n=0 ; n<iter->Edges.Count ; n++ ) {
+			struct HarbolGraphEdge *edge = iter->Edges.Table[n].Ptr;
 			if( edge->VertexSocket == vert )
-				// sever the link!
 				edge->VertexSocket = NULL;
 		}
 	}
-	if( vert ) {
-		GraphVertex_Del(vert, graph->EdgeDestructor, graph->VertexDestructor);
-		const size_t
-			i=index+1,
-			j=index
-		;
-		memmove(graph->Vertices+j, graph->Vertices+i, graph->VertexCount * sizeof *graph->Vertices);
-		graph->VertexCount--;
-		return true;
-	}
+	HarbolGraphVertex_Free(&vert, edge_dtor, vert_dtor);
+	HarbolVector_Delete(&graph->Vertices, index, NULL);
 	return false;
 }
 
-bool Graph_RemoveVertexByIndex(struct Graph *const restrict graph, const size_t index)
+HARBOL_EXPORT bool HarbolGraph_RemoveVertexByIndex(struct HarbolGraph *const graph, const size_t index, fnDestructor *const edge_dtor, fnDestructor *const vert_dtor)
 {
 	if( !graph )
 		return false;
-	struct GraphVertex *vert = Graph_GetVertexByIndex(graph, index);
+	
+	struct HarbolGraphVertex *vert = HarbolGraph_GetVertexByIndex(graph, index);
 	if( !vert )
 		return false;
 	
-	for( struct GraphEdge *edge=vert->EdgeHead ; edge ; edge=edge->NextEdge )
-		edge->VertexSocket = NULL;
-	
-	for( size_t i=0 ; i<graph->VertexCount ; i++ ) {
-		if( graph->Vertices+i == vert )
+	// cut its links with other vertices.
+	for( size_t i=0 ; i<graph->Count ; i++ ) {
+		if( i==index )
 			continue;
 		
-		// cut links with other VertexCount.
-		for( struct GraphEdge *edge=graph->Vertices[i].EdgeHead ; edge ; edge=edge->NextEdge ) {
-			if( edge->VertexSocket == vert )
-				// sever the link!
+		struct HarbolGraphVertex *restrict iter = graph->Table[i].Ptr;
+		if( !iter )
+			continue;
+		
+		for( size_t n=0 ; n<iter->Count ; n++ ) {
+			struct HarbolGraphEdge *edge = iter->Table[n].Ptr;
+			if( edge->VertexSocket==vert ) {
 				edge->VertexSocket = NULL;
+				HarbolGraphEdge_Free(&edge, edge_dtor);
+				HarbolVector_Delete(&iter->Edges, n, NULL);
+				break;
+			}
 		}
 	}
-	
-	GraphVertex_Del(vert, graph->EdgeDestructor, graph->VertexDestructor);
-	size_t
-		i=index+1,
-		j=index
-	;
-	while( i<graph->VertexCount )
-		graph->Vertices[j++] = graph->Vertices[i++];
-	graph->VertexCount--;
+	HarbolGraphVertex_Free(&vert, edge_dtor, vert_dtor);
+	HarbolVector_Delete(&graph->Vertices, index, NULL);
 	return true;
 }
 
-bool Graph_InsertEdgeBtwnVerts(struct Graph *const restrict graph, const size_t index, const size_t otherindex, const union Value weight)
+HARBOL_EXPORT bool HarbolGraph_InsertEdgeBtwnVerts(struct HarbolGraph *const graph, const size_t index1, const size_t index2, const union HarbolValue weight)
 {
 	if( !graph )
 		return false;
 	
-	struct GraphVertex *vert1 = Graph_GetVertexByIndex(graph, index);
-	struct GraphVertex *vert2 = Graph_GetVertexByIndex(graph, otherindex);
-	if( !vert1 or !vert2 )
+	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	if( !vert1 || !vert2 || vert1==vert2 )
 		return false;
 	
-	struct GraphEdge *edge = GraphEdge_NewVP(weight, vert2);
-	if( !edge )
-		return false;
-	
-	if( vert1->EdgeLen ) {
-		edge->NextEdge = NULL;
-		vert1->EdgeTail->NextEdge = edge;
-		vert1->EdgeTail = edge;
-	}
-	else vert1->EdgeHead = vert1->EdgeTail = edge;
-	vert1->EdgeLen++;
-	return true;
+	struct HarbolGraphEdge *edge = HarbolGraphEdge_NewVP(weight, vert2);
+	return ( !edge ) ? false : HarbolGraphVertex_AddEdge(vert1, edge);
 }
 
-bool Graph_RemoveEdgeBtwnVerts(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
+HARBOL_EXPORT bool HarbolGraph_RemoveEdgeBtwnVerts(struct HarbolGraph *const graph, const size_t index1, const size_t index2, fnDestructor *const edge_dtor)
 {
 	if( !graph )
 		return false;
 	
-	struct GraphVertex *vert1 = Graph_GetVertexByIndex(graph, index);
-	struct GraphVertex *vert2 = Graph_GetVertexByIndex(graph, otherindex);
-	if( !vert1 or !vert2 )
+	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	if( !vert1 || !vert2 || vert1==vert2 )
 		return false;
 	
 	// make sure the vertex #1 actually has a connection to vertex #2
-	struct GraphEdge *n = NULL;
-	for( n=vert1->EdgeHead ; n ; n=n->NextEdge ) {
-		if( n->VertexSocket == vert2 )
+	struct HarbolGraphEdge *edge = NULL;
+	size_t n = 0;
+	for( ; n<vert1->Edges.Count ; n++ ) {
+		struct HarbolGraphEdge *e = vert1->Edges.Table[n].Ptr;
+		if( e->VertexSocket == vert2 ) {
+			edge = e;
 			break;
-	}
-	// we found the connection between the two! let's break it!
-	if( !n )
-		return false;
-	
-	if( n==vert1->EdgeHead )
-		vert1->EdgeHead = n->NextEdge;
-	else {
-		struct GraphEdge *travnode = vert1->EdgeHead;
-		for( size_t i=0 ; i<vert1->EdgeLen ; i++ ) {
-			if( travnode->NextEdge == n ) {
-				if( vert1->EdgeTail == n ) {
-					travnode->NextEdge = NULL;
-					vert1->EdgeTail = travnode;
-				}
-				else travnode->NextEdge = n->NextEdge;
-				break;
-			}
-			travnode = travnode->NextEdge;
 		}
 	}
-	GraphEdge_Free(&n, graph->EdgeDestructor);
-	vert1->EdgeLen--;
+	if( !edge )
+		return false;
+	
+	HarbolGraphEdge_Free(&edge, edge_dtor);
+	HarbolVector_Delete(&vert1->Edges, n, NULL);
 	return true;
 }
 
-struct GraphVertex *Graph_GetVertexByIndex(struct Graph *const restrict graph, const size_t index)
+HARBOL_EXPORT struct HarbolGraphVertex *HarbolGraph_GetVertexByIndex(struct HarbolGraph *const graph, const size_t index)
 {
-	if( !graph or !graph->Vertices or index >= graph->VertexCount )
-		return NULL;
+	return !graph || index >= graph->Count ? NULL : graph->Table[index].Ptr;
+}
+
+HARBOL_EXPORT union HarbolValue HarbolGraph_GetVertexDataByIndex(struct HarbolGraph *const graph, const size_t index)
+{
+	if( !graph || !graph->Table )
+		return (union HarbolValue){0};
 	
-	return graph->Vertices + index;
+	struct HarbolGraphVertex *vertex = graph->Table[index].Ptr;
+	return !vertex ? (union HarbolValue){0} : vertex->Data;
 }
 
-union Value Graph_GetVertexDataByIndex(struct Graph *const restrict graph, const size_t index)
+HARBOL_EXPORT void HarbolGraph_SetVertexDataByIndex(struct HarbolGraph *const graph, const size_t index, const union HarbolValue val)
 {
-	if( !graph or !graph->Vertices or index>=graph->VertexCount )
-		return (union Value){0};
-	return graph->Vertices[index].Data;
-}
-
-void Graph_SetVertexDataByIndex(struct Graph *const restrict graph, const size_t index, const union Value val)
-{
-	if( !graph or !graph->Vertices or index>=graph->VertexCount )
+	if( !graph || !graph->Table )
 		return;
-	graph->Vertices[index].Data = val;
+	
+	struct HarbolGraphVertex *vertex = graph->Table[index].Ptr;
+	if( vertex )
+		vertex->Data = val;
 }
 
-struct GraphEdge *Graph_GetEdgeBtwnVertices(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
+HARBOL_EXPORT struct HarbolGraphEdge *HarbolGraph_GetEdgeBtwnVertices(struct HarbolGraph *const graph, const size_t index1, const size_t index2)
 {
 	if( !graph )
 		return NULL;
 	
-	struct GraphVertex *vert1 = Graph_GetVertexByIndex(graph, index);
-	struct GraphVertex *vert2 = Graph_GetVertexByIndex(graph, otherindex);
-	if( !vert1 or !vert2 )
+	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	if( !vert1 || !vert2 || vert1==vert2 )
 		return NULL;
 	
-	for( struct GraphEdge *edge=vert1->EdgeHead ; edge ; edge=edge->NextEdge )
+	for( size_t i=0 ; i<vert1->Edges.Count ; i++ ) {
+		struct HarbolGraphEdge *edge = vert1->Edges.Table[i].Ptr;
 		if( edge->VertexSocket==vert2 )
 			return edge;
-	
+	}
 	return NULL;
 }
 
-bool Graph_IsVertexAdjacent(struct Graph *const restrict graph, const size_t index, const size_t otherindex)
+HARBOL_EXPORT bool HarbolGraph_IsVertexAdjacent(struct HarbolGraph *const graph, const size_t index1, const size_t index2)
 {
 	if( !graph )
 		return false;
 	
-	struct GraphVertex *vert1 = Graph_GetVertexByIndex(graph, index);
-	struct GraphVertex *vert2 = Graph_GetVertexByIndex(graph, otherindex);
-	if( !vert1 or !vert2 )
+	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	if( !vert1 || !vert2 || vert1==vert2 )
 		return false;
 	
-	for( struct GraphEdge *edge=vert1->EdgeHead ; edge ; edge=edge->NextEdge )
+	for( size_t i=0 ; i<vert1->Edges.Count ; i++ ) {
+		struct HarbolGraphEdge *edge = vert1->Edges.Table[i].Ptr;
 		if( edge->VertexSocket==vert2 )
 			return true;
+	}
 	return false;
 }
 
-struct GraphEdge *Graph_GetVertexNeighbors(struct Graph *const restrict graph, const size_t index)
+HARBOL_EXPORT struct HarbolVector *HarbolGraph_GetVertexNeighbors(struct HarbolGraph *const graph, const size_t index)
 {
-	if( !graph or index >= graph->VertexCount )
-		return NULL;
-	
-	return graph->Vertices[index].EdgeHead;
+	return !graph || index >= graph->Count ? NULL : HarbolGraphVertex_GetEdges(graph->Table[index].Ptr);
 }
 
-struct GraphVertex *Graph_GetVertexArray(struct Graph *const restrict graph)
+HARBOL_EXPORT struct HarbolVector *HarbolGraph_GetVertices(struct HarbolGraph *const graph)
 {
-	return graph ? graph->Vertices : NULL;
+	return graph ? &graph->Vertices : NULL;
 }
 
-size_t Graph_GetVerticeCount(const struct Graph *const restrict graph)
+HARBOL_EXPORT size_t HarbolGraph_GetVerticeCount(const struct HarbolGraph *const graph)
 {
-	return graph ? graph->VertexCount : 0;
+	return graph ? graph->Count : 0;
 }
 
-size_t Graph_GetEdgeCount(const struct Graph *const restrict graph)
+HARBOL_EXPORT size_t HarbolGraph_GetEdgeCount(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return 0;
 	
 	size_t totaledges = 0;
-	for( size_t i=0 ; i<graph->VertexCount ; i++ )
-		totaledges += graph->Vertices[i].EdgeLen;
+	for( size_t i=0 ; i<graph->Count ; i++ ) {
+		struct HarbolGraphVertex *vert = graph->Table[i].Ptr;
+		totaledges += vert->Edges.Count;
+	}
 	return totaledges;
 }
 
-void Graph_SetItemDestructors(struct Graph *const restrict graph, bool (*edgedtor)(), bool (*vertdtor)())
+HARBOL_EXPORT void HarbolGraph_Resize(struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return;
 	
-	graph->EdgeDestructor = edgedtor;
-	graph->VertexDestructor = vertdtor;
+	HarbolVector_Resize(&graph->Vertices);
 }
 
-void Graph_Resize(struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolGraph_Truncate(struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return;
 	
-	size_t oldsize = graph->VertexLen;
-	graph->VertexLen <<= 1;
-	if( !graph->VertexLen )
-		graph->VertexLen = 2;
-#ifdef DSC_NO_MALLOC
-	struct GraphVertex *newdata = Heap_Alloc(&__heappool, graph->VertexLen * sizeof *newdata);
-#else
-	struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
-#endif
-	if( !newdata ) {
-		graph->VertexLen >>= 1;
-		if( graph->VertexLen == 1 )
-			graph->VertexLen=0;
-		return;
-	}
-	
-	if( graph->Vertices ) {
-		memcpy(newdata, graph->Vertices, sizeof *newdata * oldsize);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, graph->Vertices);
-	#else
-		free(graph->Vertices);
-	#endif
-		graph->Vertices = NULL;
-	}
-	graph->Vertices = newdata;
+	HarbolVector_Truncate(&graph->Vertices);
 }
 
-void Graph_Truncate(struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolGraph_FromHarbolVector(struct HarbolGraph *const graph, const struct HarbolVector *const vec)
 {
-	if( !graph )
-		return;
-	
-	if( graph->VertexCount < graph->VertexLen>>1 ) {
-		graph->VertexLen >>= 1;
-	#ifdef DSC_NO_MALLOC
-		struct GraphVertex *newdata = Heap_Alloc(&__heappool, graph->VertexLen * sizeof *newdata);
-	#else
-		struct GraphVertex *newdata = calloc(graph->VertexLen, sizeof *newdata);
-	#endif
-		if( !newdata )
-			return;
-		
-		if( graph->Vertices ) {
-			memcpy(newdata, graph->Vertices, sizeof *newdata * graph->VertexLen);
-		#ifdef DSC_NO_MALLOC
-			Heap_Release(&__heappool, graph->Vertices);
-		#else
-			free(graph->Vertices);
-		#endif
-			graph->Vertices = NULL;
-		}
-		graph->Vertices = newdata;
-	}
-}
-
-void Graph_FromVector(struct Graph *const restrict graph, const struct Vector *const restrict vec)
-{
-	if( !graph or !vec )
+	if( !graph || !vec )
 		return;
 	for( size_t i=0 ; i<vec->Count ; i++ )
-		Graph_InsertVertexByValue(graph, vec->Table[i]);
+		HarbolGraph_InsertVertexByValue(graph, vec->Table[i]);
 }
 
-void Graph_FromMap(struct Graph *const restrict graph, const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolGraph_FromHarbolHashmap(struct HarbolGraph *const graph, const struct HarbolHashmap *const map)
 {
-	if( !graph or !map )
+	if( !graph || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			Graph_InsertVertexByValue(graph, n->Data);
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			HarbolGraph_InsertVertexByValue(graph, node->Data);
+		}
+	}
 }
-void Graph_FromUniLinkedList(struct Graph *const restrict graph, const struct UniLinkedList *const restrict list)
+
+HARBOL_EXPORT void HarbolGraph_FromHarbolUniList(struct HarbolGraph *const graph, const struct HarbolUniList *const list)
 {
-	if( !graph or !list )
+	if( !graph || !list )
 		return;
 	
-	for( struct UniListNode *n=list->Head ; n ; n=n->Next )
-		Graph_InsertVertexByValue(graph, n->Data);
+	for( struct HarbolUniListNode *n=list->Head ; n ; n=n->Next )
+		HarbolGraph_InsertVertexByValue(graph, n->Data);
 }
-void Graph_FromBiLinkedList(struct Graph *const restrict graph, const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT void HarbolGraph_FromHarbolBiList(struct HarbolGraph *const graph, const struct HarbolBiList *const list)
 {
-	if( !graph or !list )
+	if( !graph || !list )
 		return;
 	
-	for( struct BiListNode *n=list->Head ; n ; n=n->Next )
-		Graph_InsertVertexByValue(graph, n->Data);
+	for( struct HarbolBiListNode *n=list->Head ; n ; n=n->Next )
+		HarbolGraph_InsertVertexByValue(graph, n->Data);
 }
-void Graph_FromTuple(struct Graph *const restrict graph, const struct Tuple *const restrict tup)
+
+HARBOL_EXPORT void HarbolGraph_FromHarbolTuple(struct HarbolGraph *const graph, const struct HarbolTuple *const tup)
 {
-	if( !graph or !tup )
+	if( !graph || !tup )
 		return;
 	for( size_t i=0 ; i<tup->Len ; i++ )
-		Graph_InsertVertexByValue(graph, tup->Items[i]);
+		HarbolGraph_InsertVertexByValue(graph, tup->Items[i]);
 }
-void Graph_FromLinkMap(struct Graph *const restrict graph, const struct LinkMap *const restrict map)
+
+HARBOL_EXPORT void HarbolGraph_FromHarbolLinkMap(struct HarbolGraph *const graph, const struct HarbolLinkMap *const map)
 {
-	if( !graph or !map )
+	if( !graph || !map )
 		return;
 	
-	for( struct LinkNode *n=map->Head ; n ; n=n->After )
-		Graph_InsertVertexByValue(graph, n->Data);
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
+		HarbolGraph_InsertVertexByValue(graph, n->Data);
+	}
 }
 
-
-struct Graph *Graph_NewFromVector(const struct Vector *const restrict vec)
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolVector(const struct HarbolVector *const vec)
 {
 	if( !vec )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, vec->Destructor);
-	Graph_FromVector(graph, vec);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolVector(graph, vec);
 	return graph;
 }
 
-struct Graph *Graph_NewFromMap(const struct Hashmap *const restrict map)
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, map->Destructor);
-	Graph_FromMap(graph, map);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolHashmap(graph, map);
 	return graph;
 }
-struct Graph *Graph_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolUniList(const struct HarbolUniList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, list->Destructor);
-	Graph_FromUniLinkedList(graph, list);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolUniList(graph, list);
 	return graph;
 }
-struct Graph *Graph_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolBiList(const struct HarbolBiList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, list->Destructor);
-	Graph_FromBiLinkedList(graph, list);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolBiList(graph, list);
 	return graph;
 }
-struct Graph *Graph_NewFromTuple(const struct Tuple *const restrict tup)
+
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolTuple(const struct HarbolTuple *const tup)
 {
 	if( !tup )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, NULL);
-	Graph_FromTuple(graph, tup);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolTuple(graph, tup);
 	return graph;
 }
-struct Graph *Graph_NewFromLinkMap(const struct LinkMap *const restrict map)
+
+HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolLinkMap(const struct HarbolLinkMap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Graph *graph = Graph_New(NULL, map->Destructor);
-	Graph_FromLinkMap(graph, map);
+	struct HarbolGraph *graph = HarbolGraph_New();
+	HarbolGraph_FromHarbolLinkMap(graph, map);
 	return graph;
 }
 /**************************************/

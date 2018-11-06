@@ -1,537 +1,398 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
-
-
-struct LinkNode *LinkNode_New(void)
-{
-#ifdef DSC_NO_MALLOC
-	return Heap_Alloc(&__heappool, sizeof(struct LinkNode));
-#else
-	return calloc(1, sizeof(struct LinkNode));
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
 #endif
+#include "harbol.h"
+
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_New(void)
+{
+	struct HarbolLinkMap *map = calloc(1, sizeof *map);
+	return map;
 }
 
-struct LinkNode *LinkNode_NewSP(const char *restrict cstr, const union Value val)
+HARBOL_EXPORT void HarbolLinkMap_Init(struct HarbolLinkMap *const map)
 {
-	struct LinkNode *n = LinkNode_New();
-	if( n ) {
-		String_InitStr(&n->KeyName, cstr);
-		n->Data = val;
+	if( !map )
+		return;
+	memset(map, 0, sizeof *map);
+}
+
+HARBOL_EXPORT void HarbolLinkMap_Del(struct HarbolLinkMap *const map, fnDestructor *const dtor)
+{
+	if( !map || !map->Table )
+		return;
+	
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table+i;
+		for( size_t i=0 ; i<vec->Len ; i++ ) {
+			struct HarbolKeyValPair *kv = vec->Table[i].Ptr;
+			HarbolKeyValPair_Free(&kv, dtor);
+		}
+		HarbolVector_Del(vec, NULL);
 	}
-	return n;
+	free(map->Table), map->Table=NULL;
+	HarbolVector_Del(&map->Order, NULL);
+	memset(map, 0, sizeof *map);
 }
 
-void LinkNode_Del(struct LinkNode *const restrict n, bool (*dtor)())
-{
-	if( !n )
-		return;
-	
-	String_Del(&n->KeyName);
-	if( dtor )
-		(*dtor)(&n->Data.Ptr);
-	if( n->After )
-		LinkNode_Free(&n->After, dtor);
-}
-
-bool LinkNode_Free(struct LinkNode **restrict noderef, bool (*dtor)())
-{
-	if( !*noderef )
-		return false;
-	
-	LinkNode_Del(*noderef, dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *noderef);
-#else
-	free(*noderef);
-#endif
-	*noderef=NULL;
-	return true;
-}
-
-
-// size_t general hash function.
-static size_t GenHash(const char *cstr)
-{
-	size_t h = 0;
-	if( !cstr )
-		return h;
-	
-	for( const char *restrict us = cstr ; *us ; us++ )
-		h = 37 * h + *us;
-	return h;
-}
-
-
-struct LinkMap *LinkMap_New(bool (*dtor)())
-{
-#ifdef DSC_NO_MALLOC
-	struct LinkMap *linkmap = Heap_Alloc(&__heappool, sizeof *linkmap);
-#else
-	struct LinkMap *linkmap = calloc(1, sizeof *linkmap);
-#endif
-	if( linkmap )
-		linkmap->Destructor = dtor;
-	return linkmap;
-}
-
-void LinkMap_Init(struct LinkMap *const restrict linkmap, bool (*dtor)())
-{
-	if( !linkmap )
-		return;
-	
-	*linkmap = (struct LinkMap){0};
-	linkmap->Destructor = dtor;
-}
-void LinkMap_Del(struct LinkMap *const restrict linkmap)
-{
-	if( !linkmap )
-		return;
-	
-	LinkNode_Free(&linkmap->Head, linkmap->Destructor);
-	
-	if( linkmap->Table )
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, linkmap->Table);
-	#else
-		free(linkmap->Table);
-	#endif
-	LinkMap_Init(linkmap, linkmap->Destructor);
-}
-
-void LinkMap_Free(struct LinkMap **restrict linkmapref)
+HARBOL_EXPORT void HarbolLinkMap_Free(struct HarbolLinkMap **linkmapref, fnDestructor *const dtor)
 {
 	if( !*linkmapref )
 		return;
 	
-	LinkMap_Del(*linkmapref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *linkmapref);
-#else
-	free(*linkmapref);
-#endif
-	*linkmapref=NULL;
+	HarbolLinkMap_Del(*linkmapref, dtor);
+	free(*linkmapref); *linkmapref=NULL;
 }
 
-size_t LinkMap_Count(const struct LinkMap *const restrict linkmap)
+HARBOL_EXPORT size_t HarbolLinkMap_Count(const struct HarbolLinkMap *const map)
 {
-	return linkmap ? linkmap->Count : 0;
+	return map ? map->Count : 0;
 }
-size_t LinkMap_Len(const struct LinkMap *const restrict linkmap)
+
+HARBOL_EXPORT size_t HarbolLinkMap_Len(const struct HarbolLinkMap *const map)
 {
-	return linkmap ? linkmap->Len : 0;
+	return map ? map->Len : 0;
 }
-bool LinkMap_Rehash(struct LinkMap *const restrict linkmap)
+
+HARBOL_EXPORT bool HarbolLinkMap_Rehash(struct HarbolLinkMap *const map)
 {
-	if( !linkmap )
+	if( !map || !map->Table )
 		return false;
 	
-	linkmap->Len <<= 1;
-	linkmap->Count = 0;
+	const size_t old_size = map->Len;
+	map->Len <<= 1;
+	map->Count = 0;
 	
-	struct LinkMap newlinkmap = (struct LinkMap){0};
-	
-#ifdef DSC_NO_MALLOC
-	newlinkmap.Table = Heap_Alloc(&__heappool, linkmap->Len * sizeof *newlinkmap.Table);
-#else
-	newlinkmap.Table = calloc(linkmap->Len, sizeof *newlinkmap.Table);
-#endif
-	if( !newlinkmap.Table ) {
-		linkmap->Len >>= 1;
+	struct HarbolVector
+		*curr = NULL,
+		*temp = calloc(map->Len, sizeof *temp)
+	;
+	if( !temp ) {
+		puts("**** Memory Allocation Error **** HarbolMap_Rehash::temp is NULL\n");
+		map->Len = 0;
 		return false;
 	}
 	
-	newlinkmap.Len = linkmap->Len;
-	newlinkmap.Destructor = linkmap->Destructor;
+	curr = map->Table;
+	map->Table = temp;
 	
-	for( struct LinkNode *kv=linkmap->Head, *after=NULL ; kv ; kv=after ) {
-		after = kv->After;
-		LinkMap_InsertNode(&newlinkmap, kv);
+	HarbolVector_Del(&map->Order, NULL);
+	for( size_t i=0 ; i<old_size ; i++ ) {
+		struct HarbolVector *vec = curr + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			HarbolLinkMap_InsertNode(map, node);
+		}
+		HarbolVector_Del(vec, NULL);
 	}
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, linkmap->Table);
-#else
-	free(linkmap->Table);
-#endif
-	linkmap->Table=NULL;
-	*linkmap = newlinkmap;
+	free(curr), curr=NULL;
 	return true;
 }
 
-bool LinkMap_InsertNode(struct LinkMap *const restrict linkmap, struct LinkNode *node)
+HARBOL_EXPORT bool HarbolLinkMap_InsertNode(struct HarbolLinkMap *const map, struct HarbolKeyValPair *node)
 {
-	if( !linkmap or !node )
+	if( !map || !node || !node->KeyName.CStr )
 		return false;
-	else if( !linkmap->Table ) {
-		linkmap->Len = 4;
-	#ifdef DSC_NO_MALLOC
-		linkmap->Table = Heap_Alloc(&__heappool, linkmap->Len * sizeof *linkmap->Table);
-	#else
-		linkmap->Table = calloc(linkmap->Len, sizeof *linkmap->Table);
-	#endif
-		if( !linkmap->Table ) {
-			linkmap->Len = 0;
+	
+	else if( !map->Len ) {
+		map->Len = 8;
+		map->Table = calloc(map->Len, sizeof *map->Table);
+		if( !map->Table ) {
+			puts("**** Memory Allocation Error **** HarbolMap_InsertNode::map->Table is NULL\n");
+			map->Len = 0;
 			return false;
 		}
 	}
-	else if( linkmap->Count >= linkmap->Len )
-		LinkMap_Rehash(linkmap);
-	else if( LinkMap_HasKey(linkmap, node->KeyName.CStr) )
+	else if( map->Count >= map->Len )
+		HarbolLinkMap_Rehash(map);
+	else if( HarbolLinkMap_HasKey(map, node->KeyName.CStr) )
 		return false;
 	
-	const size_t hash = GenHash(node->KeyName.CStr) % linkmap->Len;
-	node->Next = linkmap->Table[hash];
-	linkmap->Table[hash] = node;
-	if( !linkmap->Head or !linkmap->Tail ) {
-		linkmap->Head = linkmap->Tail = node;
-		node->After = node->Before = NULL;
-	}
-	else {
-		// (Head|Tail)x <-(node)x
-		node->Before = linkmap->Tail;
-		// (Head|Tail)x <-(node)-> NULL
-		node->After = NULL;
-		// (Head|Tail)-> <-(node)-> NULL
-		linkmap->Tail->After = node;
-		// (Head)-> <-(Tail)-> NULL
-		linkmap->Tail = node;
-	}
-	++linkmap->Count;
+	const size_t hash = GenHash(node->KeyName.CStr) % map->Len;
+	HarbolVector_Insert(map->Table + hash, (union HarbolValue){.Ptr=node});
+	HarbolVector_Insert(&map->Order, (union HarbolValue){.Ptr=node});
+	++map->Count;
 	return true;
 }
-bool LinkMap_Insert(struct LinkMap *const restrict linkmap, const char *restrict strkey, const union Value val)
+
+HARBOL_EXPORT bool HarbolLinkMap_Insert(struct HarbolLinkMap *const restrict map, const char *restrict strkey, const union HarbolValue val)
 {
-	if( !linkmap or !strkey )
+	if( !map || !strkey )
 		return false;
 	
-	struct LinkNode *node = LinkNode_NewSP(strkey, val);
-	bool b = LinkMap_InsertNode(linkmap, node);
+	struct HarbolKeyValPair *node = HarbolKeyValPair_NewSP(strkey, val);
+	bool b = HarbolLinkMap_InsertNode(map, node);
 	if( !b )
-		LinkNode_Free(&node, linkmap->Destructor);
+		HarbolKeyValPair_Free(&node, NULL);
 	return b;
 }
 
-struct LinkNode *LinkMap_GetNodeByIndex(const struct LinkMap *const restrict linkmap, const size_t index)
+HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByIndex(const struct HarbolLinkMap *const map, const size_t index)
 {
-	if( !linkmap or !linkmap->Table )
-		return NULL;
-	else if( index==0 and linkmap->Head )
-		return linkmap->Head;
-	else if( index>=linkmap->Count and linkmap->Tail )
-		return linkmap->Tail;
-	
-	bool prev_dir = ( index >= linkmap->Count/2 );
-	struct LinkNode *node = prev_dir ? linkmap->Tail : linkmap->Head;
-	for( size_t i=prev_dir ? linkmap->Count-1 : 0 ; i<linkmap->Count ; prev_dir ? i-- : i++ ) {
-		if( node and i==index )
-			return node;
-		if( (prev_dir and !node->Before) or (!prev_dir and !node->After) )
-			break;
-		node = prev_dir ? node->Before : node->After;
-	}
-	return NULL;
+	return ( !map || !map->Table || !map->Order.Table ) ? NULL : map->Order.Table[index].Ptr;
 }
 
-union Value LinkMap_Get(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
+HARBOL_EXPORT union HarbolValue HarbolLinkMap_Get(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
 {
-	if( !linkmap or !linkmap->Table or !LinkMap_HasKey(linkmap, strkey) )
-		return (union Value){0};
-	
-	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_CmpCStr(&kv->KeyName, strkey) )
-			return kv->Data;
-	
-	return (union Value){0};
-}
-void LinkMap_Set(struct LinkMap *const restrict linkmap, const char *restrict strkey, const union Value val)
-{
-	if( !linkmap )
-		return;
-	
-	else if( !LinkMap_HasKey(linkmap, strkey) ) {
-		LinkMap_Insert(linkmap, strkey, val);
-		return;
-	}
-	
-	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *restrict kv=linkmap->Table[hash] ; kv ; kv=kv->Next )
-		if( !String_CmpCStr(&kv->KeyName, strkey) )
-			kv->Data = val;
+	return ( !map || !HarbolMap_HasKey(&map->Map, strkey) ) ? (union HarbolValue){0} : HarbolMap_Get(&map->Map, strkey);
 }
 
-union Value LinkMap_GetByIndex(const struct LinkMap *const restrict linkmap, const size_t index)
+HARBOL_EXPORT void HarbolLinkMap_Set(struct HarbolLinkMap *const restrict map, const char *restrict strkey, const union HarbolValue val)
 {
-	if( !linkmap or !linkmap->Table )
-		return (union Value){0};
-	
-	struct LinkNode *node = LinkMap_GetNodeByIndex(linkmap, index);
-	if( node )
-		return node->Data;
-	return (union Value){0};
-}
-
-void LinkMap_SetByIndex(struct LinkMap *const restrict linkmap, const size_t index, const union Value val)
-{
-	if( !linkmap or !linkmap->Table )
+	if( !map || !HarbolLinkMap_HasKey(map, strkey) )
 		return;
 	
-	struct LinkNode *node = LinkMap_GetNodeByIndex(linkmap, index);
+	HarbolMap_Set(&map->Map, strkey, val);
+}
+
+HARBOL_EXPORT union HarbolValue HarbolLinkMap_GetByIndex(const struct HarbolLinkMap *const map, const size_t index)
+{
+	if( !map || !map->Table )
+		return (union HarbolValue){0};
+	
+	struct HarbolKeyValPair *node = HarbolLinkMap_GetNodeByIndex(map, index);
+	return ( node ) ? node->Data : (union HarbolValue){0};
+}
+
+HARBOL_EXPORT void HarbolLinkMap_SetByIndex(struct HarbolLinkMap *const map, const size_t index, const union HarbolValue val)
+{
+	if( !map || !map->Table )
+		return;
+	
+	struct HarbolKeyValPair *node = HarbolLinkMap_GetNodeByIndex(map, index);
 	if( node )
 		node->Data = val;
 }
 
-void LinkMap_SetItemDestructor(struct LinkMap *const restrict linkmap, bool (*dtor)())
+HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *const restrict map, const char *restrict strkey, fnDestructor *const dtor)
 {
-	if( !linkmap )
+	if( !map || !map->Table || !HarbolLinkMap_HasKey(map, strkey) )
 		return;
 	
-	linkmap->Destructor = dtor;
+	HarbolMap_Delete(&map->Map, strkey, dtor);
 }
 
-void LinkMap_Delete(struct LinkMap *const restrict linkmap, const char *restrict strkey)
+HARBOL_EXPORT void HarbolLinkMap_DeleteByIndex(struct HarbolLinkMap *const map, const size_t index, fnDestructor *const dtor)
 {
-	if( !linkmap or !linkmap->Table or !LinkMap_HasKey(linkmap, strkey) )
+	if( !map || !map->Table )
 		return;
 	
-	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *kv=linkmap->Table[hash], *next=NULL ; kv ; kv=next ) {
-		next = kv->Next;
-		
-		if( !String_CmpCStr(&kv->KeyName, strkey) ) {
-			linkmap->Table[hash] = kv->Next;
-			kv->Next = NULL;
-			kv->Before ? (kv->Before->After = kv->After) : (linkmap->Head = kv->After);
-			kv->After ? (kv->After->Before = kv->Before) : (linkmap->Tail = kv->Before);
-			
-			if( linkmap->Destructor )
-				(*linkmap->Destructor)(&kv->Data.Ptr);
-			String_Del(&kv->KeyName);
-		#ifdef DSC_NO_MALLOC
-			Heap_Release(&__heappool, kv);
-		#else
-			free(kv);
-		#endif
-			kv=NULL;
-			linkmap->Count--;
+	struct HarbolKeyValPair *kv = HarbolLinkMap_GetNodeByIndex(map, index);
+	if( !kv )
+		return;
+	
+	HarbolMap_Delete(&map->Map, kv->KeyName.CStr, dtor);
+	HarbolVector_Delete(&map->Order, index, NULL);
+}
+
+HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+{
+	return !map || !map->Table ? false : HarbolMap_HasKey(&map->Map, strkey);
+}
+
+HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetKeyValByKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+{
+	if( !map || !map->Table )
+		return NULL;
+	
+	return HarbolMap_GetHarbolKeyValPair(&map->Map, strkey);
+}
+
+HARBOL_EXPORT struct HarbolVector *HarbolLinkMap_GetBuckets(const struct HarbolLinkMap *const map)
+{
+	return map ? map->Table : NULL;
+}
+
+HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIter(const struct HarbolLinkMap *const map)
+{
+	return map ? map->Order.Table : NULL;
+}
+
+HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIterEndLen(const struct HarbolLinkMap *const map)
+{
+	return map ? map->Order.Table + map->Order.Len : NULL;
+}
+
+HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIterEndCount(const struct HarbolLinkMap *const map)
+{
+	return map ? map->Order.Table + map->Order.Count : NULL;
+}
+
+HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByName(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+{
+	if( !map || !strkey )
+		return SIZE_MAX;
+	
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *kv = map->Order.Table[i].Ptr;
+		if( !HarbolString_CmpCStr(&kv->KeyName, strkey) )
+			return i;
+	}
+	return SIZE_MAX;
+}
+
+HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByNode(const struct HarbolLinkMap *const map, struct HarbolKeyValPair *const node)
+{
+	if( !map || !node )
+		return SIZE_MAX;
+	
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		if( (uintptr_t)map->Order.Table[i].Ptr == (uintptr_t)node )
+			return i;
+	}
+	return SIZE_MAX;
+}
+
+HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByValue(const struct HarbolLinkMap *const map, const union HarbolValue val)
+{
+	if( !map )
+		return SIZE_MAX;
+	
+	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
+		if( n->Data.UInt64 == val.UInt64 )
+			return i;
+	}
+	return SIZE_MAX;
+}
+
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolHashmap(struct HarbolLinkMap *const linkmap, const struct HarbolHashmap *const map)
+{
+	if( !linkmap || !map )
+		return;
+	
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *kv = vec->Table[n].Ptr;
+			HarbolLinkMap_InsertNode(linkmap, HarbolKeyValPair_NewSP(kv->KeyName.CStr, kv->Data));
 		}
 	}
 }
 
-void LinkMap_DeleteByIndex(struct LinkMap *const restrict linkmap, const size_t index)
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolUniList(struct HarbolLinkMap *const map, const struct HarbolUniList *const list)
 {
-	if( !linkmap or !linkmap->Table )
-		return;
-	
-	struct LinkNode *kv = LinkMap_GetNodeByIndex(linkmap, index);
-	if( !kv )
-		return;
-	
-	const size_t hash = GenHash(kv->KeyName.CStr) % linkmap->Len;
-	linkmap->Table[hash] = kv->Next;
-	kv->Next = NULL;
-	kv->Before ? (kv->Before->After = kv->After) : (linkmap->Head = kv->After);
-	kv->After ? (kv->After->Before = kv->Before) : (linkmap->Tail = kv->Before);
-	
-	if( linkmap->Destructor )
-		(*linkmap->Destructor)(&kv->Data.Ptr);
-	String_Del(&kv->KeyName);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, kv);
-#else
-	free(kv);
-#endif
-	kv=NULL;
-	linkmap->Count--;
-}
-
-bool LinkMap_HasKey(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
-{
-	if( !linkmap or !linkmap->Table )
-		return false;
-	
-	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *restrict n = linkmap->Table[hash] ; n ; n=n->Next )
-		if( !String_CmpCStr(&n->KeyName, strkey) )
-			return true;
-	
-	return false;
-}
-struct LinkNode *LinkMap_GetNodeByKey(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
-{
-	if( !linkmap or !linkmap->Table )
-		return NULL;
-	
-	const size_t hash = GenHash(strkey) % linkmap->Len;
-	for( struct LinkNode *restrict n = linkmap->Table[hash] ; n ; n=n->Next )
-		if( !String_CmpCStr(&n->KeyName, strkey) )
-			return n;
-	
-	return NULL;
-}
-struct LinkNode **LinkMap_GetKeyTable(const struct LinkMap *const restrict linkmap)
-{
-	return linkmap ? linkmap->Table : NULL;
-}
-
-size_t LinkMap_GetIndexByName(const struct LinkMap *const restrict linkmap, const char *restrict strkey)
-{
-	if( !linkmap or !strkey )
-		return SIZE_MAX;
-	
-	size_t index = 0;
-	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
-		if( !String_CmpCStr(&n->KeyName, strkey) )
-			return index;
-	return SIZE_MAX;
-}
-
-size_t LinkMap_GetIndexByNode(const struct LinkMap *const restrict linkmap, struct LinkNode *const restrict node)
-{
-	if( !linkmap or !node )
-		return SIZE_MAX;
-	
-	size_t index = 0;
-	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
-		if( n==node )
-			return index;
-	return SIZE_MAX;
-}
-
-size_t LinkMap_GetIndexByValue(const struct LinkMap *const restrict linkmap, const union Value val)
-{
-	if( !linkmap )
-		return SIZE_MAX;
-	
-	size_t index = 0;
-	for( struct LinkNode *restrict n = linkmap->Head ; n ; n=n->After, index++ )
-		if( n->Data.UInt64 == val.UInt64 )
-			return index;
-	return SIZE_MAX;
-}
-
-
-void LinkMap_FromMap(struct LinkMap *const restrict linkmap, const struct Hashmap *const restrict map)
-{
-	if( !linkmap or !map )
-		return;
-	
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			LinkMap_InsertNode(linkmap, LinkNode_NewSP(n->KeyName.CStr, n->Data));
-}
-void LinkMap_FromUniLinkedList(struct LinkMap *const restrict linkmap, const struct UniLinkedList *const restrict list)
-{
-	if( !linkmap or !list )
+	if( !map || !list )
 		return;
 	
 	size_t i=0;
-	for( struct UniListNode *n=list->Head ; n ; n = n->Next ) {
+	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
-		LinkMap_Insert(linkmap, cstrkey, n->Data);
+		HarbolLinkMap_Insert(map, cstrkey, n->Data);
 		i++;
 	}
 }
-void LinkMap_FromBiLinkedList(struct LinkMap *const restrict linkmap, const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolBiList(struct HarbolLinkMap *const map, const struct HarbolBiList *const list)
 {
-	if( !linkmap or !list )
+	if( !map || !list )
 		return;
 	
 	size_t i=0;
-	for( struct BiListNode *n=list->Head ; n ; n = n->Next ) {
+	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
-		LinkMap_Insert(linkmap, cstrkey, n->Data);
+		HarbolLinkMap_Insert(map, cstrkey, n->Data);
 		i++;
 	}
 }
-void LinkMap_FromVector(struct LinkMap *const restrict linkmap, const struct Vector *const restrict v)
+
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolVector(struct HarbolLinkMap *const map, const struct HarbolVector *const v)
 {
-	if( !linkmap or !v )
+	if( !map || !v )
 		return;
 	
 	for( size_t i=0 ; i<v->Count ; i++ ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
-		LinkMap_Insert(linkmap, cstrkey, v->Table[i]);
+		HarbolLinkMap_Insert(map, cstrkey, v->Table[i]);
 	}
 }
-void LinkMap_FromTuple(struct LinkMap *const restrict linkmap, const struct Tuple *const restrict tup)
+
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolTuple(struct HarbolLinkMap *const map, const struct HarbolTuple *const tup)
 {
-	if( !linkmap or !tup or !tup->Items or !tup->Len )
+	if( !map || !tup || !tup->Items || !tup->Len )
 		return;
 	
 	for( size_t i=0 ; i<tup->Len ; i++ ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
-		LinkMap_Insert(linkmap, cstrkey, tup->Items[i]);
-	}
-}
-void LinkMap_FromGraph(struct LinkMap *const restrict linkmap, const struct Graph *const restrict graph)
-{
-	if( !linkmap or !graph )
-		return;
-	
-	for( size_t i=0 ; i<graph->VertexCount ; i++ ) {
-		char cstrkey[10] = {0};
-		sprintf(cstrkey, "%zu", i);
-		LinkMap_Insert(linkmap, cstrkey, graph->Vertices[i].Data);
+		HarbolLinkMap_Insert(map, cstrkey, tup->Items[i]);
 	}
 }
 
-struct LinkMap *LinkMap_NewFromMap(const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolLinkMap_FromHarbolGraph(struct HarbolLinkMap *const map, const struct HarbolGraph *const graph)
+{
+	if( !map || !graph )
+		return;
+	
+	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+		char cstrkey[10] = {0};
+		sprintf(cstrkey, "%zu", i);
+		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
+		HarbolLinkMap_Insert(map, cstrkey, vert->Data);
+	}
+}
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(map->Destructor);
-	LinkMap_FromMap(linkmap, map);
+	struct HarbolLinkMap *linkmap = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolHashmap(linkmap, map);
 	return linkmap;
 }
-struct LinkMap *LinkMap_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolUniList(const struct HarbolUniList *const list)
 {
 	if( !list )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(list->Destructor);
-	LinkMap_FromUniLinkedList(linkmap, list);
-	return linkmap;
+	struct HarbolLinkMap *map = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolUniList(map, list);
+	return map;
 }
-struct LinkMap *LinkMap_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolBiList(const struct HarbolBiList *const list)
 {
 	if( !list )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(list->Destructor);
-	LinkMap_FromBiLinkedList(linkmap, list);
-	return linkmap;
+	struct HarbolLinkMap *map = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolBiList(map, list);
+	return map;
 }
-struct LinkMap *LinkMap_NewFromVector(const struct Vector *const restrict vec)
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolVector(const struct HarbolVector *const vec)
 {
 	if( !vec )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(vec->Destructor);
-	LinkMap_FromVector(linkmap, vec);
-	return linkmap;
+	struct HarbolLinkMap *map = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolVector(map, vec);
+	return map;
 }
-struct LinkMap *LinkMap_NewFromTuple(const struct Tuple *const restrict tup)
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolTuple(const struct HarbolTuple *const tup)
 {
 	if( !tup )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(NULL);
-	LinkMap_FromTuple(linkmap, tup);
-	return linkmap;
+	struct HarbolLinkMap *map = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolTuple(map, tup);
+	return map;
 }
-struct LinkMap *LinkMap_NewFromGraph(const struct Graph *const restrict graph)
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolGraph(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return NULL;
 	
-	struct LinkMap *linkmap = LinkMap_New(graph->VertexDestructor);
-	LinkMap_FromGraph(linkmap, graph);
-	return linkmap;
+	struct HarbolLinkMap *map = HarbolLinkMap_New();
+	HarbolLinkMap_FromHarbolGraph(map, graph);
+	return map;
 }

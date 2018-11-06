@@ -1,249 +1,171 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
-
-static void TreeNode_Resize(struct TreeNode *);
-static void TreeNode_Truncate(struct TreeNode *);
-
-struct TreeNode *TreeNode_New(const union Value val)
-{
-#ifdef DSC_NO_MALLOC
-	struct TreeNode *tn = Heap_Alloc(&__heappool, sizeof *tn);
-#else
-	struct TreeNode *tn = calloc(1, sizeof *tn);
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
 #endif
-	TreeNode_InitVal(tn, val);
+#include "harbol.h"
+
+HARBOL_EXPORT struct HarbolTree *HarbolTree_New(const union HarbolValue val)
+{
+	struct HarbolTree *tn = calloc(1, sizeof *tn);
+	HarbolTree_InitVal(tn, val);
 	return tn;
 }
 
-void TreeNode_Init(struct TreeNode *const restrict tn)
+HARBOL_EXPORT void HarbolTree_Init(struct HarbolTree *const tn)
 {
 	if( !tn )
 		return;
-	*tn = (struct TreeNode){0};
+	memset(tn, 0, sizeof *tn);
 }
-void TreeNode_InitVal(struct TreeNode *const restrict tn, const union Value val)
+
+HARBOL_EXPORT void HarbolTree_InitVal(struct HarbolTree *const tn, const union HarbolValue val)
 {
 	if( !tn )
 		return;
-	*tn = (struct TreeNode){0};
+	memset(tn, 0, sizeof *tn);
 	tn->Data = val;
 }
 
-void TreeNode_Del(struct TreeNode *const restrict tn, bool(*dtor)())
+HARBOL_EXPORT void HarbolTree_Del(struct HarbolTree *const tn, fnDestructor *const dtor)
 {
 	if( !tn )
 		return;
 	if( dtor )
 		(*dtor)(&tn->Data.Ptr);
-	for( size_t i=0 ; i<tn->ChildCount ; i++ )
-		TreeNode_Free(tn->Children+i, dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, tn->Children);
-#else
-	free(tn->Children);
-#endif
-	tn->Children=NULL;
-	*tn = (struct TreeNode){0};
+	
+	struct HarbolVector *vec = &tn->Children;
+	for( size_t i=0 ; i<vec->Count ; i++ ) {
+		struct HarbolTree *node = vec->Table[i].Ptr;
+		HarbolTree_Free(&node, dtor);
+	}
+	HarbolVector_Del(vec, NULL);
+	memset(tn, 0, sizeof *tn);
 }
 
-void TreeNode_Free(struct TreeNode **restrict tnref, bool(*dtor)())
+HARBOL_EXPORT void HarbolTree_Free(struct HarbolTree **tnref, fnDestructor *const dtor)
 {
 	if( !*tnref )
 		return;
-	TreeNode_Del(*tnref, dtor);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *tnref);
-#else
-	free(*tnref);
-#endif
-	*tnref=NULL;
+	HarbolTree_Del(*tnref, dtor);
+	free(*tnref); *tnref=NULL;
 }
 
-bool TreeNode_InsertChildByNode(struct TreeNode *const restrict tn, struct TreeNode *const restrict node)
+HARBOL_EXPORT bool HarbolTree_InsertChildByNode(struct HarbolTree *const restrict tn, struct HarbolTree *const restrict node)
 {
-	if( !tn or !node )
+	if( !tn || !node )
 		return false;
-	else if( !tn->Children or tn->ChildCount >= tn->ChildLen )
-		TreeNode_Resize(tn);
 	
-	tn->Children[tn->ChildCount++] = node;
+	HarbolVector_Insert(&tn->Children, (union HarbolValue){.Ptr=node});
 	return true;
 }
 
-bool TreeNode_InsertChildByValue(struct TreeNode *const restrict tn, const union Value val)
+HARBOL_EXPORT bool HarbolTree_InsertChildByValue(struct HarbolTree *const restrict tn, const union HarbolValue val)
 {
 	if( !tn )
 		return false;
-	struct TreeNode *child = TreeNode_New(val);
-	if( !child )
-		return false;
-	else if( !tn->Children or tn->ChildCount >= tn->ChildLen )
-		TreeNode_Resize(tn);
 	
-	tn->Children[tn->ChildCount++] = child;
+	struct HarbolTree *restrict node = HarbolTree_New(val);
+	if( !node )
+		return false;
+	
+	HarbolVector_Insert(&tn->Children, (union HarbolValue){.Ptr=node});
 	return true;
 }
 
-bool TreeNode_RemoveChildByRef(struct TreeNode *const restrict tn, struct TreeNode **noderef, bool(*dtor)())
+HARBOL_EXPORT bool HarbolTree_RemoveChildByRef(struct HarbolTree *const restrict tn, struct HarbolTree **noderef, fnDestructor *const dtor)
 {
-	if( !tn or !tn->Children or !*noderef )
+	if( !tn || !tn->Children.Table || !*noderef )
 		return false;
-	struct TreeNode *node = *noderef;
-	for( size_t index=0 ; index<tn->ChildCount ; index++ ) {
-		if( tn->Children[index]==node ) {
-			TreeNode_Free(tn->Children+index, dtor);
-			size_t
-				i=index+1,
-				j=index
-			;
-			while( i<tn->ChildCount )
-				tn->Children[j++] = tn->Children[i++];
-			tn->ChildCount--;
+	
+	struct HarbolTree *restrict node = *noderef;
+	struct HarbolVector *vec = &tn->Children;
+	for( size_t i=0 ; i<vec->Count ; i++ ) {
+		if( vec->Table[i].Ptr==node ) {
+			struct HarbolTree *child = vec->Table[i].Ptr;
+			HarbolTree_Free(&child, dtor);
+			HarbolVector_Delete(vec, i, NULL);
 			return true;
 		}
 	}
 	return false;
 }
 
-bool TreeNode_RemoveChildByIndex(struct TreeNode *const restrict tn, const size_t index, bool(*dtor)())
+HARBOL_EXPORT bool HarbolTree_RemoveChildByIndex(struct HarbolTree *const restrict tn, const size_t index, fnDestructor *const dtor)
 {
-	if( !tn or !tn->Children or index >= tn->ChildCount )
+	if( !tn || index >= tn->Children.Count )
 		return false;
 	
-	TreeNode_Free(tn->Children+index, dtor);
-	size_t
-		i=index+1,
-		j=index
-	;
-	while( i<tn->ChildCount )
-		tn->Children[j++] = tn->Children[i++];
-	tn->ChildCount--;
-	TreeNode_Truncate(tn);
+	struct HarbolVector *restrict vec = &tn->Children;
+	struct HarbolTree *child = vec->Table[index].Ptr;
+	HarbolTree_Free(&child, dtor);
+	HarbolVector_Delete(vec, index, NULL);
+	HarbolVector_Truncate(vec);
 	return true;
 }
 
-bool TreeNode_RemoveChildByValue(struct TreeNode *const restrict tn, const union Value val, bool(*dtor)())
+HARBOL_EXPORT bool HarbolTree_RemoveChildByValue(struct HarbolTree *const restrict tn, const union HarbolValue val, fnDestructor *const dtor)
 {
-	if( !tn or !tn->Children )
+	if( !tn || !tn->Children.Table )
 		return false;
-	for( size_t index=0 ; index<tn->ChildCount ; index++ ) {
-		if( tn->Children[index]->Data.Int64==val.Int64 ) {
-			TreeNode_Free(tn->Children+index, dtor);
-			size_t
-				i=index+1,
-				j=index
-			;
-			while( i<tn->ChildCount )
-				tn->Children[j++] = tn->Children[i++];
-			tn->ChildCount--;
+	
+	struct HarbolVector *vec = &tn->Children;
+	for( size_t i=0 ; i<vec->Count ; i++ ) {
+		struct HarbolTree *node = vec->Table[i].Ptr;
+		if( node->Data.Int64==val.Int64 ) {
+			HarbolTree_Free(&node, dtor);
+			HarbolVector_Delete(vec, i, NULL);
 			return true;
 		}
 	}
-	TreeNode_Truncate(tn);
+	HarbolVector_Truncate(vec);
 	return false;
 }
 
-struct TreeNode *TreeNode_GetChildByIndex(const struct TreeNode *const restrict tn, const size_t index)
+HARBOL_EXPORT struct HarbolTree *HarbolTree_GetChildByIndex(const struct HarbolTree *const tn, const size_t index)
 {
-	if( !tn or !tn->Children or index >= tn->ChildCount )
+	if( !tn || !tn->Children.Table || index >= tn->Children.Count )
 		return NULL;
-	return tn->Children[index];
+	return tn->Children.Table[index].Ptr;
 }
-struct TreeNode *TreeNode_GetChildByValue(const struct TreeNode *const restrict tn, const union Value val)
+
+HARBOL_EXPORT struct HarbolTree *HarbolTree_GetChildByValue(const struct HarbolTree *const restrict tn, const union HarbolValue val)
 {
-	if( !tn or !tn->Children )
+	if( !tn || !tn->Children.Table )
 		return NULL;
 	
-	for( size_t i=0 ; i<tn->ChildCount ; i++ ) {
-		if( tn->Children[i]->Data.Int64==val.Int64 )
-			return tn->Children[i];
+	for( size_t i=0 ; i<tn->Children.Count ; i++ ) {
+		struct HarbolTree *restrict node = tn->Children.Table[i].Ptr;
+		if( node->Data.Int64==val.Int64 )
+			return node;
 	}
 	return NULL;
 }
 
-union Value TreeNode_GetData(const struct TreeNode *const restrict tn)
+HARBOL_EXPORT union HarbolValue HarbolTree_GetData(const struct HarbolTree *const tn)
 {
-	return tn ? tn->Data : (union Value){0};
+	return tn ? tn->Data : (union HarbolValue){0};
 }
-void TreeNode_SetData(struct TreeNode *const restrict tn, const union Value val)
+
+HARBOL_EXPORT void HarbolTree_SetData(struct HarbolTree *const tn, const union HarbolValue val)
 {
 	if( !tn )
 		return;
 	
 	tn->Data = val;
 }
-struct TreeNode **TreeNode_GetChildren(const struct TreeNode *const restrict tn)
+
+HARBOL_EXPORT struct HarbolVector HarbolTree_GetChildren(const struct HarbolTree *const tn)
 {
-	return tn ? tn->Children : NULL;
-}
-size_t TreeNode_GetChildLen(const struct TreeNode *const restrict tn)
-{
-	return tn ? tn->ChildLen : 0;
-}
-size_t TreeNode_GetChildCount(const struct TreeNode *const restrict tn)
-{
-	return tn ? tn->ChildCount : 0;
+	return tn ? tn->Children : (struct HarbolVector){NULL,0,0};
 }
 
-static void TreeNode_Resize(struct TreeNode *const restrict tn)
+HARBOL_EXPORT size_t HarbolTree_GetChildLen(const struct HarbolTree *const tn)
 {
-	if( !tn )
-		return;
-	
-	size_t oldsize = tn->ChildLen;
-	tn->ChildLen <<= 1;
-	if( !tn->ChildLen )
-		tn->ChildLen = 2;
-	
-#ifdef DSC_NO_MALLOC
-	struct TreeNode **newdata = Heap_Alloc(&__heappool, tn->ChildLen * sizeof *newdata);
-#else
-	struct TreeNode **newdata = calloc(tn->ChildLen, sizeof *newdata);
-#endif
-	if( !newdata ) {
-		tn->ChildLen >>= 1;
-		if( tn->ChildLen == 1 )
-			tn->ChildLen=0;
-		return;
-	}
-	
-	if( tn->Children ) {
-		memcpy(newdata, tn->Children, sizeof *newdata * oldsize);
-	#ifdef DSC_NO_MALLOC
-		Heap_Release(&__heappool, tn->Children);
-	#else
-		free(tn->Children);
-	#endif
-		tn->Children = NULL;
-	}
-	tn->Children = newdata;
+	return tn ? tn->Children.Len : 0;
 }
 
-static void TreeNode_Truncate(struct TreeNode *const restrict tn)
+HARBOL_EXPORT size_t HarbolTree_GetChildCount(const struct HarbolTree *const tn)
 {
-	if( !tn )
-		return;
-	
-	if( tn->ChildCount < tn->ChildLen>>1 ) {
-		tn->ChildLen >>= 1;
-	#ifdef DSC_NO_MALLOC
-		struct TreeNode **newdata = Heap_Alloc(&__heappool, tn->ChildLen * sizeof *newdata);
-	#else
-		struct TreeNode **newdata = calloc(tn->ChildLen, sizeof *newdata);
-	#endif
-		if( !newdata )
-			return;
-		
-		if( tn->Children ) {
-			memcpy(newdata, tn->Children, sizeof *newdata * tn->ChildLen);
-		#ifdef DSC_NO_MALLOC
-			Heap_Release(&__heappool, tn->Children);
-		#else
-			free(tn->Children);
-		#endif
-			tn->Children = NULL;
-		}
-		tn->Children = newdata;
-	}
+	return tn ? tn->Children.Count : 0;
 }

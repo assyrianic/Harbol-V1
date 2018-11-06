@@ -1,215 +1,204 @@
-
 #include <stdlib.h>
 #include <stdio.h>
-#include "dsc.h"
-
-struct Tuple *Tuple_New(const size_t arrlen, union Value items[restrict static arrlen])
-{
-#ifdef DSC_NO_MALLOC
-	struct Tuple *tup = Heap_Alloc(&__heappool, sizeof *tup);
-#else
-	struct Tuple *tup = calloc(1, sizeof *tup);
+#ifdef OS_WINDOWS
+	#define HARBOL_LIB
 #endif
+#include "harbol.h"
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_New(const size_t arrlen, union HarbolValue items[static arrlen])
+{
+	struct HarbolTuple *tup = calloc(1, sizeof *tup);
 	if( tup )
-		Tuple_Init(tup, arrlen, items);
+		HarbolTuple_Init(tup, arrlen, items);
 	return tup;
 }
 
-void Tuple_Free(struct Tuple **restrict tupref)
+HARBOL_EXPORT void HarbolTuple_Free(struct HarbolTuple **tupref)
 {
 	if( !*tupref )
 		return;
-	Tuple_Del(*tupref);
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, *tupref);
-#else
-	free(*tupref);
-#endif
-	*tupref=NULL;
+	HarbolTuple_Del(*tupref);
+	free(*tupref); *tupref=NULL;
 }
 
-void Tuple_Init(struct Tuple *const restrict tup, const size_t arrlen, union Value items[restrict static arrlen])
+HARBOL_EXPORT void HarbolTuple_Init(struct HarbolTuple *const tup, const size_t arrlen, union HarbolValue items[static arrlen])
 {
 	if( !tup )
 		return;
-	*tup = (struct Tuple){0};
-#ifdef DSC_NO_MALLOC
-	tup->Items = Heap_Alloc(&__heappool, arrlen * sizeof *tup->Items);
-#else
+	memset(tup, 0, sizeof *tup);
 	tup->Items = calloc(arrlen, sizeof *tup->Items);
-#endif
 	if( !tup->Items )
 		return;
 	memcpy(tup->Items, items, sizeof *tup->Items * arrlen);
 	tup->Len = arrlen;
 }
 
-void Tuple_Del(struct Tuple *const restrict tup)
+HARBOL_EXPORT void HarbolTuple_Del(struct HarbolTuple *const tup)
 {
-	if( !tup or !tup->Items )
+	if( !tup || !tup->Items )
 		return;
-#ifdef DSC_NO_MALLOC
-	Heap_Release(&__heappool, tup->Items);
-#else
-	free(tup->Items);
-#endif
-	tup->Items=NULL;
-	*tup = (struct Tuple){0};
+	free(tup->Items); tup->Items=NULL;
+	memset(tup, 0, sizeof *tup);
 }
 
-size_t Tuple_Len(const struct Tuple *const restrict tup)
+HARBOL_EXPORT size_t HarbolTuple_Len(const struct HarbolTuple *const tup)
 {
 	return tup ? tup->Len : 0 ;
 }
 
-union Value *Tuple_GetItems(const struct Tuple *const restrict tup)
+HARBOL_EXPORT union HarbolValue *HarbolTuple_GetItems(const struct HarbolTuple *const tup)
 {
 	return tup ? tup->Items : NULL ;
 }
 
-union Value Tuple_GetItem(const struct Tuple *const restrict tup, const size_t index)
+HARBOL_EXPORT union HarbolValue HarbolTuple_GetItem(const struct HarbolTuple *const tup, const size_t index)
 {
-	if( !tup or !tup->Items or index >= tup->Len )
-		return (union Value){0};
-	
-	return tup->Items[index];
+	return ( !tup || !tup->Items || index >= tup->Len ) ? (union HarbolValue){0} : tup->Items[index];
 }
 
-void Tuple_FromUniLinkedList(struct Tuple *const restrict tup, const struct UniLinkedList *const restrict list)
+HARBOL_EXPORT void HarbolTuple_FromHarbolUniList(struct HarbolTuple *const tup, const struct HarbolUniList *const list)
 {
-	if( !tup or !list )
+	if( !tup || !list )
 		return;
 	
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	union Value list_items[list->Len];
+	union HarbolValue list_items[list->Len];
 	size_t i=0;
-	for( struct UniListNode *n=list->Head ; n ; n=n->Next )
+	for( struct HarbolUniListNode *n=list->Head ; n ; n=n->Next )
 		list_items[i++] = n->Data;
 	
-	Tuple_Init(tup, i, list_items);
+	HarbolTuple_Init(tup, i, list_items);
 }
 
-void Tuple_FromMap(struct Tuple *const restrict tup, const struct Hashmap *const restrict map)
+HARBOL_EXPORT void HarbolTuple_FromHarbolHashmap(struct HarbolTuple *const tup, const struct HarbolHashmap *const map)
 {
-	if( !tup or !map )
+	if( !tup || !map )
 		return;
 	
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	union Value list_items[map->Count];
+	union HarbolValue list_items[map->Count];
 	size_t x=0;
-	for( size_t i=0 ; i<map->Len ; i++ )
-		for( struct KeyNode *n = map->Table[i] ; n ; n=n->Next )
-			list_items[x++] = n->Data;
-	
-	Tuple_Init(tup, x, list_items);
+	for( size_t i=0 ; i<map->Len ; i++ ) {
+		struct HarbolVector *vec = map->Table + i;
+		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
+			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
+			list_items[x++] = node->Data;
+		}
+	}
+	HarbolTuple_Init(tup, x, list_items);
 }
 
-void Tuple_FromVector(struct Tuple *const restrict tup, const struct Vector *const restrict vec)
+HARBOL_EXPORT void HarbolTuple_FromHarbolVector(struct HarbolTuple *const tup, const struct HarbolVector *const vec)
 {
-	if( !tup or !vec )
+	if( !tup || !vec )
 		return;
 	
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	
-	Tuple_Init(tup, vec->Count, vec->Table);
+	HarbolTuple_Init(tup, vec->Count, vec->Table);
 }
 
-void Tuple_FromBiLinkedList(struct Tuple *const restrict tup, const struct BiLinkedList *const restrict list)
+HARBOL_EXPORT void HarbolTuple_FromHarbolBiList(struct HarbolTuple *const tup, const struct HarbolBiList *const list)
 {
-	if( !tup or !list )
+	if( !tup || !list )
 		return;
 	
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	union Value list_items[list->Len];
+	union HarbolValue list_items[list->Len];
 	size_t i=0;
-	for( struct BiListNode *n=list->Head ; n ; n=n->Next )
+	for( struct HarbolBiListNode *n=list->Head ; n ; n=n->Next )
 		list_items[i++] = n->Data;
 	
-	Tuple_Init(tup, i, list_items);
+	HarbolTuple_Init(tup, i, list_items);
 }
 
-void Tuple_FromGraph(struct Tuple *const restrict tup, const struct Graph *const restrict graph)
+HARBOL_EXPORT void HarbolTuple_FromHarbolGraph(struct HarbolTuple *const tup, const struct HarbolGraph *const graph)
 {
-	if( !tup or !graph )
+	if( !tup || !graph )
 		return;
 	
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	union Value list_items[graph->VertexCount];
-	for( size_t i=0 ; i<graph->VertexCount ; i++ )
-		list_items[i] = graph->Vertices[i].Data;
-	
-	Tuple_Init(tup, graph->VertexCount, list_items);
+	union HarbolValue list_items[graph->Vertices.Count];
+	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
+		list_items[i] = vert->Data;
+	}
+	HarbolTuple_Init(tup, graph->Vertices.Count, list_items);
 }
 
-void Tuple_FromLinkMap(struct Tuple *const restrict tup, const struct LinkMap *const restrict map)
+HARBOL_EXPORT void HarbolTuple_FromHarbolLinkMap(struct HarbolTuple *const tup, const struct HarbolLinkMap *const map)
 {
 	if( tup->Items )
-		Tuple_Del(tup);
+		HarbolTuple_Del(tup);
 	
-	union Value list_items[map->Len];
+	union HarbolValue list_items[map->Count];
 	size_t i=0;
-	for( struct LinkNode *n=map->Head ; n ; n=n->After )
-		list_items[i++] = n->Data;
-	
-	Tuple_Init(tup, i, list_items);
+	for( ; i<map->Order.Count ; i++ ) {
+		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
+		list_items[i] = n->Data;
+	}
+	HarbolTuple_Init(tup, i, list_items);
 }
 
-
-struct Tuple *Tuple_NewFromUniLinkedList(const struct UniLinkedList *const restrict list)
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolUniList(const struct HarbolUniList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromUniLinkedList(tup, list);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolUniList(tup, list);
 	return tup;
 }
-struct Tuple *Tuple_NewFromMap(const struct Hashmap *const restrict map)
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolHashmap(const struct HarbolHashmap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromMap(tup, map);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolHashmap(tup, map);
 	return tup;
 }
-struct Tuple *Tuple_NewFromVector(const struct Vector *const restrict vec)
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolVector(const struct HarbolVector *const vec)
 {
 	if( !vec )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromVector(tup, vec);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolVector(tup, vec);
 	return tup;
 }
-struct Tuple *Tuple_NewFromBiLinkedList(const struct BiLinkedList *const restrict list)
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolBiList(const struct HarbolBiList *const list)
 {
 	if( !list )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromBiLinkedList(tup, list);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolBiList(tup, list);
 	return tup;
 }
-struct Tuple *Tuple_NewFromGraph(const struct Graph *const restrict graph)
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolGraph(const struct HarbolGraph *const graph)
 {
 	if( !graph )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromGraph(tup, graph);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolGraph(tup, graph);
 	return tup;
 }
-struct Tuple *Tuple_NewFromLinkMap(const struct LinkMap *const restrict map)
+
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolLinkMap(const struct HarbolLinkMap *const map)
 {
 	if( !map )
 		return NULL;
-	struct Tuple *tup = calloc(1, sizeof *tup);
-	Tuple_FromLinkMap(tup, map);
+	struct HarbolTuple *const tup = calloc(1, sizeof *tup);
+	HarbolTuple_FromHarbolLinkMap(tup, map);
 	return tup;
 }
