@@ -79,11 +79,6 @@ For testing code changes or additions, simply run `make test` with `test_suite.c
 * Khanno Hanna - main developer of libharbol.
 
 
-## Contact
-
-I can be contacted at edyonan@yahoo.com
-
-
 ## License
 
 This project is licensed under MIT License.
