@@ -211,12 +211,10 @@ HARBOL_EXPORT bool HarbolString_Reserve(struct HarbolString *const strobj, const
 	if( !strobj || !size || strobj->Len<size )
 		return false;
 	
-	char *reservation = calloc(size+1, sizeof *reservation);
-	if( strobj->CStr ) {
-		strncpy(reservation, strobj->CStr, size+1);
-		free(strobj->CStr), strobj->CStr=NULL;
-		strobj->CStr = reservation;
-	}
+	strobj->CStr = realloc(strobj->CStr, size+1 * sizeof strobj->CStr);
+	if( !strobj->CStr )
+		return false;
+	memset(strobj->CStr, 0, size);
 	strobj->Len = size;
 	return true;
 }
