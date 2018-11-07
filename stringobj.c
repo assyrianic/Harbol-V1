@@ -208,7 +208,7 @@ HARBOL_EXPORT bool HarbolString_IsEmpty(const struct HarbolString *const strobj)
 
 HARBOL_EXPORT bool HarbolString_Reserve(struct HarbolString *const strobj, const size_t size)
 {
-	if( !strobj || !size || strobj->Len<size )
+	if( !strobj || !size )
 		return false;
 	
 	strobj->CStr = realloc(strobj->CStr, size+1 * sizeof strobj->CStr);
