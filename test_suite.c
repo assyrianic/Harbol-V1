@@ -1051,6 +1051,7 @@ void TestHarbolLinkMap(void)
 		struct HarbolKeyValPair *l = i.Order.Table[n].Ptr;
 		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
 	}
+	fputs("\n", HARBOL_debug_output);
 	for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
 		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);

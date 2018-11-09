@@ -60,7 +60,7 @@ HARBOL_EXPORT bool HarbolLinkMap_Rehash(struct HarbolLinkMap *const map)
 {
 	if( !map || !map->Table )
 		return false;
-	
+	/*
 	const size_t old_size = map->Len;
 	map->Len <<= 1;
 	map->Count = 0;
@@ -88,7 +88,9 @@ HARBOL_EXPORT bool HarbolLinkMap_Rehash(struct HarbolLinkMap *const map)
 		HarbolVector_Del(vec, NULL);
 	}
 	free(curr), curr=NULL;
-	return true;
+	
+	return true; */
+	return HarbolMap_Rehash(&map->Map);
 }
 
 HARBOL_EXPORT bool HarbolLinkMap_InsertNode(struct HarbolLinkMap *const map, struct HarbolKeyValPair *node)
@@ -171,7 +173,9 @@ HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *const restrict map
 	if( !map || !map->Table || !HarbolLinkMap_HasKey(map, strkey) )
 		return;
 	
+	const size_t index = HarbolLinkMap_GetIndexByName(map, strkey);
 	HarbolMap_Delete(&map->Map, strkey, dtor);
+	HarbolVector_Delete(&map->Order, index, NULL);
 }
 
 HARBOL_EXPORT void HarbolLinkMap_DeleteByIndex(struct HarbolLinkMap *const map, const size_t index, fnDestructor *const dtor)
