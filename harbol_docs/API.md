@@ -441,6 +441,20 @@ member of `union HarbolValue` for storing data.
 member of `int32_t` for storing an integer ID for denoting user types.
 
 
+## enum HarbolCfgType
+```c
+typedef enum HarbolCfgType {
+	HarbolTypeNull=0,
+	HarbolTypeLinkMap,
+	HarbolTypeString,
+	HarbolTypeFloat,
+	HarbolTypeInt,
+	HarbolTypeBool
+} HarbolCfgType;
+```
+Tag values that are mostly used by the HarbolCfg config file parser.
+
+
 
 # Functions/Methods
 
@@ -453,7 +467,7 @@ struct HarbolString *HarbolString_New(void);
 allocates an empty string object.
 
 ### Parameters
-no parameters.
+None.
 
 ### Return Value
 returns a pointer to a dynamically allocated, empty string object. `NULL` if err occurred.
@@ -468,7 +482,7 @@ struct HarbolString *HarbolString_NewStr(const char *cstr);
 allocates an empty string object and initializes it with a C string.
 
 ### Parameters
-`cstr` - pointer to a C string.
+* `cstr` - pointer to a C string.
 
 ### Return Value
 returns a pointer to a dynamically allocated, empty string object. `NULL` if err occurred.
@@ -483,10 +497,10 @@ void HarbolString_Del(struct HarbolString *str);
 cleans and clears a string object's data.
 
 ### Parameters
-`str` - pointer to `struct HarbolString`.
+* `str` - pointer to `struct HarbolString`.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_Init
@@ -498,10 +512,10 @@ void HarbolString_Init(struct HarbolString *str);
 initializes a string object to zero.
 
 ### Parameters
-`str` - pointer to `struct HarbolString`.
+* `str` - pointer to `struct HarbolString`.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_InitStr
@@ -513,11 +527,11 @@ void HarbolString_InitStr(struct HarbolString *str, const char *cstr);
 initializes a string object and copies a given C string.
 
 ### Parameters
-`str` - pointer to `struct HarbolString` to initialize.
-`cstr` - C string to copy to `str`.
+* `str` - pointer to `struct HarbolString` to initialize.
+* `cstr` - C string to copy to `str`.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_AddChar
@@ -529,11 +543,11 @@ void HarbolString_AddChar(struct HarbolString *str, char chr);
 appends a single character to the end of the string object.
 
 ### Parameters
-`str` - pointer to `struct HarbolString` to initialize.
-`chr` - single signed char value to append to the string's data.
+* `str` - pointer to `struct HarbolString` to initialize.
+* `chr` - single signed char value to append to the string's data.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_Add
@@ -545,11 +559,11 @@ void HarbolString_Add(struct HarbolString *str1, const struct HarbolString *str2
 concatenates `str2` to `str1` string object.
 
 ### Parameters
-`str1` - destination pointer to `struct HarbolString`.
-`str2` - source pointer to `const struct HarbolString`.
+* `str1` - destination pointer to `struct HarbolString`.
+* `str2` - source pointer to `const struct HarbolString`.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_AddStr
@@ -561,11 +575,11 @@ void HarbolString_AddStr(struct HarbolString *str, const char *cstr);
 concatenates a C string to a string object.
 
 ### Parameters
-`str` - pointer to `struct HarbolString` to concatenate to.
-`cstr` - pointer to a C string to copy to `str`.
+* `str` - pointer to `struct HarbolString` to concatenate to.
+* `cstr` - pointer to a C string to copy to `str`.
 
 ### Return Value
-returns nothing.
+None.
 
 
 ## HarbolString_GetStr
@@ -577,7 +591,7 @@ char *HarbolString_GetStr(const struct HarbolString *str);
 converts the string object to a C string.
 
 ### Parameters
-`str` - pointer to `const struct HarbolString`.
+* `str` - pointer to `const struct HarbolString`.
 
 ### Return Value
 returns a pointer to the allocated string data.
@@ -592,7 +606,7 @@ size_t HarbolString_Len(const struct HarbolString *str);
 gets the size of the string.
 
 ### Parameters
-`str` - pointer to `const struct HarbolString`.
+* `str` - pointer to `const struct HarbolString`.
 
 ### Return Value
 size of the string's allocated data.
@@ -607,8 +621,8 @@ void HarbolString_Copy(struct HarbolString *str1, const struct HarbolString *str
 copies a string object's string data from another.
 
 ### Parameters
-`str1` - destination pointer to `struct HarbolString`.
-`str2` - source pointer to `struct HarbolString`.
+* `str1` - destination pointer to `struct HarbolString`.
+* `str2` - source pointer to `struct HarbolString`.
 
 ### Return Value
-returns nothing.
+None

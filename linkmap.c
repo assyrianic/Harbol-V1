@@ -283,7 +283,7 @@ HARBOL_EXPORT void HarbolLinkMap_FromHarbolUniList(struct HarbolLinkMap *const m
 	
 	size_t i=0;
 	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolLinkMap_Insert(map, cstrkey, n->Data);
 		i++;
@@ -297,7 +297,7 @@ HARBOL_EXPORT void HarbolLinkMap_FromHarbolBiList(struct HarbolLinkMap *const ma
 	
 	size_t i=0;
 	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolLinkMap_Insert(map, cstrkey, n->Data);
 		i++;
@@ -310,7 +310,7 @@ HARBOL_EXPORT void HarbolLinkMap_FromHarbolVector(struct HarbolLinkMap *const ma
 		return;
 	
 	for( size_t i=0 ; i<v->Count ; i++ ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolLinkMap_Insert(map, cstrkey, v->Table[i]);
 	}
@@ -322,7 +322,7 @@ HARBOL_EXPORT void HarbolLinkMap_FromHarbolTuple(struct HarbolLinkMap *const map
 		return;
 	
 	for( size_t i=0 ; i<tup->Len ; i++ ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolLinkMap_Insert(map, cstrkey, tup->Items[i]);
 	}

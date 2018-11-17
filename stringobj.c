@@ -8,8 +8,8 @@
 
 /*
 typedef struct HarbolString {
-	size_t Len;
 	char *CStr;
+	size_t Len;
 } HarbolString;
 */
 

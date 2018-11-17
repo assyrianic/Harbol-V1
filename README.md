@@ -2,7 +2,7 @@
 
 ## Introduction
 
-**Harbol** is a data structure collection, similar to C++ Boost and GLib, that is meant to be a smaller and more lightweight collection of data structures.
+**Harbol** is a data structure collection, similar to C++ Boost and GLib, that is meant to be a smaller and more lightweight collection of data structures, code systems, and convenience software.
 
 
 ### Features
@@ -21,7 +21,8 @@
 * "general purpose" Graph. (edges support weight data)
 * General Tree.
 * Linked Hashmap (preserves insertion order).
-* Variant Type
+* Variant Type.
+* JSON-like Key-Value Configuration File Parser (allows retrieving data from keys through python-style pathing).
 
 
 ## Usage
@@ -77,6 +78,11 @@ For testing code changes or additions, simply run `make test` with `test_suite.c
 ## Credits
 
 * Khanno Hanna - main developer of libharbol.
+
+
+## Contact
+
+I can be contacted at edyonan@yahoo.com
 
 
 ## License

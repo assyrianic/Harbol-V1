@@ -264,7 +264,7 @@ HARBOL_EXPORT void HarbolMap_FromHarbolUniList(struct HarbolHashmap *const map, 
 	
 	size_t i=0;
 	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolMap_Insert(map, cstrkey, n->Data);
 		i++;
@@ -278,7 +278,7 @@ HARBOL_EXPORT void HarbolMap_FromHarbolBiList(struct HarbolHashmap *const map, c
 	
 	size_t i=0;
 	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolMap_Insert(map, cstrkey, n->Data);
 		i++;
@@ -291,7 +291,7 @@ HARBOL_EXPORT void HarbolMap_FromHarbolVector(struct HarbolHashmap *const map, c
 		return;
 	
 	for( size_t i=0 ; i<v->Count ; i++ ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolMap_Insert(map, cstrkey, v->Table[i]);
 	}
@@ -303,7 +303,7 @@ HARBOL_EXPORT void HarbolMap_FromHarbolTuple(struct HarbolHashmap *const map, co
 		return;
 	
 	for( size_t i=0 ; i<tup->Len ; i++ ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		HarbolMap_Insert(map, cstrkey, tup->Items[i]);
 	}
@@ -315,7 +315,7 @@ HARBOL_EXPORT void HarbolMap_FromHarbolGraph(struct HarbolHashmap *const map, co
 		return;
 	
 	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
-		char cstrkey[10] = {0};
+		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
 		HarbolMap_Insert(map, cstrkey, vert->Data);

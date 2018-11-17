@@ -16,7 +16,8 @@ void TestHarbolMemoryPool(void);
 void TestHarbolGraph(void);
 void TestTree(void);
 void TestHarbolLinkMap(void);
-void TestHARBOLonversions(void);
+void TestHarbolConversions(void);
+void TestCfg(void);
 //void TestPlugins(void);
 
 FILE *HARBOL_debug_output = NULL;
@@ -27,7 +28,7 @@ int main()
 	HARBOL_debug_output = fopen("data_structure_debug_output.txt", "wa+");
 	if( !HARBOL_debug_output )
 		return -1;
-	
+	/*
 	TestHarbolStringObject();
 	TestHarbolVector();
 	TestHarbolHashmap();
@@ -39,7 +40,9 @@ int main()
 	TestHarbolGraph();
 	TestTree();
 	TestHarbolLinkMap();
-	TestHARBOLonversions();
+	TestHarbolConversions();
+	*/
+	TestCfg();
 	fclose(HARBOL_debug_output), HARBOL_debug_output=NULL;
 }
 
@@ -1090,7 +1093,7 @@ void TestHarbolLinkMap(void)
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 }
 
-void TestHARBOLonversions(void)
+void TestHarbolConversions(void)
 {
 	if( !HARBOL_debug_output )
 		return;
@@ -1588,6 +1591,100 @@ void TestHARBOLonversions(void)
 	HarbolTuple_Del(&tuple);
 	HarbolGraph_Del(&graph, NULL, NULL);
 	HarbolLinkMap_Del(&linkmap, NULL);
+}
+
+void TestCfg(void)
+{
+	if( !HARBOL_debug_output )
+		return;
+	
+	// Test allocation and initializations
+	fputs("cfg :: test allocation/initialization.\n", HARBOL_debug_output);
+	struct HarbolLinkMap *cfg = HarbolCfg_Parse("'section': { 'lel': null }");
+	fprintf(HARBOL_debug_output, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
+	
+	if( cfg ) {
+		fputs("\ncfg :: iterating entire config.\n", HARBOL_debug_output);
+		struct HarbolString stringcfg = {NULL, 0};
+		HarbolCfg_ToString(cfg, &stringcfg);
+		fprintf(HARBOL_debug_output, "\ncfg :: testing config to string conversion: \n%s\n", stringcfg.CStr);
+		HarbolString_Del(&stringcfg);
+	}
+	
+	// Test realistic config file string
+	fputs("cfg :: test realistic config file string.\n", HARBOL_debug_output);
+	const char *restrict test_cfg = "'root' { \
+		'firstName': 'John', \
+		'lastName': 'Smith', \
+		'isAlive': true, \
+		'age': 0x18 , \
+		'money': 35.42e4 \
+		'address': { \
+			'streetAddress': '21 2nd Street', \
+			'city': 'New York', \
+			'state': 'NY', \
+			'postalCode': '10021-3100' \
+		}, \
+		'phoneNumbers': { \
+			'1' { \
+				'type': 'home', \
+				'number': '212 555-1234' \
+			}, \
+			'2' { \
+				'type': 'office', \
+				'number': '646 555-4567' \
+			}, \
+			'3' { \
+				'type': 'mobile', \
+				'number': '123 456-7890' \
+			} \
+		}, \
+		'children': {}, \
+		'spouse': null \
+	}";
+	
+	struct HarbolLinkMap *larger_cfg = HarbolCfg_Parse(test_cfg);
+	if( larger_cfg ) {
+		fputs("\ncfg :: iterating realistic config.\n", HARBOL_debug_output);
+		struct HarbolString stringcfg = {NULL, 0};
+		HarbolCfg_ToString(larger_cfg, &stringcfg);
+		fprintf(HARBOL_debug_output, "\ncfg :: test config to string conversion:\n%s\n", stringcfg.CStr);
+		HarbolString_Del(&stringcfg);
+		
+		fputs("cfg :: test retrieving sub section of realistic config.\n", HARBOL_debug_output);
+		struct HarbolLinkMap *phone_numbers1 = HarbolCfg_GetSectionByKey(larger_cfg, "root.phoneNumbers.1");
+		HarbolCfg_ToString(phone_numbers1, &stringcfg);
+		fprintf(HARBOL_debug_output, "\nphone_numbers to string conversion: \n%s\n", stringcfg.CStr);
+		HarbolString_Del(&stringcfg);
+		if( phone_numbers1 ) {
+			fputs("\ncfg :: iterating phone_numbers1 subsection.\n", HARBOL_debug_output);
+			struct HarbolString stringcfg = {NULL, 0};
+			HarbolCfg_ToString(phone_numbers1, &stringcfg);
+			fprintf(HARBOL_debug_output, "\nphone_numbers1 to string conversion: \n%s\n", stringcfg.CStr);
+			HarbolString_Del(&stringcfg);
+		}
+		
+		fputs("cfg :: test retrieving string value from subsection of realistic config.\n", HARBOL_debug_output);
+		struct HarbolString *type = HarbolCfg_GetStrByKey(larger_cfg, "root.phoneNumbers.1.type");
+		fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type type valid?: '%s'\n", type ? "yes" : "no");
+		if( type ) {
+			fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type: %s\n", type->CStr);
+		}
+		type = HarbolCfg_GetStrByKey(larger_cfg, "root.age");
+		fprintf(HARBOL_debug_output, "root.age type valid?: '%s'\n", type ? "yes" : "no");
+		if( type ) {
+			fprintf(HARBOL_debug_output, "root.age: %s\n", type->CStr);
+		}
+		const int64_t age = HarbolCfg_GetIntByKey(larger_cfg, "root.age");
+		fprintf(HARBOL_debug_output, "root.age int?: '%lli'\n", age);
+		const double money = HarbolCfg_GetFloatByKey(larger_cfg, "root.money");
+		fprintf(HARBOL_debug_output, "root.money float?: '%f'\n", money);
+		HarbolCfg_Free(&larger_cfg);
+	}
+	
+	fputs("cfg :: test destruction.\n", HARBOL_debug_output);
+	HarbolCfg_Free(&cfg);
+	fprintf(HARBOL_debug_output, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
 }
 
 /*

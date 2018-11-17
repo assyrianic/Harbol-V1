@@ -157,6 +157,8 @@ typedef union HarbolValue {
 	struct HarbolLinkMap *LinkMapPtr;
 } HarbolValue;
 
+typedef union HarbolValue fnTypeSelector(void *); // use pointer to a data structure or something.
+
 
 /************* C++ Style Automated HarbolString (stringobj.c) *************/
 typedef struct HarbolString {
@@ -420,7 +422,7 @@ HARBOL_EXPORT void HarbolByteBuffer_InsertByte(struct HarbolByteBuffer *, uint8_
 HARBOL_EXPORT void HarbolByteBuffer_InsertInt(struct HarbolByteBuffer *, uint64_t, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertFloat(struct HarbolByteBuffer *, float);
 HARBOL_EXPORT void HarbolByteBuffer_InsertDouble(struct HarbolByteBuffer *, double);
-HARBOL_EXPORT void HarbolByteBuffer_InsertHarbolString(struct HarbolByteBuffer *, const char *, size_t);
+HARBOL_EXPORT void HarbolByteBuffer_InsertString(struct HarbolByteBuffer *, const char *, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertObject(struct HarbolByteBuffer *, const void *, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertZeroes(struct HarbolByteBuffer *, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_Delete(struct HarbolByteBuffer *, size_t);
@@ -633,7 +635,7 @@ HARBOL_EXPORT size_t HarbolTree_GetChildCount(const struct HarbolTree *);
 /***************/
 
 
-/************* Ordered HarbolHashmap (linkmap.c) *************/
+/************* Ordered Hash Map (preserves insertion order) (linkmap.c) *************/
 typedef struct HarbolLinkMap {
 	union {
 		struct {
@@ -709,6 +711,29 @@ HARBOL_EXPORT void HarbolVariant_SetVal(struct HarbolVariant *, union HarbolValu
 
 HARBOL_EXPORT int32_t HarbolVariant_GetType(const struct HarbolVariant *);
 HARBOL_EXPORT void HarbolVariant_SetType(struct HarbolVariant *, int32_t);
+/***************/
+
+
+/************* Minimal JSON-like Configuration File Parser (cfg.c) *************/
+typedef enum HarbolCfgType {
+	HarbolTypeNull=0,
+	HarbolTypeLinkMap,
+	HarbolTypeString,
+	HarbolTypeFloat,
+	HarbolTypeInt,
+	HarbolTypeBool
+} HarbolCfgType;
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_ParseFile(const char *);
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_Parse(const char *);
+HARBOL_EXPORT bool HarbolCfg_Free(struct HarbolLinkMap **);
+HARBOL_EXPORT bool HarbolCfg_ToString(const struct HarbolLinkMap *, struct HarbolString *);
+
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_GetSectionByKey(struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *, const char *, bool *);
 /***************/
 
 #ifdef __cplusplus
