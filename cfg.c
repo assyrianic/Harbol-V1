@@ -388,7 +388,7 @@ HARBOL_EXPORT bool HarbolCfg_ToString(const struct HarbolLinkMap *const restrict
 				HarbolString_AddStr(str, buffer);
 				break;
 			case HarbolTypeInt:
-				snprintf(buffer, BUFFER_SIZE, "%lli\n", kv->Data.VarPtr->Val.Int64);
+				snprintf(buffer, BUFFER_SIZE, "%" PRIi64 "\n", kv->Data.VarPtr->Val.Int64);
 				HarbolString_AddStr(str, buffer);
 				break;
 			case HarbolTypeBool:

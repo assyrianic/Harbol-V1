@@ -145,23 +145,23 @@ void TestHarbolVector(void)
 	// test data retrieval
 	fputs("vector :: test retrieval.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
-	fprintf(HARBOL_debug_output, "ptr[0] == %lli\n", HarbolVector_Get(p, 0).Int64);
-	fprintf(HARBOL_debug_output, "stk[0] == %lli\n", HarbolVector_Get(&i, 0).Int64);
+	fprintf(HARBOL_debug_output, "ptr[0] == %" PRIi64 "\n", HarbolVector_Get(p, 0).Int64);
+	fprintf(HARBOL_debug_output, "stk[0] == %" PRIi64 "\n", HarbolVector_Get(&i, 0).Int64);
 	
 	// test data setting
 	fputs("vector :: test setting data.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	HarbolVector_Set(p, 0, (union HarbolValue){.Int64=10});
 	HarbolVector_Set(&i, 0, (union HarbolValue){.Int64=9});
-	fprintf(HARBOL_debug_output, "ptr[0] == %lli\n", HarbolVector_Get(p, 0).Int64);
-	fprintf(HARBOL_debug_output, "stk[0] == %lli\n", HarbolVector_Get(&i, 0).Int64);
+	fprintf(HARBOL_debug_output, "ptr[0] == %" PRIi64 "\n", HarbolVector_Get(p, 0).Int64);
+	fprintf(HARBOL_debug_output, "stk[0] == %" PRIi64 "\n", HarbolVector_Get(&i, 0).Int64);
 	
 	// append the vectors
 	fputs("vector :: test vector appending.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	HarbolVector_Add(p, &i);
-	fprintf(HARBOL_debug_output, "ptr[1] == %lli\n", HarbolVector_Get(p, 1).Int64);
-	fprintf(HARBOL_debug_output, "stk[1] == %lli\n", HarbolVector_Get(&i, 1).Int64);
+	fprintf(HARBOL_debug_output, "ptr[1] == %" PRIi64 "\n", HarbolVector_Get(p, 1).Int64);
+	fprintf(HARBOL_debug_output, "stk[1] == %" PRIi64 "\n", HarbolVector_Get(&i, 1).Int64);
 	
 	// test vector copying.
 	fputs("vector :: test vector copying.", HARBOL_debug_output);
@@ -171,10 +171,10 @@ void TestHarbolVector(void)
 	HarbolVector_Insert(&i, (union HarbolValue){.Int64=101});
 	HarbolVector_Insert(&i, (union HarbolValue){.Int64=102});
 	HarbolVector_Copy(p, &i);
-	fprintf(HARBOL_debug_output, "ptr[1] == %lli\n", HarbolVector_Get(p, 1).Int64);
-	fprintf(HARBOL_debug_output, "ptr[2] == %lli\n", HarbolVector_Get(p, 2).Int64);
-	fprintf(HARBOL_debug_output, "stk[1] == %lli\n", HarbolVector_Get(&i, 1).Int64);
-	fprintf(HARBOL_debug_output, "stk[2] == %lli\n", HarbolVector_Get(&i, 2).Int64);
+	fprintf(HARBOL_debug_output, "ptr[1] == %" PRIi64 "\n", HarbolVector_Get(p, 1).Int64);
+	fprintf(HARBOL_debug_output, "ptr[2] == %" PRIi64 "\n", HarbolVector_Get(p, 2).Int64);
+	fprintf(HARBOL_debug_output, "stk[1] == %" PRIi64 "\n", HarbolVector_Get(&i, 1).Int64);
+	fprintf(HARBOL_debug_output, "stk[2] == %" PRIi64 "\n", HarbolVector_Get(&i, 2).Int64);
 	
 	// test vector deleting and truncating.
 	fputs("vector :: test item deletion and vector truncation.", HARBOL_debug_output);
@@ -188,27 +188,27 @@ void TestHarbolVector(void)
 	HarbolVector_Insert(p, (union HarbolValue){.Int64=104});
 	HarbolVector_Insert(p, (union HarbolValue){.Int64=105});
 	for( size_t i=0 ; i<p->Count ; i++ )
-		fprintf(HARBOL_debug_output, "ptr[%zu] == %lli\n", i, HarbolVector_Get(p, i).Int64);
+		fprintf(HARBOL_debug_output, "ptr[%zu] == %" PRIi64 "\n", i, HarbolVector_Get(p, i).Int64);
 	fputs("\n", HARBOL_debug_output);
 	HarbolVector_Delete(p, 0, NULL); // deletes 100
 	HarbolVector_Delete(p, 1, NULL); // deletes 102 since 101 because new 0 index
 	HarbolVector_Delete(p, 2, NULL); // deletes 104
 	for( size_t i=0 ; i<p->Count ; i++ )
-		fprintf(HARBOL_debug_output, "ptr[%zu] == %lli\n", i, HarbolVector_Get(p, i).Int64);
+		fprintf(HARBOL_debug_output, "ptr[%zu] == %" PRIi64 "\n", i, HarbolVector_Get(p, i).Int64);
 	fprintf(HARBOL_debug_output, "\nptr[] len == %zu\n", HarbolVector_Len(p));
 	HarbolVector_Truncate(p);
 	fprintf(HARBOL_debug_output, "ptr[] len == %zu\n\n", HarbolVector_Len(p));
 	for( size_t i=0 ; i<p->Count ; i++ )
-		fprintf(HARBOL_debug_output, "ptr[%zu] == %lli\n", i, HarbolVector_Get(p, i).Int64);
+		fprintf(HARBOL_debug_output, "ptr[%zu] == %" PRIi64 "\n", i, HarbolVector_Get(p, i).Int64);
 	
 	fputs("vector :: test vector popping.\n", HARBOL_debug_output);
 	for( size_t i=0 ; i<p->Count ; i++ )
-		fprintf(HARBOL_debug_output, "prepop ptr[%zu] == %lli\n", i, HarbolVector_Get(p, i).Int64);
+		fprintf(HARBOL_debug_output, "prepop ptr[%zu] == %" PRIi64 "\n", i, HarbolVector_Get(p, i).Int64);
 	const union HarbolValue vec_item_2 = HarbolVector_Pop(p);
 	for( size_t i=0 ; i<p->Count ; i++ )
-		fprintf(HARBOL_debug_output, "postpop ptr[%zu] == %lli\n", i, HarbolVector_Get(p, i).Int64);
+		fprintf(HARBOL_debug_output, "postpop ptr[%zu] == %" PRIi64 "\n", i, HarbolVector_Get(p, i).Int64);
 	
-	fprintf(HARBOL_debug_output, "popped val == %lli\n", vec_item_2.Int64);
+	fprintf(HARBOL_debug_output, "popped val == %" PRIi64 "\n", vec_item_2.Int64);
 	// free data
 	fputs("vector :: test destruction.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
@@ -242,26 +242,26 @@ void TestHarbolHashmap(void)
 	// test retrieval.
 	fputs("hashmap :: test data retrieval.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
-	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %lli\n", HarbolMap_Get(p, "1").Int64);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolMap_Get(p, "2").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"1\"] == %lli\n", HarbolMap_Get(&i, "1").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"2\"] == %lli\n", HarbolMap_Get(&i, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %" PRIi64 "\n", HarbolMap_Get(p, "1").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"1\"] == %" PRIi64 "\n", HarbolMap_Get(&i, "1").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"2\"] == %" PRIi64 "\n", HarbolMap_Get(&i, "2").Int64);
 	
 	// test setting.
 	fputs("hashmap :: test data setting.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	HarbolMap_Set(p, "2", (union HarbolValue){.Int64=20});
 	HarbolMap_Set(&i, "2", (union HarbolValue){.Int64=200});
-	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %lli\n", HarbolMap_Get(p, "1").Int64);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolMap_Get(p, "2").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"1\"] == %lli\n", HarbolMap_Get(&i, "1").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"2\"] == %lli\n", HarbolMap_Get(&i, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %" PRIi64 "\n", HarbolMap_Get(p, "1").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"1\"] == %" PRIi64 "\n", HarbolMap_Get(&i, "1").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"2\"] == %" PRIi64 "\n", HarbolMap_Get(&i, "2").Int64);
 	
 	// test deletion
 	fputs("hashmap :: test item deletion.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	HarbolMap_Delete(p, "2", NULL);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolMap_Get(p, "2").Int64);
 	
 	// free data
 	fputs("hashmap :: test destruction.", HARBOL_debug_output);
@@ -291,12 +291,12 @@ void TestUniList(void)
 	fputs("\n", HARBOL_debug_output);
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=1});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=2});
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=3});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test insertion at head.
 	fputs("unilist :: test head insertion.", HARBOL_debug_output);
@@ -305,27 +305,27 @@ void TestUniList(void)
 	HarbolUniList_InsertValueAtHead(p, (union HarbolValue){.Int64=-1});
 	HarbolUniList_InsertValueAtHead(p, (union HarbolValue){.Int64=-2});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test retrieval.
 	fputs("unilist :: test node retrival by index.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	{
 		struct HarbolUniListNode *n = HarbolUniList_GetNode(p, 1);
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 		
 		// test item destruction.
 		fputs("unilist :: test node removal & destruction by reference.", HARBOL_debug_output);
 		fputs("\n", HARBOL_debug_output);
 		HarbolUniList_DelNodeByRef(p, &n, NULL);
 		for( struct HarbolUniListNode *k=HarbolUniList_GetHead(p) ; k ; k = HarbolUniListNode_GetNextNode(k) )
-			fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(k).Int64);
+			fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(k).Int64);
 		
 		fputs("unilist :: test node removal & destruction by index.", HARBOL_debug_output);
 		fputs("\n", HARBOL_debug_output);
 		HarbolUniList_DelNodeByIndex(p, 1, NULL);
 		for( struct HarbolUniListNode *k=HarbolUniList_GetHead(p) ; k ; k = HarbolUniListNode_GetNextNode(k) )
-			fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(k).Int64);
+			fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(k).Int64);
 	}
 	
 	// test setting data by index
@@ -333,7 +333,7 @@ void TestUniList(void)
 	fputs("\n", HARBOL_debug_output);
 	HarbolUniList_SetValue(p, 0, (union HarbolValue){.Int64=222}); // 0 is head
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test deleting head node after freeing.
 	fputs("unilist :: test deleting head node after freeing and new insertion.", HARBOL_debug_output);
@@ -341,7 +341,7 @@ void TestUniList(void)
 	HarbolUniList_Del(p, NULL);
 	HarbolUniList_InsertValueAtHead(p, (union HarbolValue){.Int64=100});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	HarbolUniList_DelNodeByIndex(p, 0, NULL);
 	fprintf(HARBOL_debug_output, "unilist head node ptr : %p, tail node ptr : %p\n", HarbolUniList_GetHead(p), HarbolUniList_GetTail(p));
 	
@@ -353,10 +353,10 @@ void TestUniList(void)
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=100});
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=101});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	HarbolUniList_DelNodeByIndex(p, 0, NULL);
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test insertion in middle of list
 	fputs("unilist :: test middle insertion.", HARBOL_debug_output);
@@ -370,7 +370,7 @@ void TestUniList(void)
 	HarbolUniList_InsertValueAtIndex(p, (union HarbolValue){.Int64=102}, 1);
 	HarbolUniList_InsertValueAtIndex(p, (union HarbolValue){.Int64=103}, 1);
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test deleting the tail through an index.
 	fputs("unilist :: test deleting tail by index.", HARBOL_debug_output);
@@ -380,10 +380,10 @@ void TestUniList(void)
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=101});
 	HarbolUniList_InsertValueAtTail(p, (union HarbolValue){.Int64=102});
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	HarbolUniList_DelNodeByIndex(p, 2, NULL);
 	for( struct HarbolUniListNode *n=HarbolUniList_GetHead(p) ; n ; n = HarbolUniListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", HarbolUniListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", HarbolUniListNode_GetValue(n).Int64);
 	
 	// test finding a node by value.
 	
@@ -416,12 +416,12 @@ void TestBiList(void)
 	fputs("\n", HARBOL_debug_output);
 	HarbolBiList_InsertValueAtTail(p, (union HarbolValue){.Int64=1});
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	HarbolBiList_InsertValueAtTail(p, (union HarbolValue){.Int64=2});
 	HarbolBiList_InsertValueAtTail(p, (union HarbolValue){.Int64=3});
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	// test insertion at head.
 	fputs("bilist :: test head insertion.", HARBOL_debug_output);
@@ -430,27 +430,27 @@ void TestBiList(void)
 	HarbolBiList_InsertValueAtHead(p, (union HarbolValue){.Int64=-1});
 	HarbolBiList_InsertValueAtHead(p, (union HarbolValue){.Int64=-2});
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	// test retrieval.
 	fputs("bilist :: test node retrival by index.", HARBOL_debug_output);
 	fputs("\n", HARBOL_debug_output);
 	{
 		struct HarbolBiListNode *n = HarbolBiList_GetNode(p, 1);
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 		
 		// test item destruction.
 		fputs("bilist :: test node removal & destruction by reference.", HARBOL_debug_output);
 		fputs("\n", HARBOL_debug_output);
 		HarbolBiList_DelNodeByRef(p, &n, NULL);
 		for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-			fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+			fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 		
 		fputs("bilist :: test node removal & destruction by index.", HARBOL_debug_output);
 		fputs("\n", HARBOL_debug_output);
 		HarbolBiList_DelNodeByIndex(p, 1, NULL);
 		for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-			fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+			fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	}
 	
 	// test setting data by index
@@ -458,7 +458,7 @@ void TestBiList(void)
 	fputs("\n", HARBOL_debug_output);
 	HarbolBiList_SetValue(p, 0, (union HarbolValue){.Int64=222}); // 0 is head
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	// test deleting head node after freeing.
 	fputs("bilist :: test deleting head node after freeing and new insertion.", HARBOL_debug_output);
@@ -466,7 +466,7 @@ void TestBiList(void)
 	HarbolBiList_Del(p, NULL);
 	HarbolBiList_InsertValueAtHead(p, (union HarbolValue){.Int64=100});
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	HarbolBiList_DelNodeByIndex(p, 0, NULL);
 	fprintf(HARBOL_debug_output, "bilist head node ptr : %p, tail node ptr : %p\n", HarbolBiList_GetHead(p), HarbolBiList_GetTail(p));
 	
@@ -478,10 +478,10 @@ void TestBiList(void)
 	HarbolBiList_InsertValueAtTail(p, (union HarbolValue){.Int64=100});
 	HarbolBiList_InsertValueAtTail(p, (union HarbolValue){.Int64=101});
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	HarbolBiList_DelNodeByIndex(p, 0, NULL);
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	// test insertion in middle of list
 	fputs("bilist :: test middle insertion.", HARBOL_debug_output);
@@ -495,7 +495,7 @@ void TestBiList(void)
 	HarbolBiList_InsertValueAtIndex(p, (union HarbolValue){.Int64=102}, 1);
 	HarbolBiList_InsertValueAtIndex(p, (union HarbolValue){.Int64=103}, 1);
 	for( struct HarbolBiListNode *n=HarbolBiList_GetHead(p) ; n ; n = HarbolBiListNode_GetNextNode(n) )
-		fprintf(HARBOL_debug_output, "bilist value : %lli\n", HarbolBiListNode_GetValue(n).Int64);
+		fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", HarbolBiListNode_GetValue(n).Int64);
 	
 	
 	// free data
@@ -594,10 +594,10 @@ void TestHarbolTuple(void)
 	fputs("\n", HARBOL_debug_output);
 	
 	union HarbolValue single_item = HarbolTuple_GetItem(p, 0);
-	fprintf(HARBOL_debug_output, "single item tuple value : %llu\n", single_item.Int64);
+	fprintf(HARBOL_debug_output, "single item tuple value : %" PRIu64 "\n", single_item.Int64);
 	
 	for( size_t n=0 ; n<HarbolTuple_Len(p) ; n++ )
-		fprintf(HARBOL_debug_output, "tuple value : %llu\n", HarbolTuple_GetItem(p, n).Int64);
+		fprintf(HARBOL_debug_output, "tuple value : %" PRIu64 "\n", HarbolTuple_GetItem(p, n).Int64);
 	
 	// free data
 	fputs("tuple :: test destruction.", HARBOL_debug_output);
@@ -724,7 +724,7 @@ void TestHarbolMemoryPool(void)
 	HarbolUniList_InsertNodeAtTail(list, node5);
 	
 	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next )
-		fprintf(HARBOL_debug_output, "unilist value : %lli\n", n->Data.Int64);
+		fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", n->Data.Int64);
 	
 	HarbolMemoryPool_Dealloc(&i, node1), node1=NULL;
 	HarbolMemoryPool_Dealloc(&i, node2), node2=NULL;
@@ -824,7 +824,7 @@ void TestHarbolGraph(void)
 	}
 	for( size_t i=0 ; i<g.Count ; i++ ) {
 		struct HarbolGraphVertex *vert = HarbolGraph_GetVertexByIndex(&g, i);
-		fprintf(HARBOL_debug_output, "Vertex Data: '%lli'\n", vert->Data.Int64);
+		fprintf(HARBOL_debug_output, "Vertex Data: '%" PRIi64 "'\n", vert->Data.Int64);
 	}
 	// test linking two Vertices
 	fputs("\ngraph :: test linking Vertices.\n", HARBOL_debug_output);
@@ -833,12 +833,12 @@ void TestHarbolGraph(void)
 	
 	for( size_t i=0 ; i<g.Count ; i++ ) {
 		struct HarbolGraphVertex *vert = g.Table[i].Ptr;
-		fprintf(HARBOL_debug_output, "Vertex Data: '%lli'\n", vert->Data.Int64);
+		fprintf(HARBOL_debug_output, "Vertex Data: '%" PRIi64 "'\n", vert->Data.Int64);
 		for( size_t n=0 ; n<vert->Count ; n++ ) {
 			struct HarbolGraphEdge *k = vert->Table[i].Ptr;
-			fprintf(HARBOL_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
+			fprintf(HARBOL_debug_output, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
 			if( k->VertexSocket )
-				fprintf(HARBOL_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
+				fprintf(HARBOL_debug_output, "Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	
@@ -863,23 +863,23 @@ void TestHarbolGraph(void)
 	
 	for( size_t i=0 ; i<g.Count ; i++ ) {
 		struct HarbolGraphVertex *vert = g.Table[i].Ptr;
-		fprintf(HARBOL_debug_output, "Vertex Data: '%lli'\n", vert->Data.Int64);
+		fprintf(HARBOL_debug_output, "Vertex Data: '%" PRIi64 "'\n", vert->Data.Int64);
 		for( size_t n=0 ; n<vert->Count ; n++ ) {
 			struct HarbolGraphEdge *k = vert->Table[n].Ptr;
-			fprintf(HARBOL_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
+			fprintf(HARBOL_debug_output, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
 			if( k->VertexSocket )
-				fprintf(HARBOL_debug_output, "Edge Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
+				fprintf(HARBOL_debug_output, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	fprintf(HARBOL_debug_output, "\nRemoving 5th value success?: '%u'\n", HarbolGraph_RemoveVertexByIndex(&g, 4, NULL, NULL));
 	for( size_t i=0 ; i<g.Count ; i++ ) {
 		struct HarbolGraphVertex *vert = g.Table[i].Ptr;
-		fprintf(HARBOL_debug_output, "Vertex Data: '%lli'\n", vert->Data.Int64);
+		fprintf(HARBOL_debug_output, "Vertex Data: '%" PRIi64 "'\n", vert->Data.Int64);
 		for( size_t n=0 ; n<vert->Count ; n++ ) {
 			struct HarbolGraphEdge *k = vert->Table[n].Ptr;
-			fprintf(HARBOL_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
+			fprintf(HARBOL_debug_output, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
 			if( k->VertexSocket )
-				fprintf(HARBOL_debug_output, "Edge Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
+				fprintf(HARBOL_debug_output, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	
@@ -888,12 +888,12 @@ void TestHarbolGraph(void)
 	HarbolGraph_SetVertexDataByIndex(&g, 0, (union HarbolValue){.Int64 = 100});
 	for( size_t i=0 ; i<g.Count ; i++ ) {
 		struct HarbolGraphVertex *vert = g.Table[i].Ptr;
-		fprintf(HARBOL_debug_output, "Vertex Data: '%lli'\n", vert->Data.Int64);
+		fprintf(HARBOL_debug_output, "Vertex Data: '%" PRIi64 "'\n", vert->Data.Int64);
 		for( size_t n=0 ; n<vert->Count ; n++ ) {
 			struct HarbolGraphEdge *k = vert->Table[n].Ptr;
-			fprintf(HARBOL_debug_output, "Edge Data: '%lli'\n", k->Weight.Int64);
+			fprintf(HARBOL_debug_output, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
 			if( k->VertexSocket )
-				fprintf(HARBOL_debug_output, "Vertex Socket Data: '%lli'\n", k->VertexSocket->Data.Int64);
+				fprintf(HARBOL_debug_output, "Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
 		}
 	}
 	
@@ -903,7 +903,7 @@ void TestHarbolGraph(void)
 	if( edge ) {
 		fputs("edge ptr is VALID.\n", HARBOL_debug_output);
 		if( edge->VertexSocket )
-			fprintf(HARBOL_debug_output, "edge Vertex Socket Data: '%lli'\n", edge->VertexSocket->Data.Int64);
+			fprintf(HARBOL_debug_output, "edge Vertex Socket Data: '%" PRIi64 "'\n", edge->VertexSocket->Data.Int64);
 	}
 	
 	// test adjacency function
@@ -949,13 +949,13 @@ void TestTree(void)
 	HarbolTree_InsertChildByValue(p, (union HarbolValue){.Int64=5});
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "child #%zu value: '%lli'\n", n, child->Data.Int64);
+		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
 	}
 	fputs("\ndeleting index 1\n", HARBOL_debug_output);
 	HarbolTree_RemoveChildByIndex(p, 1, NULL);
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "child #%zu value: '%lli'\n", n, child->Data.Int64);
+		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
 	}
 	// Test delete by node reference
 	fputs("\ntree :: test deletion by node reference.\n", HARBOL_debug_output);
@@ -964,7 +964,7 @@ void TestTree(void)
 	HarbolTree_RemoveChildByRef(p, (struct HarbolTree **)&p->Children.Table[0].Ptr, NULL);
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "child #%zu value: '%lli'\n", n, child->Data.Int64);
+		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
 	}
 	// Test creating something of an abstract syntax tree.
 	fputs("\ntree :: test creating something of an abstract syntax tree.\n", HARBOL_debug_output);
@@ -1031,56 +1031,56 @@ void TestHarbolLinkMap(void)
 	
 	// test retrieval.
 	fputs("\nlinkmap :: test data retrieval.\n", HARBOL_debug_output);
-	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %lli\n", HarbolLinkMap_Get(p, "1").Int64);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolLinkMap_Get(p, "2").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"1\"] == %lli\n", HarbolLinkMap_Get(&i, "1").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"2\"] == %lli\n", HarbolLinkMap_Get(&i, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %" PRIi64 "\n", HarbolLinkMap_Get(p, "1").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolLinkMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"1\"] == %" PRIi64 "\n", HarbolLinkMap_Get(&i, "1").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"2\"] == %" PRIi64 "\n", HarbolLinkMap_Get(&i, "2").Int64);
 	
 	fputs("\nlinkmap :: looping through all data.\n", HARBOL_debug_output);
 	for( size_t n=0 ; n<i.Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = i.Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	// test setting.
 	fputs("\nlinkmap :: test data setting.\n", HARBOL_debug_output);
 	HarbolLinkMap_Set(p, "2", (union HarbolValue){.Int64=20});
 	HarbolLinkMap_Set(&i, "2", (union HarbolValue){.Int64=200});
-	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %lli\n", HarbolLinkMap_Get(p, "1").Int64);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolLinkMap_Get(p, "2").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"1\"] == %lli\n", HarbolLinkMap_Get(&i, "1").Int64);
-	fprintf(HARBOL_debug_output, "stk[\"2\"] == %lli\n", HarbolLinkMap_Get(&i, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"1\"] == %" PRIi64 "\n", HarbolLinkMap_Get(p, "1").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolLinkMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"1\"] == %" PRIi64 "\n", HarbolLinkMap_Get(&i, "1").Int64);
+	fprintf(HARBOL_debug_output, "stk[\"2\"] == %" PRIi64 "\n", HarbolLinkMap_Get(&i, "2").Int64);
 	fputs("\nlinkmap :: looping through all data.\n", HARBOL_debug_output);
 	for( size_t n=0 ; n<i.Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = i.Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	fputs("\n", HARBOL_debug_output);
 	for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	
 	// test deletion
 	fputs("\nlinkmap :: test item deletion.\n", HARBOL_debug_output);
 	HarbolLinkMap_Delete(p, "2", NULL);
-	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %lli\n", HarbolLinkMap_Get(p, "2").Int64);
+	fprintf(HARBOL_debug_output, "ptr[\"2\"] == %" PRIi64 "\n", HarbolLinkMap_Get(p, "2").Int64);
 	fputs("\nlinkmap :: looping through all data.\n", HARBOL_debug_output);
 	for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	fputs("\nlinkmap :: test item deletion by index.\n", HARBOL_debug_output);
 	HarbolLinkMap_DeleteByIndex(p, 2, NULL);
 	for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	// test setting by index
 	fputs("\nlinkmap :: test item setting by index.\n", HARBOL_debug_output);
 	HarbolLinkMap_SetByIndex(p, 2, (union HarbolValue){.Int64=500});
 	for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 		struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-		fprintf(HARBOL_debug_output, "l's value == %lli\n", l->Data.Int64);
+		fprintf(HARBOL_debug_output, "l's value == %" PRIi64 "\n", l->Data.Int64);
 	}
 	// free data
 	fputs("\nlinkmap :: test destruction.\n", HARBOL_debug_output);
@@ -1161,7 +1161,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "unilist -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "unilist -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 		
@@ -1169,7 +1169,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "bilist -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "bilist -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 		
@@ -1177,7 +1177,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "map -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "map -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 		
@@ -1185,7 +1185,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "tuple -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "tuple -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 		
@@ -1193,7 +1193,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "graph -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "graph -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 		
@@ -1201,7 +1201,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Count ; i++ )
-				fprintf(HARBOL_debug_output, "linked map -> ptr[%zu] == %lli\n", i, p->Table[i].Int64);
+				fprintf(HARBOL_debug_output, "linked map -> ptr[%zu] == %" PRIi64 "\n", i, p->Table[i].Int64);
 			HarbolVector_Free(&p, NULL);
 		}
 	}
@@ -1218,7 +1218,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "unilist -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "unilist -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1231,7 +1231,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "bilist -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "bilist -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1244,7 +1244,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "vec -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "vec -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1257,7 +1257,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "tuple -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "tuple -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1270,7 +1270,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "graph -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "graph -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1283,7 +1283,7 @@ void TestHarbolConversions(void)
 				struct HarbolVector *vec = p->Table + i;
 				for( size_t n=0 ; n<vec->Count ; n++ ) {
 					struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-					fprintf(HARBOL_debug_output, "linked map -> ptr[\"%s\"] == %lli\n", node->KeyName.CStr, node->Data.Int64);
+					fprintf(HARBOL_debug_output, "linked map -> ptr[\"%s\"] == %" PRIi64 "\n", node->KeyName.CStr, node->Data.Int64);
 				}
 			}
 			HarbolMap_Free(&p, NULL);
@@ -1299,7 +1299,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "bilist value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 		
@@ -1307,7 +1307,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "map value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "map value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 		
@@ -1315,7 +1315,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "vec value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "vec value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 		
@@ -1323,7 +1323,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "tuple value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "tuple value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 		
@@ -1331,7 +1331,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "graph value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "graph value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 		
@@ -1339,7 +1339,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolUniListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "linked map value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "linked map value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolUniList_Free(&p, NULL);
 		}
 	}
@@ -1353,7 +1353,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "unilist value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 		
@@ -1361,7 +1361,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "map value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "map value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 		
@@ -1369,7 +1369,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "vec value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "vec value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 		
@@ -1377,7 +1377,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "tuple value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "tuple value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 		
@@ -1385,7 +1385,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "graph value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "graph value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 		
@@ -1393,7 +1393,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( struct HarbolBiListNode *n=p->Head ; n ; n = n->Next )
-				fprintf(HARBOL_debug_output, "linked map value : %lli\n", n->Data.Int64);
+				fprintf(HARBOL_debug_output, "linked map value : %" PRIi64 "\n", n->Data.Int64);
 			HarbolBiList_Free(&p, NULL);
 		}
 	}
@@ -1407,7 +1407,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "unilist value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 		
@@ -1415,7 +1415,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "map value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "map value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 		
@@ -1423,7 +1423,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "vec value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "vec value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 		
@@ -1431,7 +1431,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "bilist value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 		
@@ -1439,7 +1439,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "graph value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "graph value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 		
@@ -1447,7 +1447,7 @@ void TestHarbolConversions(void)
 		if( p ) {
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Len ; i++ )
-				fprintf(HARBOL_debug_output, "linked map value : %lli\n", p->Items[i].Int64);
+				fprintf(HARBOL_debug_output, "linked map value : %" PRIi64 "\n", p->Items[i].Int64);
 			HarbolTuple_Free(&p);
 		}
 	}
@@ -1462,7 +1462,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "unilist value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1472,7 +1472,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "map value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "map value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1482,7 +1482,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "vec value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "vec value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1492,7 +1492,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "bilist value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1502,7 +1502,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "tuple value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "tuple value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1512,7 +1512,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t i=0 ; i<p->Vertices.Count ; i++ ) {
 				struct HarbolGraphVertex *v = HarbolGraph_GetVertexByIndex(p, i);
-				fprintf(HARBOL_debug_output, "linked map value : %lli\n", v->Data.Int64);
+				fprintf(HARBOL_debug_output, "linked map value : %" PRIi64 "\n", v->Data.Int64);
 			}
 			HarbolGraph_Free(&p, NULL, NULL);
 		}
@@ -1528,7 +1528,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "unilist value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "unilist value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1538,7 +1538,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "map value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "map value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1548,7 +1548,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "vec value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "vec value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1558,7 +1558,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "bilist value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "bilist value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1568,7 +1568,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "tuple value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "tuple value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1578,7 +1578,7 @@ void TestHarbolConversions(void)
 			fputs("ptr is valid\n", HARBOL_debug_output);
 			for( size_t n=0 ; n<p->Order.Count ; n++ ) {
 				struct HarbolKeyValPair *l = p->Order.Table[n].Ptr;
-				fprintf(HARBOL_debug_output, "graph value : %lli\n", l->Data.Int64);
+				fprintf(HARBOL_debug_output, "graph value : %" PRIi64 "\n", l->Data.Int64);
 			}
 			HarbolLinkMap_Free(&p, NULL);
 		}
@@ -1676,7 +1676,7 @@ void TestCfg(void)
 			fprintf(HARBOL_debug_output, "root.age: %s\n", type->CStr);
 		}
 		const int64_t age = HarbolCfg_GetIntByKey(larger_cfg, "root.age");
-		fprintf(HARBOL_debug_output, "root.age int?: '%lli'\n", age);
+		fprintf(HARBOL_debug_output, "root.age int?: '%" PRIi64 "'\n", age);
 		const double money = HarbolCfg_GetFloatByKey(larger_cfg, "root.money");
 		fprintf(HARBOL_debug_output, "root.money float?: '%f'\n", money);
 		HarbolCfg_Free(&larger_cfg);

@@ -7,19 +7,34 @@ extern "C" {
 	#endif
 #endif
 
-#if defined(_WIN32) || defined(_WIN64)
+// Windows
+#if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
 	#ifndef OS_WINDOWS
 		#define OS_WINDOWS 1
 	#endif
+// Linux/UNIX & FreeBSD
 #elif defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(linux) || defined(__linux) || defined(__FreeBSD__)
 	#ifndef OS_LINUX_UNIX
 		#define OS_LINUX_UNIX 1
 	#endif
+// Android
 #elif defined(__ANDROID__)
 	#ifndef OS_ANDROID
 		#define OS_ANDROID 1
 	#endif
-#else
+// Solaris/SunOS
+#elif defined(sun) || defined(__sun)
+	#if defined(__SVR4) || defined(__svr4__)
+		#ifndef OS_SOLARIS
+			#define OS_SOLARIS 1
+		#endif
+	#else
+		#ifndef OS_SUNOS
+			#define OS_SUNOS 1
+		#endif
+	#endif
+// Macintosh/MacOS
+#elif defined(macintosh) || defined(Macintosh) || defined(__APPLE__)
 	#ifndef OS_MAC
 		#define OS_MAC 1
 	#endif
@@ -39,24 +54,6 @@ extern "C" {
 	#endif
 #endif
 
-/*
-#ifndef HARBOL_EXPORT
-	#ifdef OS_WINDOWS
-		#define HARBOL_EXPORT __declspec(dllexport)
-	#else
-		#define HARBOL_EXPORT
-	#endif
-#endif
-
-#ifndef HARBOL_IMPORT
-	#ifdef OS_WINDOWS
-		#define HARBOL_IMPORT __declspec(dllimport)
-	#else
-		#define HARBOL_IMPORT
-	#endif
-#endif
-*/
-
 #ifdef HARBOL_DLL
 	#ifndef HARBOL_LIB 
 		#define HARBOL_EXPORT __declspec(dllimport)
@@ -64,7 +61,7 @@ extern "C" {
 		#define HARBOL_EXPORT __declspec(dllexport)
 	#endif
 #else
-	#define HARBOL_EXPORT 
+	#define HARBOL_EXPORT
 #endif
 
 #include <stdbool.h>
