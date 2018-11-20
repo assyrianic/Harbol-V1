@@ -439,7 +439,10 @@ HARBOL_EXPORT void HarbolTuple_Del(struct HarbolTuple *);
 
 HARBOL_EXPORT size_t HarbolTuple_Len(const struct HarbolTuple *);
 HARBOL_EXPORT void *HarbolTuple_GetField(const struct HarbolTuple *, size_t);
+HARBOL_EXPORT void *HarbolTuple_SetField(const struct HarbolTuple *, size_t, void *);
+
 HARBOL_EXPORT size_t HarbolTuple_GetSize(const struct HarbolTuple *, size_t);
+HARBOL_EXPORT bool HarbolTuple_IsPacked(const struct HarbolTuple *);
 HARBOL_EXPORT bool HarbolTuple_ToStruct(const struct HarbolTuple *, void *);
 /***************/
 
@@ -697,8 +700,21 @@ typedef enum HarbolCfgType {
 	HarbolTypeString,
 	HarbolTypeFloat,
 	HarbolTypeInt,
-	HarbolTypeBool
+	HarbolTypeBool,
+	HarbolTypeColor,
+	HarbolTypeVec4D,
 } HarbolCfgType;
+
+typedef union HarbolColor {
+	uint32_t UIntColor;
+	struct{ uint8_t R,G,B,A; };
+	uint8_t RGBA[4];
+} HarbolColor;
+
+typedef union HarbolVec4D {
+	struct{ float X,Y,Z,W; };
+	float XYZW[4];
+} HarbolVec4D;
 
 HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_ParseFile(const char *);
 HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_Parse(const char *);
@@ -710,6 +726,8 @@ HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *,
 HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *, const char *);
 HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *, const char *);
 HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *, const char *, bool *);
+HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *, const char *, union HarbolColor *);
+HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *, const char *, union HarbolVec4D *);
 /***************/
 
 #ifdef __cplusplus

@@ -35,14 +35,13 @@ int main()
 	TestUniList();
 	TestBiList();
 	TestHarbolByteBuffer();
+	TestHarbolTuple();
 	TestHarbolMemoryPool();
 	TestHarbolGraph();
 	TestTree();
 	TestHarbolLinkMap();
-	TestHarbolConversions();
+	TestHarbolConversions();*/
 	TestCfg();
-	*/
-	TestHarbolTuple();
 	fclose(HARBOL_debug_output), HARBOL_debug_output=NULL;
 }
 
@@ -596,6 +595,19 @@ void TestHarbolTuple(void)
 	fprintf(HARBOL_debug_output, "packed p's size: '%zu'\n", p->Len);
 	
 	fputs("\ntuple :: printing packed 3-tuple fields.\n", HARBOL_debug_output);
+	for( size_t i=0 ; i<p->Fields.Count ; i++ ) {
+		//fprintf(HARBOL_debug_output, "offset: %zu -> p's ptr: '%" PRIuPTR "'\n", i, HarbolVector_Get(&p->Fields, i).UIntNative);
+		fprintf(HARBOL_debug_output, "index: %zu -> p's offset: '%" PRIu64 "' | size: '%" PRIu64 "'\n", i, HarbolVector_Get(&p->Fields, i).UInt64 & 0xffFFffFF, HarbolVector_Get(&p->Fields, i).UInt64 >> 32);
+	}
+	fputs("\n", HARBOL_debug_output);
+	
+	HarbolTuple_Free(&p);
+	
+	p = HarbolTuple_New(4, (size_t[]){ sizeof(char), sizeof(char), sizeof(char), sizeof(char) }, false);
+	assert( p );
+	fprintf(HARBOL_debug_output, "char p's size: '%zu'\n", p->Len);
+	
+	fputs("\ntuple :: printing byte 4-tuple fields.\n", HARBOL_debug_output);
 	for( size_t i=0 ; i<p->Fields.Count ; i++ ) {
 		//fprintf(HARBOL_debug_output, "offset: %zu -> p's ptr: '%" PRIuPTR "'\n", i, HarbolVector_Get(&p->Fields, i).UIntNative);
 		fprintf(HARBOL_debug_output, "index: %zu -> p's offset: '%" PRIu64 "' | size: '%" PRIu64 "'\n", i, HarbolVector_Get(&p->Fields, i).UInt64 & 0xffFFffFF, HarbolVector_Get(&p->Fields, i).UInt64 >> 32);
@@ -1550,6 +1562,8 @@ void TestCfg(void)
 				'number': '123 456-7890' \
 			} \
 		}, \
+		'colors': c[ 0xff, 0xff, 0xff, 0xff ], \
+		'origin': v[0.0, 24.43, 25.0], \
 		'children': {}, \
 		'spouse': null \
 	}";
@@ -1557,6 +1571,7 @@ void TestCfg(void)
 	struct HarbolLinkMap *larger_cfg = HarbolCfg_Parse(test_cfg);
 	const clock_t end = clock();
 	printf("cfg parsing time: %f\n", (end-start)/(double)CLOCKS_PER_SEC);
+	fprintf(HARBOL_debug_output, "larger_cfg ptr valid?: '%s'\n", larger_cfg ? "yes" : "no");
 	if( larger_cfg ) {
 		fputs("\ncfg :: iterating realistic config.\n", HARBOL_debug_output);
 		struct HarbolString stringcfg = {NULL, 0};
@@ -1592,6 +1607,10 @@ void TestCfg(void)
 		fprintf(HARBOL_debug_output, "root.age int?: '%" PRIi64 "'\n", age);
 		const double money = HarbolCfg_GetFloatByKey(larger_cfg, "root.money");
 		fprintf(HARBOL_debug_output, "root.money float?: '%f'\n", money);
+		
+		union HarbolColor color = {0};
+		const bool gotcolor = HarbolCfg_GetColorByKey(larger_cfg, "root.colors", &color);
+		fprintf(HARBOL_debug_output, "root.color color?: '%s': '%u, %u, %u, %u'\n", gotcolor ? "yes" : "no", color.R, color.G, color.B, color.A);
 		HarbolCfg_Free(&larger_cfg);
 	}
 	

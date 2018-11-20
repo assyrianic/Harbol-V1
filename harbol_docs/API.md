@@ -457,11 +457,35 @@ typedef enum HarbolCfgType {
 	HarbolTypeString,
 	HarbolTypeFloat,
 	HarbolTypeInt,
-	HarbolTypeBool
+	HarbolTypeBool,
+	HarbolTypeColor,
+	HarbolTypeVec4D,
 } HarbolCfgType;
 ```
 Tag values that are mostly used by the HarbolCfg config file parser.
 
+
+## union HarbolColor
+```c
+typedef union HarbolColor {
+	uint32_t UIntColor;
+	struct{ uint8_t R,G,B,A; };
+	uint8_t RGBA[4];
+} HarbolColor;
+```
+Union of color data that can be interpreted as an unsigned 32-bit integer or four bytes.
+Used by the Harbol Config Parser for storing color values like `'keyname': c[ 255, 42, 255, 192 ]`.
+
+
+## union HarbolVec4D
+```c
+typedef union HarbolVec4D {
+	struct{ float X,Y,Z,W; };
+	float XYZW[4];
+} HarbolVec4D;
+```
+Union of floats for storing 4D vector data.
+Used by the Harbol Config Parser for storing vector values like `'keyname': v[ 1.0, 1.24, 522.2, 0.0 ]`.
 
 
 # Functions/Methods

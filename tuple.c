@@ -63,7 +63,7 @@ HARBOL_EXPORT void HarbolTuple_Init(struct HarbolTuple *const tup, const size_t 
 	;
 	for( size_t i=0 ; i<array_len ; i++ ) {
 		totalsize += datasizes[i];
-		if( packed )
+		if( packed || array_len==1 )
 			continue;
 		const size_t offalign = (i+1<array_len) ? datasizes[i+1] : prevsize;
 		totalsize = AlignSize(totalsize, offalign>=sizeptr ? sizeptr : offalign);
@@ -85,7 +85,7 @@ HARBOL_EXPORT void HarbolTuple_Init(struct HarbolTuple *const tup, const size_t 
 		
 		HarbolVector_Insert(&tup->Fields, field.Val);
 		offset += datasizes[i];
-		if( packed )
+		if( packed || array_len==1 )
 			continue;
 		const size_t offalign = (i+1<array_len) ? datasizes[i+1] : prevsize;
 		offset = AlignSize(offset, offalign>=sizeptr ? sizeptr : offalign);
@@ -115,6 +115,18 @@ HARBOL_EXPORT void *HarbolTuple_GetField(const struct HarbolTuple *const tup, co
 	return ( field.Offset >= tup->Len ) ? NULL : tup->Datum + field.Offset;
 }
 
+HARBOL_EXPORT void *HarbolTuple_SetField(const struct HarbolTuple *const restrict tup, const size_t index, void *restrict ptrvalue)
+{
+	if( !tup || !tup->Datum || !ptrvalue )
+		return NULL;
+	const TupleElement field = {HarbolVector_Get(&tup->Fields, index).UInt64};
+	if( field.Offset >= tup->Len )
+		return NULL;
+	void *restrict ptr_field = tup->Datum + field.Offset;
+	memcpy(ptr_field, ptrvalue, field.Size);
+	return ptr_field;
+}
+
 HARBOL_EXPORT size_t HarbolTuple_GetSize(const struct HarbolTuple *const tup, const size_t index)
 {
 	if( !tup || !tup->Datum || index>=tup->Fields.Count )
@@ -123,12 +135,10 @@ HARBOL_EXPORT size_t HarbolTuple_GetSize(const struct HarbolTuple *const tup, co
 	return field.Size;
 }
 
-/*
-HARBOL_EXPORT void *HarbolTuple_GetRawData(const struct HarbolTuple *const tup)
+HARBOL_EXPORT bool HarbolTuple_IsPacked(const struct HarbolTuple *const tup)
 {
-	return tup ? tup->Datum : NULL;
+	return tup ? tup->Packed : false;
 }
-*/
 
 HARBOL_EXPORT bool HarbolTuple_ToStruct(const struct HarbolTuple *const restrict tup, void *restrict structptr)
 {

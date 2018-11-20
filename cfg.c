@@ -9,7 +9,10 @@
 /* CFG Parser semantics in EBNF
 	keyval = <string> [':'] (<value>|<section>) [','] ;
 	section = '{' <keyval> '}' ;
-	value = <string> | <number> | "true" | "false" | "null" ;
+	value = <string> | <number> | <color> | "true" | "false" | "null" ;
+	matrix = '[' <number> [','] <number> [','] <number> [','] <number> ']' ;
+	color = 'c' <matrix> ;
+	vecf = 'v' <matrix> ;
 	string = '"' chars '"' | "'" chars "'" ;
 */
 
@@ -105,6 +108,61 @@ static bool LexString(const char **restrict strRef, struct HarbolString *const r
 	return **strRef != 0;
 }
 
+static bool LexNumber(const char **restrict strRef, struct HarbolString *const restrict str, enum HarbolCfgType *typeref)
+{
+	if( !*strRef || !**strRef || !str || !typeref )
+		return false;
+	
+	if( **strRef=='-' || **strRef=='+' )
+		HarbolString_AddChar(str, *(*strRef)++);
+	
+	if( **strRef!='0' && !IsDecimal(**strRef) && **strRef!='.' )
+		return false;
+	
+	if( **strRef=='0' ) {
+		HarbolString_AddChar(str, *(*strRef)++);
+		const char numtype = *(*strRef)++;
+		HarbolString_AddChar(str, numtype);
+		*typeref = HarbolTypeInt;
+		
+		switch( numtype ) {
+			case 'X': case 'x': // hex
+				HarbolString_AddChar(str, *(*strRef)++);
+				while( IsHex(**strRef) )
+					HarbolString_AddChar(str, *(*strRef)++);
+				break;
+			case '.': // float
+				*typeref = HarbolTypeFloat;
+				HarbolString_AddChar(str, *(*strRef)++);
+				while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' )
+					HarbolString_AddChar(str, *(*strRef)++);
+				break;
+			default: // octal
+				while( IsOctal(**strRef) )
+					HarbolString_AddChar(str, *(*strRef)++);
+		}
+	}
+	else if( IsDecimal(**strRef) ) { // numeric value. Check if float possibly.
+		*typeref = HarbolTypeInt;
+		while( IsDecimal(**strRef) )
+			HarbolString_AddChar(str, *(*strRef)++);
+		
+		if( **strRef=='.' ) { // definitely float value.
+			*typeref = HarbolTypeFloat;
+			HarbolString_AddChar(str, *(*strRef)++);
+			while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' )
+				HarbolString_AddChar(str, *(*strRef)++);
+		}
+	}
+	else if( **strRef=='.' ) { // float value.
+		*typeref = HarbolTypeFloat;
+		HarbolString_AddChar(str, *(*strRef)++);
+		while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' )
+			HarbolString_AddChar(str, *(*strRef)++);
+	}
+	return str->Len > 0;
+}
+
 static bool HarbolCfg_ParseSection(struct HarbolLinkMap *, const char **);
 static bool HarbolCfg_ParseNumber(struct HarbolLinkMap *, const struct HarbolString *, const char **);
 
@@ -120,9 +178,10 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	
 	struct HarbolString keystr = {NULL, 0};
 	const bool strresult = LexString(cfgcoderef, &keystr);
-	if( !strresult )
+	if( !strresult ) {
+		HarbolString_Del(&keystr);
 		return false;
-	
+	}
 	SkipWSandComments(cfgcoderef);
 	
 	bool res = false;
@@ -142,6 +201,53 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 		
 		struct HarbolVariant *var = HarbolVariant_New((union HarbolValue){.Ptr=str}, HarbolTypeString);
 		HarbolLinkMap_Insert(map, keystr.CStr, (union HarbolValue){ .VarPtr=var });
+	}
+	// color/vector value!
+	else if( **cfgcoderef=='c' || **cfgcoderef=='v' ) {
+		const char valtype = *(*cfgcoderef)++;
+		SkipWSandComments(cfgcoderef);
+		
+		if( **cfgcoderef!='[' ) {
+			HarbolString_Del(&keystr);
+			return false;
+		}
+		(*cfgcoderef)++;
+		SkipWSandComments(cfgcoderef);
+		
+		union {
+			union HarbolColor color;
+			union HarbolVec4D vec4d;
+		} matrix_value = {0};
+		size_t iterations = 0;
+		while( **cfgcoderef && **cfgcoderef != ']' ) {
+			struct HarbolString numstr = {NULL, 0};
+			enum HarbolCfgType type = HarbolTypeNull;
+			const bool result = LexNumber(cfgcoderef, &numstr, &type);
+			if( iterations<4 ) {
+				if( valtype=='c' ) {
+					matrix_value.color.RGBA[iterations++] = (uint8_t)strtoul(numstr.CStr, NULL, 0);
+				}
+				else {
+					matrix_value.vec4d.XYZW[iterations++] = (float)strtof(numstr.CStr, NULL);
+				}
+			}
+			HarbolString_Del(&numstr);
+			if( !result ) {
+				HarbolString_Del(&keystr);
+				return false;
+			}
+			SkipWSandComments(cfgcoderef);
+		}
+		(*cfgcoderef)++;
+		
+		const size_t matrix_data[] = { valtype=='c' ? sizeof(union HarbolColor) : sizeof(union HarbolVec4D) };
+		struct HarbolTuple *tuple = HarbolTuple_New(1, matrix_data, false);
+		valtype=='c' ?
+			HarbolTuple_SetField(tuple, 0, &matrix_value.color.UIntColor)
+			: HarbolTuple_SetField(tuple, 0, &matrix_value.vec4d.XYZW[0]);
+		
+		struct HarbolVariant *var = HarbolVariant_New((union HarbolValue){.TuplePtr=tuple}, valtype=='c' ? HarbolTypeColor : HarbolTypeVec4D);
+		res = HarbolLinkMap_Insert(map, keystr.CStr, (union HarbolValue){ .VarPtr=var });
 	}
 	// true bool value.
 	else if( **cfgcoderef=='t' ) {
@@ -185,63 +291,16 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 static bool HarbolCfg_ParseNumber(struct HarbolLinkMap *const restrict map, const struct HarbolString *const restrict key, const char **cfgcoderef)
 {
 	struct HarbolString numstr = {NULL, 0};
-	if( **cfgcoderef=='-' || **cfgcoderef=='+' )
-		HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
+	enum HarbolCfgType type = HarbolTypeNull;
 	
-	if( **cfgcoderef!='0' && !IsDecimal(**cfgcoderef) && **cfgcoderef!='.' )
-		return false;
-	
-	if( **cfgcoderef=='0' ) {
-		HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		const char numtype = *(*cfgcoderef)++;
-		HarbolString_AddChar(&numstr, numtype);
-		enum HarbolCfgType type = HarbolTypeInt;
-		
-		switch( numtype ) {
-			case 'X': case 'x': // hex
-				HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-				while( IsHex(**cfgcoderef) )
-					HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-				break;
-			case '.': // float
-				type = HarbolTypeFloat;
-				HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-				while( IsDecimal(**cfgcoderef) || **cfgcoderef=='e' || **cfgcoderef=='E' )
-					HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-				break;
-			default: // octal
-				while( IsOctal(**cfgcoderef) )
-					HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		}
-		struct HarbolVariant *var = HarbolVariant_New(type==HarbolTypeFloat ? (union HarbolValue){.Double=strtod(numstr.CStr, NULL)} : (union HarbolValue){.Int64=strtoll(numstr.CStr, NULL, 0)}, type);
+	const bool result = LexNumber(cfgcoderef, &numstr, &type);
+	if( !result ) {
 		HarbolString_Del(&numstr);
-		return HarbolLinkMap_Insert(map, key->CStr, (union HarbolValue){ .VarPtr=var });
+		return result;
 	}
-	else if( IsDecimal(**cfgcoderef) ) { // numeric value. Check if float possibly.
-		enum HarbolCfgType type = HarbolTypeInt;
-		while( IsDecimal(**cfgcoderef) )
-			HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		
-		if( **cfgcoderef=='.' ) { // definitely float value.
-			type = HarbolTypeFloat;
-			HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-			while( IsDecimal(**cfgcoderef) || **cfgcoderef=='e' || **cfgcoderef=='E' )
-				HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		}
-		struct HarbolVariant *var = HarbolVariant_New(type==HarbolTypeFloat ? (union HarbolValue){.Double=strtod(numstr.CStr, NULL)} : (union HarbolValue){.Int64=strtoll(numstr.CStr, NULL, 0)}, type);
-		HarbolString_Del(&numstr);
-		return HarbolLinkMap_Insert(map, key->CStr, (union HarbolValue){ .VarPtr=var });
-	}
-	else if( **cfgcoderef=='.' ) { // float value.
-		HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		while( IsDecimal(**cfgcoderef) || **cfgcoderef=='e' || **cfgcoderef=='E' )
-			HarbolString_AddChar(&numstr, *(*cfgcoderef)++);
-		
-		struct HarbolVariant *var = HarbolVariant_New((union HarbolValue){.Double=strtod(numstr.CStr, NULL)}, HarbolTypeFloat);
-		HarbolString_Del(&numstr);
-		return HarbolLinkMap_Insert(map, key->CStr, (union HarbolValue){ .VarPtr=var });
-	}
-	return false;
+	struct HarbolVariant *var = HarbolVariant_New(type==HarbolTypeFloat ? (union HarbolValue){.Double=strtod(numstr.CStr, NULL)} : (union HarbolValue){.Int64=strtoll(numstr.CStr, NULL, 0)}, type);
+	HarbolString_Del(&numstr);
+	return HarbolLinkMap_Insert(map, key->CStr, (union HarbolValue){ .VarPtr=var });
 }
 
 // section = '{' <keyval> '}' ;
@@ -328,6 +387,12 @@ HARBOL_EXPORT bool HarbolCfg_Free(struct HarbolLinkMap **mapref)
 				HarbolString_Free(&strtype);
 				break;
 			}
+			case HarbolTypeColor:
+			case HarbolTypeVec4D: {
+				struct HarbolTuple *tup = HarbolVariant_GetVal(n->Data.VarPtr).TuplePtr;
+				HarbolTuple_Free(&tup);
+				break;
+			}
 			default:
 				break;
 		}
@@ -347,6 +412,8 @@ static const char *Harbol_GetTypeName(const enum HarbolCfgType type)
 		case HarbolTypeFloat:       return "Float";
 		case HarbolTypeInt:         return "Int";
 		case HarbolTypeBool:        return "Boolean";
+		case HarbolTypeColor:       return "Color";
+		case HarbolTypeVec4D:       return "Vector";
 		default: return "Unknown Type";
 	}
 }
@@ -394,6 +461,22 @@ HARBOL_EXPORT bool HarbolCfg_ToString(const struct HarbolLinkMap *const restrict
 			case HarbolTypeBool:
 				HarbolString_AddStr(str, kv->Data.VarPtr->Val.Bool ? "true\n" : "false\n");
 				break;
+			case HarbolTypeColor: {
+				HarbolString_AddStr(str, "c[ ");
+				struct { uint8_t r,g,b,a; } color = {0};
+				HarbolTuple_ToStruct(kv->Data.VarPtr->Val.TuplePtr, &color);
+				snprintf(buffer, BUFFER_SIZE, "%u, %u, %u, %u ]\n", color.r, color.g, color.b, color.a);
+				HarbolString_AddStr(str, buffer);
+				break;
+			}
+			case HarbolTypeVec4D: {
+				HarbolString_AddStr(str, "v[ ");
+				struct { float x,y,z,w; } vec4 = {0};
+				HarbolTuple_ToStruct(kv->Data.VarPtr->Val.TuplePtr, &vec4);
+				snprintf(buffer, BUFFER_SIZE, "%f, %f, %f, %f ]\n", vec4.x, vec4.y, vec4.z, vec4.w);
+				HarbolString_AddStr(str, buffer);
+				break;
+			}
 		}
 	}
 	return str->Len > 0;
@@ -597,6 +680,83 @@ HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, co
 			itermap = var->Val.LinkMapPtr;
 		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeBool ) {
 			*boolref = var->Val.Bool;
+			HarbolString_Del(&sectionstr);
+			HarbolString_Del(&targetstr);
+			return true;
+		}
+		HarbolString_Del(&sectionstr);
+	}
+	HarbolString_Del(&sectionstr);
+	HarbolString_Del(&targetstr);
+	return false;
+}
+
+HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, const char *key, union HarbolColor *const restrict colorref)
+{
+	if( !cfgmap || !key || !colorref )
+		return false;
+	
+	struct HarbolString
+		sectionstr = {NULL, 0},
+		targetstr = {NULL, 0}
+	;
+	HarbolCfg_ParseTargetStringPath(key, &targetstr);
+	const char *iter = key;
+	
+	// use a single linkmap ptr to iterate.
+	struct HarbolLinkMap *itermap = cfgmap;
+	while( itermap ) {
+		while( *iter && *iter != '.' )
+			HarbolString_AddChar(&sectionstr, *iter++);
+		iter++;
+		
+		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+		if( !var ) {
+			break;
+		}
+		else if( var->TypeTag==HarbolTypeLinkMap )
+			itermap = var->Val.LinkMapPtr;
+		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeColor ) {
+			HarbolTuple_ToStruct(var->Val.TuplePtr, colorref);
+			HarbolString_Del(&sectionstr);
+			HarbolString_Del(&targetstr);
+			return true;
+		}
+		HarbolString_Del(&sectionstr);
+	}
+	HarbolString_Del(&sectionstr);
+	HarbolString_Del(&targetstr);
+	return false;
+}
+
+
+HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *const cfgmap, const char *key, union HarbolVec4D *const restrict vec4ref)
+{
+	if( !cfgmap || !key || !vec4ref )
+		return false;
+	
+	struct HarbolString
+		sectionstr = {NULL, 0},
+		targetstr = {NULL, 0}
+	;
+	HarbolCfg_ParseTargetStringPath(key, &targetstr);
+	const char *iter = key;
+	
+	// use a single linkmap ptr to iterate.
+	struct HarbolLinkMap *itermap = cfgmap;
+	while( itermap ) {
+		while( *iter && *iter != '.' )
+			HarbolString_AddChar(&sectionstr, *iter++);
+		iter++;
+		
+		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+		if( !var ) {
+			break;
+		}
+		else if( var->TypeTag==HarbolTypeLinkMap )
+			itermap = var->Val.LinkMapPtr;
+		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeVec4D ) {
+			HarbolTuple_ToStruct(var->Val.TuplePtr, vec4ref);
 			HarbolString_Del(&sectionstr);
 			HarbolString_Del(&targetstr);
 			return true;
