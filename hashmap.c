@@ -297,18 +297,6 @@ HARBOL_EXPORT void HarbolMap_FromHarbolVector(struct HarbolHashmap *const map, c
 	}
 }
 
-HARBOL_EXPORT void HarbolMap_FromHarbolTuple(struct HarbolHashmap *const map, const struct HarbolTuple *const tup)
-{
-	if( !map || !tup || !tup->Items || !tup->Len )
-		return;
-	
-	for( size_t i=0 ; i<tup->Len ; i++ ) {
-		char cstrkey[21] = {0};
-		sprintf(cstrkey, "%zu", i);
-		HarbolMap_Insert(map, cstrkey, tup->Items[i]);
-	}
-}
-
 HARBOL_EXPORT void HarbolMap_FromHarbolGraph(struct HarbolHashmap *const map, const struct HarbolGraph *const graph)
 {
 	if( !map || !graph )
@@ -360,16 +348,6 @@ HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolVector(const struct H
 	
 	struct HarbolHashmap *map = HarbolMap_New();
 	HarbolMap_FromHarbolVector(map, v);
-	return map;
-}
-
-HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolTuple(const struct HarbolTuple *const tup)
-{
-	if( !tup || !tup->Items || !tup->Len )
-		return NULL;
-	
-	struct HarbolHashmap *map = HarbolMap_New();
-	HarbolMap_FromHarbolTuple(map, tup);
 	return map;
 }
 

@@ -432,14 +432,6 @@ HARBOL_EXPORT void HarbolGraph_FromHarbolBiList(struct HarbolGraph *const graph,
 		HarbolGraph_InsertVertexByValue(graph, n->Data);
 }
 
-HARBOL_EXPORT void HarbolGraph_FromHarbolTuple(struct HarbolGraph *const graph, const struct HarbolTuple *const tup)
-{
-	if( !graph || !tup )
-		return;
-	for( size_t i=0 ; i<tup->Len ; i++ )
-		HarbolGraph_InsertVertexByValue(graph, tup->Items[i]);
-}
-
 HARBOL_EXPORT void HarbolGraph_FromHarbolLinkMap(struct HarbolGraph *const graph, const struct HarbolLinkMap *const map)
 {
 	if( !graph || !map )
@@ -484,15 +476,6 @@ HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolBiList(const struct H
 		return NULL;
 	struct HarbolGraph *graph = HarbolGraph_New();
 	HarbolGraph_FromHarbolBiList(graph, list);
-	return graph;
-}
-
-HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolTuple(const struct HarbolTuple *const tup)
-{
-	if( !tup )
-		return NULL;
-	struct HarbolGraph *graph = HarbolGraph_New();
-	HarbolGraph_FromHarbolTuple(graph, tup);
 	return graph;
 }
 

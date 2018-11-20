@@ -295,16 +295,24 @@ size_t member that tracks the amount of items in `Buffer`.
 ## struct HarbolTuple
 ```c
 typedef struct HarbolTuple {
-	union HarbolValue *Items;
+	struct HarbolVector Fields; // will contain the offsets of each member
+	uint8_t *Datum;
 	size_t Len;
+	bool Packed : 1;
 } HarbolTuple;
 ```
 
-### Items
-allocated array of `union HarbolValue` values.
+### Fields
+Vector type that's used to contain the field indexes for the members.
+
+### Datum
+raw pointer data of all entire "struct"-tuple.
 
 ### Len
-size_t member that tracks the size of `Items`.
+size_t member that tracks the size of `Datum`.
+
+### Packed
+boolean member that tells whether the tuple is packed or not.
 
 
 ## struct HarbolAllocNode

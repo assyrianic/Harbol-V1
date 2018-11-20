@@ -347,15 +347,6 @@ HARBOL_EXPORT void HarbolBiList_FromHarbolVector(struct HarbolBiList *const bili
 		HarbolBiList_InsertValueAtTail(bilist, v->Table[i]);
 }
 
-HARBOL_EXPORT void HarbolBiList_FromHarbolTuple(struct HarbolBiList *const bilist, const struct HarbolTuple *const tup)
-{
-	if( !bilist || !tup || !tup->Items || !tup->Len )
-		return;
-	
-	for( size_t i=0 ; i<tup->Len ; i++ )
-		HarbolBiList_InsertValueAtTail(bilist, tup->Items[i]);
-}
-
 HARBOL_EXPORT void HarbolBiList_FromHarbolGraph(struct HarbolBiList *const bilist, const struct HarbolGraph *const graph)
 {
 	if( !bilist || !graph || !graph->Vertices.Table )
@@ -402,15 +393,6 @@ HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolVector(const struct
 		return NULL;
 	struct HarbolBiList *bilist = HarbolBiList_New();
 	HarbolBiList_FromHarbolVector(bilist, v);
-	return bilist;
-}
-
-HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolTuple(const struct HarbolTuple *const tup)
-{
-	if( !tup || !tup->Items || !tup->Len )
-		return NULL;
-	struct HarbolBiList *bilist = HarbolBiList_New();
-	HarbolBiList_FromHarbolTuple(bilist, tup);
 	return bilist;
 }
 

@@ -240,19 +240,6 @@ HARBOL_EXPORT void HarbolVector_FromHarbolHashmap(struct HarbolVector *const res
 	}
 }
 
-HARBOL_EXPORT void HarbolVector_FromHarbolTuple(struct HarbolVector *const v, const struct HarbolTuple *const tup)
-{
-	if( !v || !tup || !tup->Items || !tup->Len )
-		return;
-	else if( !v->Table || v->Count+tup->Len >= v->Len )
-		while( v->Count+tup->Len >= v->Len )
-			HarbolVector_Resize(v);
-	
-	size_t i=0;
-	while( i<tup->Len )
-		v->Table[v->Count++] = tup->Items[i++];
-}
-
 HARBOL_EXPORT void HarbolVector_FromHarbolGraph(struct HarbolVector *const v, const struct HarbolGraph *const graph)
 {
 	if( !v || !graph )
@@ -305,15 +292,6 @@ HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolHashmap(const struc
 		return NULL;
 	struct HarbolVector *v = HarbolVector_New();
 	HarbolVector_FromHarbolHashmap(v, map);
-	return v;
-}
-
-HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolTuple(const struct HarbolTuple *const tup)
-{
-	if( !tup )
-		return NULL;
-	struct HarbolVector *v = HarbolVector_New();
-	HarbolVector_FromHarbolTuple(v, tup);
 	return v;
 }
 

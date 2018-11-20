@@ -219,14 +219,12 @@ HARBOL_EXPORT void HarbolVector_Copy(struct HarbolVector *, const struct HarbolV
 HARBOL_EXPORT void HarbolVector_FromHarbolUniList(struct HarbolVector *, const struct HarbolUniList *);
 HARBOL_EXPORT void HarbolVector_FromHarbolBiList(struct HarbolVector *, const struct HarbolBiList *);
 HARBOL_EXPORT void HarbolVector_FromHarbolHashmap(struct HarbolVector *, const struct HarbolHashmap *);
-HARBOL_EXPORT void HarbolVector_FromHarbolTuple(struct HarbolVector *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolVector_FromHarbolGraph(struct HarbolVector *, const struct HarbolGraph *);
 HARBOL_EXPORT void HarbolVector_FromHarbolLinkMap(struct HarbolVector *, const struct HarbolLinkMap *);
 
 HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolUniList(const struct HarbolUniList *);
 HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolBiList(const struct HarbolBiList *);
 HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolHashmap(const struct HarbolHashmap *);
-HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolGraph(const struct HarbolGraph *);
 HARBOL_EXPORT struct HarbolVector *HarbolVector_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
 /***************/
@@ -272,14 +270,12 @@ struct HarbolVector *HarbolMap_GetBuckets(const struct HarbolHashmap *);
 HARBOL_EXPORT void HarbolMap_FromHarbolUniList(struct HarbolHashmap *, const struct HarbolUniList *);
 HARBOL_EXPORT void HarbolMap_FromHarbolBiList(struct HarbolHashmap *, const struct HarbolBiList *);
 HARBOL_EXPORT void HarbolMap_FromHarbolVector(struct HarbolHashmap *, const struct HarbolVector *);
-HARBOL_EXPORT void HarbolMap_FromHarbolTuple(struct HarbolHashmap *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolMap_FromHarbolGraph(struct HarbolHashmap *, const struct HarbolGraph *);
 HARBOL_EXPORT void HarbolMap_FromHarbolLinkMap(struct HarbolHashmap *, const struct HarbolLinkMap *);
 
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolUniList(const struct HarbolUniList *);
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolBiList(const struct HarbolBiList *);
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolVector(const struct HarbolVector *);
-HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolGraph(const struct HarbolGraph *);
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
 /***************/
@@ -330,14 +326,12 @@ HARBOL_EXPORT struct HarbolUniListNode *HarbolUniList_GetTail(const struct Harbo
 HARBOL_EXPORT void HarbolUniList_FromHarbolBiList(struct HarbolUniList *, const struct HarbolBiList *);
 HARBOL_EXPORT void HarbolUniList_FromHarbolHashmap(struct HarbolUniList *, const struct HarbolHashmap *);
 HARBOL_EXPORT void HarbolUniList_FromHarbolVector(struct HarbolUniList *, const struct HarbolVector *);
-HARBOL_EXPORT void HarbolUniList_FromHarbolTuple(struct HarbolUniList *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolUniList_FromHarbolGraph(struct HarbolUniList *, const struct HarbolGraph *);
 HARBOL_EXPORT void HarbolUniList_FromHarbolLinkMap(struct HarbolUniList *, const struct HarbolLinkMap *);
 
 HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolBiList(const struct HarbolBiList *);
 HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolHashmap(const struct HarbolHashmap *);
 HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolVector(const struct HarbolVector *);
-HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolGraph(const struct HarbolGraph *);
 HARBOL_EXPORT struct HarbolUniList *HarbolUniList_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
 /***************/
@@ -389,14 +383,12 @@ HARBOL_EXPORT struct HarbolBiListNode *HarbolBiList_GetTail(const struct HarbolB
 HARBOL_EXPORT void HarbolBiList_FromHarbolUniList(struct HarbolBiList *, const struct HarbolUniList *);
 HARBOL_EXPORT void HarbolBiList_FromHarbolHashmap(struct HarbolBiList *, const struct HarbolHashmap *);
 HARBOL_EXPORT void HarbolBiList_FromHarbolVector(struct HarbolBiList *, const struct HarbolVector *);
-HARBOL_EXPORT void HarbolBiList_FromHarbolTuple(struct HarbolBiList *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolBiList_FromHarbolGraph(struct HarbolBiList *, const struct HarbolGraph *);
 HARBOL_EXPORT void HarbolBiList_FromHarbolLinkMap(struct HarbolBiList *, const struct HarbolLinkMap *);
 
 HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolUniList(const struct HarbolUniList *);
 HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolHashmap(const struct HarbolHashmap *);
 HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolVector(const struct HarbolVector *);
-HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolGraph(const struct HarbolGraph *);
 HARBOL_EXPORT struct HarbolBiList *HarbolBiList_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
 /***************/
@@ -430,34 +422,25 @@ HARBOL_EXPORT void HarbolByteBuffer_Append(struct HarbolByteBuffer *, struct Har
 /***************/
 
 
-/************* HarbolTuple (tuple.c) *************/
+/************* Memory-aligned, Packed Data Structure (tuple.c) *************/
+/* Tuples act like constant, packed structs but use indexes instead of named fields. */
 typedef struct HarbolTuple {
-	union HarbolValue *Items;
+	struct HarbolVector Fields; // will contain the offsets of each member
+	uint8_t *Datum;
 	size_t Len;
+	bool Packed : 1;
 } HarbolTuple;
 
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_New(size_t, union HarbolValue []);
-HARBOL_EXPORT void HarbolTuple_Free(struct HarbolTuple **);
+HARBOL_EXPORT struct HarbolTuple *HarbolTuple_New(size_t, const size_t [], bool);
+HARBOL_EXPORT bool HarbolTuple_Free(struct HarbolTuple **);
 
-HARBOL_EXPORT void HarbolTuple_Init(struct HarbolTuple *, size_t, union HarbolValue []);
+HARBOL_EXPORT void HarbolTuple_Init(struct HarbolTuple *, size_t, const size_t [], bool);
 HARBOL_EXPORT void HarbolTuple_Del(struct HarbolTuple *);
+
 HARBOL_EXPORT size_t HarbolTuple_Len(const struct HarbolTuple *);
-HARBOL_EXPORT union HarbolValue *HarbolTuple_GetItems(const struct HarbolTuple *);
-HARBOL_EXPORT union HarbolValue HarbolTuple_GetItem(const struct HarbolTuple *, size_t);
-
-HARBOL_EXPORT void HarbolTuple_FromHarbolUniList(struct HarbolTuple *, const struct HarbolUniList *);
-HARBOL_EXPORT void HarbolTuple_FromHarbolHashmap(struct HarbolTuple *, const struct HarbolHashmap *);
-HARBOL_EXPORT void HarbolTuple_FromHarbolVector(struct HarbolTuple *, const struct HarbolVector *);
-HARBOL_EXPORT void HarbolTuple_FromHarbolBiList(struct HarbolTuple *, const struct HarbolBiList *);
-HARBOL_EXPORT void HarbolTuple_FromHarbolGraph(struct HarbolTuple *, const struct HarbolGraph *);
-HARBOL_EXPORT void HarbolTuple_FromHarbolLinkMap(struct HarbolTuple *, const struct HarbolLinkMap *);
-
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolUniList(const struct HarbolUniList *);
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolHashmap(const struct HarbolHashmap *);
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolVector(const struct HarbolVector *);
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolBiList(const struct HarbolBiList *);
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolGraph(const struct HarbolGraph *);
-HARBOL_EXPORT struct HarbolTuple *HarbolTuple_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
+HARBOL_EXPORT void *HarbolTuple_GetField(const struct HarbolTuple *, size_t);
+HARBOL_EXPORT size_t HarbolTuple_GetSize(const struct HarbolTuple *, size_t);
+HARBOL_EXPORT bool HarbolTuple_ToStruct(const struct HarbolTuple *, void *);
 /***************/
 
 /************* Memory Pool (mempool.c) *************/
@@ -591,14 +574,12 @@ HARBOL_EXPORT void HarbolGraph_FromHarbolVector(struct HarbolGraph *, const stru
 HARBOL_EXPORT void HarbolGraph_FromHarbolHashmap(struct HarbolGraph *, const struct HarbolHashmap *);
 HARBOL_EXPORT void HarbolGraph_FromHarbolUniList(struct HarbolGraph *, const struct HarbolUniList *);
 HARBOL_EXPORT void HarbolGraph_FromHarbolBiList(struct HarbolGraph *, const struct HarbolBiList *);
-HARBOL_EXPORT void HarbolGraph_FromHarbolTuple(struct HarbolGraph *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolGraph_FromHarbolLinkMap(struct HarbolGraph *, const struct HarbolLinkMap *);
 
 HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolVector(const struct HarbolVector *);
 HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolHashmap(const struct HarbolHashmap *);
 HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolUniList(const struct HarbolUniList *);
 HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolBiList(const struct HarbolBiList *);
-HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolGraph *HarbolGraph_NewFromHarbolLinkMap(const struct HarbolLinkMap *);
 /***************/
 
@@ -679,14 +660,12 @@ HARBOL_EXPORT void HarbolLinkMap_FromHarbolHashmap(struct HarbolLinkMap *, const
 HARBOL_EXPORT void HarbolLinkMap_FromHarbolUniList(struct HarbolLinkMap *, const struct HarbolUniList *);
 HARBOL_EXPORT void HarbolLinkMap_FromHarbolBiList(struct HarbolLinkMap *, const struct HarbolBiList *);
 HARBOL_EXPORT void HarbolLinkMap_FromHarbolVector(struct HarbolLinkMap *, const struct HarbolVector *);
-HARBOL_EXPORT void HarbolLinkMap_FromHarbolTuple(struct HarbolLinkMap *, const struct HarbolTuple *);
 HARBOL_EXPORT void HarbolLinkMap_FromHarbolGraph(struct HarbolLinkMap *, const struct HarbolGraph *);
 
 HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolHashmap(const struct HarbolHashmap *);
 HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolUniList(const struct HarbolUniList *);
 HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolBiList(const struct HarbolBiList *);
 HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolVector(const struct HarbolVector *);
-HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolTuple(const struct HarbolTuple *);
 HARBOL_EXPORT struct HarbolLinkMap *HarbolLinkMap_NewFromHarbolGraph(const struct HarbolGraph *);
 /***************/
 

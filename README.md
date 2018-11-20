@@ -16,7 +16,7 @@
 * Singly Linked List.
 * Doubly Linked List.
 * Byte Buffer.
-* Tuple type.
+* Tuple type. (convertible to structs, can also be packed).
 * Memory Pool.
 * "general purpose" Graph. (edges support weight data)
 * General Tree.
