@@ -6,7 +6,7 @@
 #endif
 #include "harbol.h"
 
-/* CFG Parser semantics in EBNF
+/* CFG Parser in EBNF grammar
 	keyval = <string> [':'] (<value>|<section>) [','] ;
 	section = '{' <keyval> '}' ;
 	value = <string> | <number> | <color> | "true" | "false" | "null" ;
@@ -15,6 +15,8 @@
 	vecf = 'v' <matrix> ;
 	string = '"' chars '"' | "'" chars "'" ;
 */
+
+static size_t __LineNo;
 
 static bool IsDecimal(const char c)
 {
@@ -43,6 +45,7 @@ static void SkipSingleLineComment(const char **strRef)
 		return;
 	
 	for( ; **strRef != '\n' ; (*strRef)++ );
+	__LineNo++;
 }
 
 static void SkipMultiLineComment(const char **strRef)
@@ -50,12 +53,15 @@ static void SkipMultiLineComment(const char **strRef)
 	if( !*strRef || !**strRef )
 		return;
 	// skip past '/' && '*'
-	(*strRef)++;
+	*strRef += 2;
 	do {
-		(*strRef)++;
-		if( !(*strRef)[1] )
+		if( !**strRef || !(*strRef)[1] )
 			break;
+		else if( **strRef=='\n' )
+			__LineNo++;
+		(*strRef)++;
 	} while( **strRef!='*' && (*strRef)[1]!='/' );
+	*strRef += 2;
 }
 
 static bool SkipWhiteSpace(const char **strRef)
@@ -63,8 +69,11 @@ static bool SkipWhiteSpace(const char **strRef)
 	if( !*strRef || !**strRef )
 		return false;
 	
-	while( **strRef && IsWhiteSpace(**strRef) )
+	while( **strRef && IsWhiteSpace(**strRef) ) {
+		if( **strRef=='\n' )
+			__LineNo++;
 		(*strRef)++;
+	}
 	return **strRef != 0;
 }
 
@@ -73,25 +82,21 @@ static bool SkipWSandComments(const char **strRef)
 	if( !strRef || !*strRef || !**strRef )
 		return false;
 	
-	if( IsWhiteSpace(**strRef) ) {
-		SkipWhiteSpace(strRef);
-		return SkipWSandComments(strRef);
+	while( **strRef && (IsWhiteSpace(**strRef) || // white space
+			**strRef=='#' || (**strRef=='/' && (*strRef)[1]=='/') || // single line comment
+			(**strRef=='/' && (*strRef)[1]=='*') || // multi-line comment
+			**strRef==':' || **strRef==',') ) // delimiters.
+	{
+		if( IsWhiteSpace(**strRef) )
+			SkipWhiteSpace(strRef);
+		else if( **strRef=='#' || (**strRef=='/' && (*strRef)[1]=='/') )
+			SkipSingleLineComment(strRef);
+		else if( **strRef=='/' && (*strRef)[1]=='*' )
+			SkipMultiLineComment(strRef);
+		else if( **strRef==':' || **strRef==',' )
+			(*strRef)++;
 	}
-	else if( **strRef=='#' || (**strRef=='/' && (*strRef)[1]=='/') ) {
-		SkipSingleLineComment(strRef);
-		return SkipWSandComments(strRef);
-	}
-	else if( **strRef=='/' && (*strRef)[1]=='*' ) {
-		SkipMultiLineComment(strRef);
-		return SkipWSandComments(strRef);
-	}
-	else if( **strRef==':' || **strRef==',' ) {
-		(*strRef)++;
-		return SkipWSandComments(strRef);
-	}
-	else {
-		return **strRef != 0;
-	}
+	return **strRef != 0;
 }
 
 static bool LexString(const char **restrict strRef, struct HarbolString *const restrict str)
@@ -102,13 +107,27 @@ static bool LexString(const char **restrict strRef, struct HarbolString *const r
 	else if( **strRef != '"' && **strRef != '\'' )
 		return false;
 	const char quote = *(*strRef)++;
-	while( **strRef && **strRef != quote )
-		HarbolString_AddChar(str, *(*strRef)++);
-	(*strRef)++;
+	while( **strRef && **strRef != quote ) {
+		if( **strRef=='\\' ) {
+			const char chr = *(*strRef)++;
+			switch( chr ) {
+				case 'a': HarbolString_AddChar(str, '\a'); break;
+				case 'r': HarbolString_AddChar(str, '\r'); break;
+				case 't': HarbolString_AddChar(str, '\t'); break;
+				case 'v': HarbolString_AddChar(str, '\v'); break;
+				case 'n': HarbolString_AddChar(str, '\n'); break;
+				case 'f': HarbolString_AddChar(str, '\f'); break;
+				default: HarbolString_AddChar(str, chr);
+			}
+		}
+		else HarbolString_AddChar(str, *(*strRef)++);
+	}
+	if( **strRef==quote )
+		(*strRef)++;
 	return **strRef != 0;
 }
 
-static bool LexNumber(const char **restrict strRef, struct HarbolString *const restrict str, enum HarbolCfgType *typeref)
+static bool LexNumber(const char **restrict strRef, struct HarbolString *const restrict str, enum HarbolCfgType *const typeref)
 {
 	if( !*strRef || !**strRef || !str || !typeref )
 		return false;
@@ -116,7 +135,7 @@ static bool LexNumber(const char **restrict strRef, struct HarbolString *const r
 	if( **strRef=='-' || **strRef=='+' )
 		HarbolString_AddChar(str, *(*strRef)++);
 	
-	if( **strRef!='0' && !IsDecimal(**strRef) && **strRef!='.' )
+	if( !IsDecimal(**strRef) && **strRef!='.' )
 		return false;
 	
 	if( **strRef=='0' ) {
@@ -134,7 +153,7 @@ static bool LexNumber(const char **restrict strRef, struct HarbolString *const r
 			case '.': // float
 				*typeref = HarbolTypeFloat;
 				HarbolString_AddChar(str, *(*strRef)++);
-				while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' )
+				while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' || **strRef=='f' || **strRef=='F' )
 					HarbolString_AddChar(str, *(*strRef)++);
 				break;
 			default: // octal
@@ -150,7 +169,7 @@ static bool LexNumber(const char **restrict strRef, struct HarbolString *const r
 		if( **strRef=='.' ) { // definitely float value.
 			*typeref = HarbolTypeFloat;
 			HarbolString_AddChar(str, *(*strRef)++);
-			while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' )
+			while( IsDecimal(**strRef) || **strRef=='e' || **strRef=='E' || **strRef=='f' || **strRef=='F' )
 				HarbolString_AddChar(str, *(*strRef)++);
 		}
 	}
@@ -172,13 +191,19 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	if( !map || !*cfgcoderef || !**cfgcoderef )
 		return false;
 	
-	const bool safe = SkipWSandComments(cfgcoderef);
-	if( !safe || (**cfgcoderef!='"' && **cfgcoderef!='\'') )
+	if( !SkipWSandComments(cfgcoderef) ) {
+		fprintf(stderr, "Harbol Config Parser :: unexpected end of file. Line: %zu\n", __LineNo);
 		return false;
+	}
+	else if( **cfgcoderef!='"' && **cfgcoderef!='\'' ) {
+		fprintf(stderr, "Harbol Config Parser :: missing beginning quote for key. Line: %zu\n", __LineNo);
+		return false;
+	}
 	
 	struct HarbolString keystr = {NULL, 0};
 	const bool strresult = LexString(cfgcoderef, &keystr);
 	if( !strresult ) {
+		fprintf(stderr, "Harbol Config Parser :: invalid string key (%s). Line: %zu\n", keystr.CStr, __LineNo);
 		HarbolString_Del(&keystr);
 		return false;
 	}
@@ -196,9 +221,12 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	else if( **cfgcoderef=='"'||**cfgcoderef=='\'' ) {
 		struct HarbolString *str = HarbolString_New();
 		res = LexString(cfgcoderef, str);
-		if( !res )
+		if( !res ) {
+			if( !str )
+				fprintf(stderr, "Harbol Config Parser :: unable to allocate string value. Line: %zu\n", __LineNo);
+			else fprintf(stderr, "Harbol Config Parser :: invalid string value (%s). Line: %zu\n", str->CStr, __LineNo);
 			return false;
-		
+		}
 		struct HarbolVariant *var = HarbolVariant_New((union HarbolValue){.Ptr=str}, HarbolTypeString);
 		HarbolLinkMap_Insert(map, keystr.CStr, (union HarbolValue){ .VarPtr=var });
 	}
@@ -208,6 +236,7 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 		SkipWSandComments(cfgcoderef);
 		
 		if( **cfgcoderef!='[' ) {
+			fprintf(stderr, "Harbol Config Parser :: missing '['. Line: %zu\n", __LineNo);
 			HarbolString_Del(&keystr);
 			return false;
 		}
@@ -233,10 +262,15 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 			}
 			HarbolString_Del(&numstr);
 			if( !result ) {
+				fprintf(stderr, "Harbol Config Parser :: invalid number in [] array. Line: %zu\n", __LineNo);
 				HarbolString_Del(&keystr);
 				return false;
 			}
 			SkipWSandComments(cfgcoderef);
+		}
+		if( !**cfgcoderef ) {
+			fprintf(stderr, "Harbol Config Parser :: unexpected end of file with missing ending ']'. Line: %zu\n", __LineNo);
+			return false;
 		}
 		(*cfgcoderef)++;
 		
@@ -252,6 +286,7 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	// true bool value.
 	else if( **cfgcoderef=='t' ) {
 		if( strncmp("true", *cfgcoderef, strlen("true")) ) {
+			fprintf(stderr, "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", __LineNo);
 			HarbolString_Del(&keystr);
 			return false;
 		}
@@ -262,6 +297,7 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	// false bool value.
 	else if( **cfgcoderef=='f' ) {
 		if( strncmp("false", *cfgcoderef, strlen("false")) ) {
+			fprintf(stderr, "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", __LineNo);
 			HarbolString_Del(&keystr);
 			return false;
 		}
@@ -272,6 +308,7 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 	// null value.
 	else if( **cfgcoderef=='n' ) {
 		if( strncmp("null", *cfgcoderef, strlen("null")) ) {
+			fprintf(stderr, "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", __LineNo);
 			HarbolString_Del(&keystr);
 			return false;
 		}
@@ -280,8 +317,17 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 		res = HarbolLinkMap_Insert(map, keystr.CStr, (union HarbolValue){ .VarPtr=var });
 	}
 	// numeric value.
-	else {
+	else if( IsDecimal(**cfgcoderef) || **cfgcoderef=='.' || **cfgcoderef=='-' || **cfgcoderef=='+' ) {
 		res = HarbolCfg_ParseNumber(map, &keystr, cfgcoderef);
+	}
+	else if( **cfgcoderef=='[' ) {
+		fprintf(stderr, "Harbol Config Parser :: array bracket missing 'c' or 'v' tag. Line: %zu\n", __LineNo);
+		HarbolString_Del(&keystr);
+		return false;
+	}
+	else {
+		fprintf(stderr, "Harbol Config Parser :: unknown character detected (%c). Line: %zu\n", __LineNo, **cfgcoderef);
+		res = false;
 	}
 	HarbolString_Del(&keystr);
 	SkipWSandComments(cfgcoderef);
@@ -295,6 +341,7 @@ static bool HarbolCfg_ParseNumber(struct HarbolLinkMap *const restrict map, cons
 	
 	const bool result = LexNumber(cfgcoderef, &numstr, &type);
 	if( !result ) {
+		fprintf(stderr, "Harbol Config Parser :: invalid number. Line: %zu\n", __LineNo);
 		HarbolString_Del(&numstr);
 		return result;
 	}
@@ -306,9 +353,10 @@ static bool HarbolCfg_ParseNumber(struct HarbolLinkMap *const restrict map, cons
 // section = '{' <keyval> '}' ;
 static bool HarbolCfg_ParseSection(struct HarbolLinkMap *const restrict map, const char **cfgcoderef)
 {
-	if( **cfgcoderef!='{' )
+	if( **cfgcoderef!='{' ) {
+		fprintf(stderr, "Harbol Config Parser :: missing '{' for section. Line: %zu\n", __LineNo);
 		return false;
-	
+	}
 	(*cfgcoderef)++;
 	SkipWSandComments(cfgcoderef);
 	
@@ -317,36 +365,44 @@ static bool HarbolCfg_ParseSection(struct HarbolLinkMap *const restrict map, con
 		if( !res )
 			return false;
 	}
+	if( !**cfgcoderef ) {
+		fprintf(stderr, "Harbol Config Parser :: unexpected end of file with missing '}' for section. Line: %zu\n", __LineNo);
+		return false;
+	}
 	(*cfgcoderef)++;
 	return true;
 }
 
 
-HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_ParseFile(const char *restrict filename)
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_ParseFile(const char filename[restrict])
 {
 	if( !filename )
 		return NULL;
 	
-	FILE *restrict cfgfile = fopen(filename, "r+");
-	if( !cfgfile )
+	FILE *restrict cfgfile = fopen(filename, "r");
+	if( !cfgfile ) {
+		fputs("HarbolCfg_ParseFile :: unable to find file.\n", stderr);
 		return NULL;
-	
+	}
 	fseek(cfgfile, 0, SEEK_END);
 	const int64_t filesize = ftell(cfgfile);
 	if( filesize <= -1 ) {
+		fprintf(stderr, "HarbolCfg_ParseFile :: size of file (%" PRIi64 ") is negative!\n", filesize);
 		fclose(cfgfile), cfgfile=NULL;
 		return NULL;
 	}
 	rewind(cfgfile);
 	
-	char *restrict cfgcode = calloc(filesize, sizeof *cfgcode);
+	char *cfgcode = calloc(filesize+1, sizeof *cfgcode);
 	if( !cfgcode ) {
+		fputs("HarbolCfg_ParseFile :: unable to allocate buffer for file.\n", stderr);
 		fclose(cfgfile), cfgfile=NULL;
 		return NULL;
 	}
-	const size_t val = fread(cfgcode, filesize, sizeof *cfgcode, cfgfile);
-	if( val != (size_t)filesize ) {
-		fclose(cfgfile), cfgfile=NULL;
+	const size_t val = fread(cfgcode, sizeof *cfgcode, filesize, cfgfile);
+	fclose(cfgfile), cfgfile=NULL;
+	if( val != filesize ) {
+		fprintf(stderr, "HarbolCfg_ParseFile :: filesize (%" PRIi64 ") does not match 'fread' return value! (%zu)\n", filesize, val);
 		free(cfgcode), cfgcode=NULL;
 		return NULL;
 	}
@@ -356,15 +412,14 @@ HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_ParseFile(const char *restrict fil
 }
 
 
-HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_Parse(const char *cfgcode)
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_Parse(const char cfgcode[])
 {
 	if( !cfgcode )
 		return NULL;
-	
+	__LineNo = 0;
 	const char *iter = cfgcode;
 	struct HarbolLinkMap *objs = HarbolLinkMap_New();
-	if( !HarbolCfg_ParseKeyVal(objs, &iter) )
-		HarbolCfg_Free(&objs);
+	while( HarbolCfg_ParseKeyVal(objs, &iter) );
 	return objs;
 }
 
@@ -482,7 +537,7 @@ HARBOL_EXPORT bool HarbolCfg_ToString(const struct HarbolLinkMap *const restrict
 	return str->Len > 0;
 }
 
-static bool HarbolCfg_ParseTargetStringPath(const char *key, struct HarbolString *const restrict str)
+static bool HarbolCfg_ParseTargetStringPath(const char key[], struct HarbolString *const restrict str)
 {
 	if( !key || !str )
 		return false;
@@ -503,7 +558,7 @@ static bool HarbolCfg_ParseTargetStringPath(const char *key, struct HarbolString
 	return str->Len > 0;
 }
 
-HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_GetSectionByKey(struct HarbolLinkMap *const cfgmap, const char *key)
+HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_GetSectionByKey(struct HarbolLinkMap *const cfgmap, const char key[])
 {
 	if( !cfgmap || !key )
 		return NULL;
@@ -542,7 +597,7 @@ HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_GetSectionByKey(struct HarbolLinkM
 	return retmap;
 }
 
-HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *const cfgmap, const char *key)
+HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *const cfgmap, const char key[])
 {
 	if( !cfgmap || !key )
 		return NULL;
@@ -579,7 +634,7 @@ HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *c
 	return retstr;
 }
 
-HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *const cfgmap, const char *key)
+HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *const cfgmap, const char key[])
 {
 	if( !cfgmap || !key )
 		return 0.0;
@@ -616,7 +671,7 @@ HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *const cfgmap,
 	return retdbl;
 }
 
-HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *const cfgmap, const char *key)
+HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *const cfgmap, const char key[])
 {
 	if( !cfgmap || !key )
 		return 0LL;
@@ -653,7 +708,7 @@ HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *const cfgmap, 
 	return retint;
 }
 
-HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, const char *key, bool *const restrict boolref)
+HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, const char key[], bool *const restrict boolref)
 {
 	if( !cfgmap || !key || !boolref )
 		return false;
@@ -691,7 +746,7 @@ HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, co
 	return false;
 }
 
-HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, const char *key, union HarbolColor *const restrict colorref)
+HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, const char key[], union HarbolColor *const restrict colorref)
 {
 	if( !cfgmap || !key || !colorref )
 		return false;
@@ -730,7 +785,7 @@ HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, c
 }
 
 
-HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *const cfgmap, const char *key, union HarbolVec4D *const restrict vec4ref)
+HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *const cfgmap, const char key[], union HarbolVec4D *const restrict vec4ref)
 {
 	if( !cfgmap || !key || !vec4ref )
 		return false;

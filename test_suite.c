@@ -28,7 +28,7 @@ int main()
 	HARBOL_debug_output = fopen("data_structure_debug_output.txt", "wa+");
 	if( !HARBOL_debug_output )
 		return -1;
-	/*
+	
 	TestHarbolStringObject();
 	TestHarbolVector();
 	TestHarbolHashmap();
@@ -40,7 +40,7 @@ int main()
 	TestHarbolGraph();
 	TestTree();
 	TestHarbolLinkMap();
-	TestHarbolConversions();*/
+	TestHarbolConversions();
 	TestCfg();
 	fclose(HARBOL_debug_output), HARBOL_debug_output=NULL;
 }

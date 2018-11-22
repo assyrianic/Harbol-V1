@@ -196,12 +196,12 @@ HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *const restri
 	return !map || !map->Table ? false : HarbolMap_HasKey(&map->Map, strkey);
 }
 
-HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetKeyValByKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
 {
 	if( !map || !map->Table )
 		return NULL;
 	
-	return HarbolMap_GetHarbolKeyValPair(&map->Map, strkey);
+	return HarbolMap_GetNode(&map->Map, strkey);
 }
 
 HARBOL_EXPORT struct HarbolVector *HarbolLinkMap_GetBuckets(const struct HarbolLinkMap *const map)

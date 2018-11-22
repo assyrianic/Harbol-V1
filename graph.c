@@ -408,8 +408,8 @@ HARBOL_EXPORT void HarbolGraph_FromHarbolHashmap(struct HarbolGraph *const graph
 	for( size_t i=0 ; i<map->Len ; i++ ) {
 		struct HarbolVector *vec = map->Table + i;
 		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
-			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-			HarbolGraph_InsertVertexByValue(graph, node->Data);
+			struct HarbolKeyValPair *kv = vec->Table[n].Ptr;
+			HarbolGraph_InsertVertexByValue(graph, kv->Data);
 		}
 	}
 }
@@ -438,8 +438,8 @@ HARBOL_EXPORT void HarbolGraph_FromHarbolLinkMap(struct HarbolGraph *const graph
 		return;
 	
 	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
-		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
-		HarbolGraph_InsertVertexByValue(graph, n->Data);
+		struct HarbolKeyValPair *kv = map->Order.Table[i].Ptr;
+		HarbolGraph_InsertVertexByValue(graph, kv->Data);
 	}
 }
 
