@@ -82,7 +82,7 @@ HARBOL_EXPORT void HarbolByteBuffer_InsertDouble(struct HarbolByteBuffer *const 
 	p->Count += sizeof fval;
 }
 
-HARBOL_EXPORT void HarbolByteBuffer_InsertString(struct HarbolByteBuffer *const restrict p, const char *restrict str, const size_t strsize)
+HARBOL_EXPORT void HarbolByteBuffer_InsertString(struct HarbolByteBuffer *const restrict p, const char str[restrict], const size_t strsize)
 {
 	if( !p )
 		return;

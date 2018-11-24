@@ -115,6 +115,8 @@ struct HarbolUniList;
 struct HarbolBiList;
 struct HarbolByteBuffer;
 struct HarbolTuple;
+struct HarbolGraphEdge;
+struct HarbolGraphVertex;
 struct HarbolGraph;
 struct HarbolTree;
 struct HarbolLinkMap;
@@ -150,6 +152,8 @@ typedef union HarbolValue {
 	struct HarbolBiList *BiListPtr;
 	struct HarbolByteBuffer *ByteBufferPtr;
 	struct HarbolTuple *TuplePtr;
+	struct HarbolGraphEdge *GraphEdgePtr;
+	struct HarbolGraphVertex *GraphVertPtr;
 	struct HarbolGraph *GraphPtr;
 	struct HarbolTree *TreePtr;
 	struct HarbolLinkMap *LinkMapPtr;
@@ -411,7 +415,7 @@ HARBOL_EXPORT void HarbolByteBuffer_InsertByte(struct HarbolByteBuffer *, uint8_
 HARBOL_EXPORT void HarbolByteBuffer_InsertInt(struct HarbolByteBuffer *, uint64_t, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertFloat(struct HarbolByteBuffer *, float);
 HARBOL_EXPORT void HarbolByteBuffer_InsertDouble(struct HarbolByteBuffer *, double);
-HARBOL_EXPORT void HarbolByteBuffer_InsertString(struct HarbolByteBuffer *, const char *, size_t);
+HARBOL_EXPORT void HarbolByteBuffer_InsertString(struct HarbolByteBuffer *, const char [], size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertObject(struct HarbolByteBuffer *, const void *, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_InsertZeroes(struct HarbolByteBuffer *, size_t);
 HARBOL_EXPORT void HarbolByteBuffer_Delete(struct HarbolByteBuffer *, size_t);
@@ -455,7 +459,7 @@ HARBOL_EXPORT bool HarbolTuple_ToStruct(const struct HarbolTuple *, void *);
 
 #ifdef POOL_NO_MALLOC
 	#ifndef POOL_HEAPSIZE
-		#define POOL_HEAPSIZE	(65536)
+		#define POOL_HEAPSIZE    0xFFFF //(65535)
 	#endif
 #endif
 
@@ -470,7 +474,7 @@ typedef struct HarbolMemoryPool {
 	#ifndef POOL_HEAPSIZE
 		#error please define 'POOL_HEAPSIZE' with a valid size.
 	#else
-		HeapMem[POOL_HEAPSIZE],
+		HeapMem[POOL_HEAPSIZE+1],
 	#endif
 #else
 		*HeapMem,
@@ -637,26 +641,26 @@ HARBOL_EXPORT size_t HarbolLinkMap_Count(const struct HarbolLinkMap *);
 HARBOL_EXPORT size_t HarbolLinkMap_Len(const struct HarbolLinkMap *);
 HARBOL_EXPORT bool HarbolLinkMap_Rehash(struct HarbolLinkMap *);
 
-HARBOL_EXPORT bool HarbolLinkMap_Insert(struct HarbolLinkMap *, const char *, union HarbolValue);
+HARBOL_EXPORT bool HarbolLinkMap_Insert(struct HarbolLinkMap *, const char [], union HarbolValue);
 HARBOL_EXPORT bool HarbolLinkMap_InsertNode(struct HarbolLinkMap *, struct HarbolKeyValPair *);
 
 HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByIndex(const struct HarbolLinkMap *, size_t);
-HARBOL_EXPORT union HarbolValue HarbolLinkMap_Get(const struct HarbolLinkMap *, const char *);
-HARBOL_EXPORT void HarbolLinkMap_Set(struct HarbolLinkMap *, const char *, union HarbolValue);
+HARBOL_EXPORT union HarbolValue HarbolLinkMap_Get(const struct HarbolLinkMap *, const char []);
+HARBOL_EXPORT void HarbolLinkMap_Set(struct HarbolLinkMap *, const char [], union HarbolValue);
 HARBOL_EXPORT union HarbolValue HarbolLinkMap_GetByIndex(const struct HarbolLinkMap *, size_t);
 HARBOL_EXPORT void HarbolLinkMap_SetByIndex(struct HarbolLinkMap *, size_t, union HarbolValue);
 
-HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *, const char *, fnDestructor *);
+HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *, const char [], fnDestructor *);
 HARBOL_EXPORT void HarbolLinkMap_DeleteByIndex(struct HarbolLinkMap *, size_t, fnDestructor *);
-HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *, const char *);
-HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByKey(const struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *, const char []);
+HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByKey(const struct HarbolLinkMap *, const char []);
 HARBOL_EXPORT struct HarbolVector *HarbolLinkMap_GetBuckets(const struct HarbolLinkMap *);
 
 HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIter(const struct HarbolLinkMap *);
 HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIterEndLen(const struct HarbolLinkMap *);
 HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIterEndCount(const struct HarbolLinkMap *);
 
-HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByName(const struct HarbolLinkMap *, const char *);
+HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByName(const struct HarbolLinkMap *, const char []);
 HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByNode(const struct HarbolLinkMap *, struct HarbolKeyValPair *);
 HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByValue(const struct HarbolLinkMap *, union HarbolValue);
 

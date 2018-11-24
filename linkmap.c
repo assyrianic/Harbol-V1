@@ -119,7 +119,7 @@ HARBOL_EXPORT bool HarbolLinkMap_InsertNode(struct HarbolLinkMap *const map, str
 	return true;
 }
 
-HARBOL_EXPORT bool HarbolLinkMap_Insert(struct HarbolLinkMap *const restrict map, const char *restrict strkey, const union HarbolValue val)
+HARBOL_EXPORT bool HarbolLinkMap_Insert(struct HarbolLinkMap *const restrict map, const char strkey[restrict], const union HarbolValue val)
 {
 	if( !map || !strkey )
 		return false;
@@ -136,12 +136,12 @@ HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByIndex(const struct
 	return ( !map || !map->Table || !map->Order.Table ) ? NULL : map->Order.Table[index].Ptr;
 }
 
-HARBOL_EXPORT union HarbolValue HarbolLinkMap_Get(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+HARBOL_EXPORT union HarbolValue HarbolLinkMap_Get(const struct HarbolLinkMap *const restrict map, const char strkey[restrict])
 {
 	return ( !map || !HarbolMap_HasKey(&map->Map, strkey) ) ? (union HarbolValue){0} : HarbolMap_Get(&map->Map, strkey);
 }
 
-HARBOL_EXPORT void HarbolLinkMap_Set(struct HarbolLinkMap *const restrict map, const char *restrict strkey, const union HarbolValue val)
+HARBOL_EXPORT void HarbolLinkMap_Set(struct HarbolLinkMap *const restrict map, const char strkey[restrict], const union HarbolValue val)
 {
 	if( !map || !HarbolLinkMap_HasKey(map, strkey) )
 		return;
@@ -168,7 +168,7 @@ HARBOL_EXPORT void HarbolLinkMap_SetByIndex(struct HarbolLinkMap *const map, con
 		node->Data = val;
 }
 
-HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *const restrict map, const char *restrict strkey, fnDestructor *const dtor)
+HARBOL_EXPORT void HarbolLinkMap_Delete(struct HarbolLinkMap *const restrict map, const char strkey[restrict], fnDestructor *const dtor)
 {
 	if( !map || !map->Table || !HarbolLinkMap_HasKey(map, strkey) )
 		return;
@@ -191,12 +191,12 @@ HARBOL_EXPORT void HarbolLinkMap_DeleteByIndex(struct HarbolLinkMap *const map, 
 	HarbolVector_Delete(&map->Order, index, NULL);
 }
 
-HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+HARBOL_EXPORT bool HarbolLinkMap_HasKey(const struct HarbolLinkMap *const restrict map, const char strkey[restrict])
 {
 	return !map || !map->Table ? false : HarbolMap_HasKey(&map->Map, strkey);
 }
 
-HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByKey(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+HARBOL_EXPORT struct HarbolKeyValPair *HarbolLinkMap_GetNodeByKey(const struct HarbolLinkMap *const restrict map, const char strkey[restrict])
 {
 	if( !map || !map->Table )
 		return NULL;
@@ -224,7 +224,7 @@ HARBOL_EXPORT union HarbolValue *HarbolLinkMap_GetIterEndCount(const struct Harb
 	return map ? map->Order.Table + map->Order.Count : NULL;
 }
 
-HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByName(const struct HarbolLinkMap *const restrict map, const char *restrict strkey)
+HARBOL_EXPORT size_t HarbolLinkMap_GetIndexByName(const struct HarbolLinkMap *const restrict map, const char strkey[restrict])
 {
 	if( !map || !strkey )
 		return SIZE_MAX;

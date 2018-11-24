@@ -627,6 +627,17 @@ void TestHarbolTuple(void)
 	fputs("\n", HARBOL_debug_output);
 	HarbolTuple_Free(&p);
 	
+	p = HarbolTuple_New(3, (size_t[]){ sizeof(int), sizeof(char), sizeof(short) }, false);
+	assert( p );
+	fprintf(HARBOL_debug_output, "p's size: '%zu'\n", p->Len);
+	
+	fputs("\ntuple :: printing newly aligned 3-tuple fields.\n", HARBOL_debug_output);
+	for( size_t i=0 ; i<p->Fields.Count ; i++ ) {
+		fprintf(HARBOL_debug_output, "index: %zu -> p's offset: '%" PRIu64 "' | size: '%" PRIu64 "'\n", i, HarbolVector_Get(&p->Fields, i).UInt64 & 0xffFFffFF, HarbolVector_Get(&p->Fields, i).UInt64 >> 32);
+	}
+	fputs("\n", HARBOL_debug_output);
+	HarbolTuple_Free(&p);
+	
 	p = HarbolTuple_New(3, (size_t[]){ sizeof(HarbolTuple), sizeof(HarbolLinkMap), sizeof(HarbolString) }, false);
 	assert( p );
 	fprintf(HARBOL_debug_output, "p's size: '%zu'\n", p->Len);
@@ -653,7 +664,7 @@ void TestHarbolTuple(void)
 	HarbolTuple_Del(p);
 	fprintf(HARBOL_debug_output, "p's item is null? '%s'\n", p->Datum ? "no" : "yes");
 	HarbolTuple_Free(&p);
-	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
+	fprintf(HARBOL_debug_output, "p is null? '%s'\n\n", p ? "no" : "yes");
 }
 
 void TestHarbolMemoryPool(void)
@@ -662,9 +673,9 @@ void TestHarbolMemoryPool(void)
 		return;
 	
 	// Test allocation and initializations
-	fputs("heap :: test allocation/initialization.\n", HARBOL_debug_output);
+	fputs("mempool :: test allocation/initialization.\n", HARBOL_debug_output);
 	
-	struct HarbolMemoryPool i = (struct HarbolMemoryPool){0};
+	struct HarbolMemoryPool i;
 #ifdef HARBOL_HEAP_NO_MALLOC
 	HarbolMemoryPool_Init(&i);
 #else
@@ -673,7 +684,8 @@ void TestHarbolMemoryPool(void)
 	fprintf(HARBOL_debug_output, "remaining heap mem: '%zu'\n", HarbolMemoryPool_Remaining(&i));
 	
 	// test giving memory
-	fputs("heap :: test giving memory.\n", HARBOL_debug_output);
+	fputs("mempool :: test giving memory.\n", HARBOL_debug_output);
+	fputs("\nmempool :: allocating int ptr.\n", HARBOL_debug_output);
 	int *p = HarbolMemoryPool_Alloc(&i, sizeof *p);
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 	if( p ) {
@@ -681,6 +693,7 @@ void TestHarbolMemoryPool(void)
 		fprintf(HARBOL_debug_output, "p's value: %i\n", *p);
 	}
 	
+	fputs("\nmempool :: allocating float ptr.\n", HARBOL_debug_output);
 	float *f = HarbolMemoryPool_Alloc(&i, sizeof *f);
 	fprintf(HARBOL_debug_output, "f is null? '%s'\n", f ? "no" : "yes");
 	if( f ) {
@@ -690,12 +703,12 @@ void TestHarbolMemoryPool(void)
 	fprintf(HARBOL_debug_output, "remaining heap mem: '%zu'\n", HarbolMemoryPool_Remaining(&i));
 	
 	// test releasing memory
-	fputs("heap :: test releasing memory.\n", HARBOL_debug_output);
+	fputs("mempool :: test releasing memory.\n", HARBOL_debug_output);
 	HarbolMemoryPool_Dealloc(&i, f), f=NULL;
 	HarbolMemoryPool_Dealloc(&i, p), p=NULL;
 	
 	// test re-giving memory
-	fputs("heap :: test regiving memory.\n", HARBOL_debug_output);
+	fputs("mempool :: test regiving memory.\n", HARBOL_debug_output);
 	p = HarbolMemoryPool_Alloc(&i, sizeof *p);
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 	if( p ) {
@@ -714,24 +727,24 @@ void TestHarbolMemoryPool(void)
 	fprintf(HARBOL_debug_output, "remaining heap mem: '%zu'\n", HarbolMemoryPool_Remaining(&i));
 	
 	// test giving array memory
-	fputs("heap :: test giving array memory.\n", HARBOL_debug_output);
+	fputs("\nmempool :: test giving array memory.\n", HARBOL_debug_output);
 	const size_t arrsize = 100;
 	p = HarbolMemoryPool_Alloc(&i, sizeof *p * arrsize);
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 	if( p ) {
-		for( size_t i=0 ; i<arrsize ; i++ )
+		for( size_t i=0 ; i<arrsize ; i++ ) {
 			p[i] = i+1;
-		for( size_t i=0 ; i<arrsize ; i++ )
 			fprintf(HARBOL_debug_output, "p[%zu] value: %i\n", i, p[i]);
+		}
 	}
 	fprintf(HARBOL_debug_output, "remaining heap mem: '%zu'\n", HarbolMemoryPool_Remaining(&i));
 	f = HarbolMemoryPool_Alloc(&i, sizeof *f * arrsize);
 	fprintf(HARBOL_debug_output, "f is null? '%s'\n", f ? "no" : "yes");
 	if( f ) {
-		for( size_t i=0 ; i<arrsize ; i++ )
+		for( size_t i=0 ; i<arrsize ; i++ ) {
 			f[i] = i+1.15f;
-		for( size_t i=0 ; i<arrsize ; i++ )
 			fprintf(HARBOL_debug_output, "f[%zu] value: %f\n", i, f[i]);
+		}
 	}
 	HarbolMemoryPool_Dealloc(&i, p), p=NULL;
 	HarbolMemoryPool_Dealloc(&i, f), f=NULL;
@@ -739,7 +752,7 @@ void TestHarbolMemoryPool(void)
 	
 	
 	// test using heap to make a unilinked list!
-	fputs("heap :: test using heap for unilinked list.\n", HARBOL_debug_output);
+	fputs("\nmempool :: test using heap for unilinked list.\n", HARBOL_debug_output);
 	struct HarbolUniList *list = HarbolMemoryPool_Alloc(&i, sizeof *list);
 	assert( list );
 	
@@ -779,7 +792,7 @@ void TestHarbolMemoryPool(void)
 	HarbolMemoryPool_Dealloc(&i, list), list=NULL;
 	
 	// test "double freeing"
-	fputs("\nheap :: test double freeing.\n", HARBOL_debug_output);
+	fputs("\nmempool :: test double freeing.\n", HARBOL_debug_output);
 	p = HarbolMemoryPool_Alloc(&i, sizeof *p);
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 	if( p ) {
@@ -790,9 +803,9 @@ void TestHarbolMemoryPool(void)
 	HarbolMemoryPool_Dealloc(&i, p);
 	HarbolMemoryPool_Dealloc(&i, p);
 	
-	fprintf(HARBOL_debug_output, "\nheap :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
+	fprintf(HARBOL_debug_output, "\nmempool :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
 	for( struct HarbolAllocNode *n = i.FreeList ; n ; n = n->NextFree )
-		fprintf(HARBOL_debug_output, "defragged heap :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
+		fprintf(HARBOL_debug_output, "defragged mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
 	
 	float *hk = HarbolMemoryPool_Alloc(&i, sizeof *hk * 99);
 	double *fg = HarbolMemoryPool_Alloc(&i, sizeof *fg * 10);
@@ -804,44 +817,50 @@ void TestHarbolMemoryPool(void)
 	HarbolMemoryPool_Dealloc(&i, fg);
 	HarbolMemoryPool_Dealloc(&i, ac);
 	HarbolMemoryPool_Dealloc(&i, f32);
-	fprintf(HARBOL_debug_output, "\nheap :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
+	fprintf(HARBOL_debug_output, "\nmempool :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
 	for( struct HarbolAllocNode *n = i.FreeList ; n ; n = n->NextFree )
-		fprintf(HARBOL_debug_output, "heap :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
-	fprintf(HARBOL_debug_output, "heap :: heap bottom (%zu).\n", (uintptr_t)i.HeapBottom);
+		fprintf(HARBOL_debug_output, "mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
+	fprintf(HARBOL_debug_output, "mempool :: heap bottom (%zu).\n", (uintptr_t)i.HeapBottom);
 	
 	HarbolMemoryPool_Dealloc(&i, hk);
-	fprintf(HARBOL_debug_output, "\ncrazy heap :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
+	fprintf(HARBOL_debug_output, "\ncrazy mempool :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
 	for( struct HarbolAllocNode *n = i.FreeList ; n ; n = n->NextFree )
-		fprintf(HARBOL_debug_output, "crazy heap :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
+		fprintf(HARBOL_debug_output, "crazy mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
 		
 	HarbolMemoryPool_Dealloc(&i, jj);
 	
-	fprintf(HARBOL_debug_output, "\nlast heap :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
+	fprintf(HARBOL_debug_output, "\nlast mempool :: pool size == %zu.\n", HarbolMemoryPool_Remaining(&i));
 	for( struct HarbolAllocNode *n = i.FreeList ; n ; n = n->NextFree )
-		fprintf(HARBOL_debug_output, "last heap :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
-	//fprintf(HARBOL_debug_output, "heap :: heap bottom (%zu).\n", (uintptr_t)i.HeapBottom);
+		fprintf(HARBOL_debug_output, "last mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
+	//fprintf(HARBOL_debug_output, "mempool :: heap bottom (%zu).\n", (uintptr_t)i.HeapBottom);
 	
-	fputs("\nheap :: test reallocating.\n", HARBOL_debug_output);
+	fputs("\nmempool :: test reallocating jj to a single value.\n", HARBOL_debug_output);
 	jj = HarbolMemoryPool_Alloc(&i, sizeof *jj);
 	*jj = 50;
-	fprintf(HARBOL_debug_output, "heap :: jj == %i.\n", *jj);
+	fprintf(HARBOL_debug_output, "mempool :: jj == %i.\n", *jj);
 	
 	int *newer = HarbolMemoryPool_Realloc(&i, jj, sizeof *newer);
-	fprintf(HARBOL_debug_output, "heap :: newer == %i.\n", *newer);
+	fputs("\nmempool :: test reallocating jj to int ptr 'newer'.\n", HARBOL_debug_output);
+	fprintf(HARBOL_debug_output, "mempool :: newer == %i.\n", *newer);
+	
 	jj = HarbolMemoryPool_Realloc(&i, newer, sizeof *jj);
-	fprintf(HARBOL_debug_output, "heap :: jj == %i.\n", *jj);
+	fputs("\nmempool :: test reallocating newer back to jj.\n", HARBOL_debug_output);
+	fprintf(HARBOL_debug_output, "mempool :: jj == %i.\n", *jj);
 	
 	newer = HarbolMemoryPool_Realloc(&i, jj, sizeof *newer * 10);
+	fputs("\nmempool :: test reallocating jj back to newer as an array of int[10].\n", HARBOL_debug_output);
 	for( size_t i=0 ; i<10 ; i++ ) {
 		newer[i] = i+1;
-		fprintf(HARBOL_debug_output, "heap :: newer[%zu] == %i.\n", i, newer[i]);
+		fprintf(HARBOL_debug_output, "mempool :: newer[%zu] == %i.\n", i, newer[i]);
 	}
+	fputs("\n", HARBOL_debug_output);
 	newer = HarbolMemoryPool_Realloc(&i, newer, sizeof *newer * 5);
 	for( size_t i=0 ; i<5 ; i++ )
-		fprintf(HARBOL_debug_output, "heap :: reallocated newer[%zu] == %i.\n", i, newer[i]);
+		fprintf(HARBOL_debug_output, "mempool :: reallocated newer[%zu] == %i.\n", i, newer[i]);
+	HarbolMemoryPool_Dealloc(&i, newer);
 	
 	// free data
-	fputs("heap :: test destruction.\n", HARBOL_debug_output);
+	fputs("\nmempool :: test destruction.\n", HARBOL_debug_output);
 	HarbolMemoryPool_Del(&i);
 	fprintf(HARBOL_debug_output, "i's heap bottom is null? '%s'\n", i.HeapBottom ? "no" : "yes");
 	fprintf(HARBOL_debug_output, "i's FreeList is null? '%s'\n", i.FreeList ? "no" : "yes");
@@ -1028,7 +1047,7 @@ void TestTree(void)
 		fprintf(HARBOL_debug_output, "p's child's children data: '%s'\n", child->Data.StrObjPtr->CStr);
 	}
 	fputs("\nfreeing string data.\n", HARBOL_debug_output);
-	HarbolTree_Del(p, (bool (*)(void *))HarbolString_Free);
+	HarbolTree_Del(p, (fnDestructor *)HarbolString_Free);
 	
 	// free data
 	fputs("\ntree :: test destruction.\n", HARBOL_debug_output);

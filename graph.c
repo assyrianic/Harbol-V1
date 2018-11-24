@@ -295,10 +295,10 @@ HARBOL_EXPORT struct HarbolGraphVertex *HarbolGraph_GetVertexByIndex(struct Harb
 
 HARBOL_EXPORT union HarbolValue HarbolGraph_GetVertexDataByIndex(struct HarbolGraph *const graph, const size_t index)
 {
-	if( !graph || !graph->Table )
+	if( !graph )
 		return (union HarbolValue){0};
 	
-	struct HarbolGraphVertex *vertex = graph->Table[index].Ptr;
+	struct HarbolGraphVertex *vertex = HarbolVector_Get(&graph->Vertices, index).GraphVertPtr;
 	return !vertex ? (union HarbolValue){0} : vertex->Data;
 }
 
@@ -317,8 +317,8 @@ HARBOL_EXPORT struct HarbolGraphEdge *HarbolGraph_GetEdgeBtwnVertices(struct Har
 	if( !graph )
 		return NULL;
 	
-	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
-	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	const struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	const struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
 	if( !vert1 || !vert2 || vert1==vert2 )
 		return NULL;
 	
@@ -335,8 +335,8 @@ HARBOL_EXPORT bool HarbolGraph_IsVertexAdjacent(struct HarbolGraph *const graph,
 	if( !graph )
 		return false;
 	
-	struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
-	struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
+	const struct HarbolGraphVertex *const restrict vert1 = HarbolGraph_GetVertexByIndex(graph, index1);
+	const struct HarbolGraphVertex *const restrict vert2 = HarbolGraph_GetVertexByIndex(graph, index2);
 	if( !vert1 || !vert2 || vert1==vert2 )
 		return false;
 	
