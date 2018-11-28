@@ -58,39 +58,7 @@ HARBOL_EXPORT size_t HarbolLinkMap_Len(const struct HarbolLinkMap *const map)
 
 HARBOL_EXPORT bool HarbolLinkMap_Rehash(struct HarbolLinkMap *const map)
 {
-	if( !map || !map->Table )
-		return false;
-	/*
-	const size_t old_size = map->Len;
-	map->Len <<= 1;
-	map->Count = 0;
-	
-	struct HarbolVector
-		*curr = NULL,
-		*temp = calloc(map->Len, sizeof *temp)
-	;
-	if( !temp ) {
-		puts("**** Memory Allocation Error **** HarbolMap_Rehash::temp is NULL\n");
-		map->Len = 0;
-		return false;
-	}
-	
-	curr = map->Table;
-	map->Table = temp;
-	
-	HarbolVector_Del(&map->Order, NULL);
-	for( size_t i=0 ; i<old_size ; i++ ) {
-		struct HarbolVector *vec = curr + i;
-		for( size_t n=0 ; n<HarbolVector_Count(vec) ; n++ ) {
-			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
-			HarbolLinkMap_InsertNode(map, node);
-		}
-		HarbolVector_Del(vec, NULL);
-	}
-	free(curr), curr=NULL;
-	
-	return true; */
-	return HarbolMap_Rehash(&map->Map);
+	return ( !map || !map->Table ) ? false : HarbolMap_Rehash(&map->Map);
 }
 
 HARBOL_EXPORT bool HarbolLinkMap_InsertNode(struct HarbolLinkMap *const map, struct HarbolKeyValPair *node)

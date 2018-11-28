@@ -735,6 +735,7 @@ HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *, const char []
 HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *, const char [], union HarbolVec4D *);
 /***************/
 
+
 #ifdef __cplusplus
 }
 #endif

@@ -1555,7 +1555,7 @@ void TestCfg(void)
 	
 	// Test realistic config file string
 	fputs("cfg :: test realistic config file string.\n", HARBOL_debug_output);
-	const char *restrict test_cfg = "'root' { \
+	const char *restrict test_cfg = "'root': { \
 		'firstName': 'John', \
 		'lastName': 'Smith', \
 		'isAlive': true, \
@@ -1618,7 +1618,7 @@ void TestCfg(void)
 			fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type: %s\n", type->CStr);
 		}
 		type = HarbolCfg_GetStrByKey(larger_cfg, "root.age");
-		fprintf(HARBOL_debug_output, "root.age type valid?: '%s'\n", type ? "yes" : "no");
+		fprintf(HARBOL_debug_output, "root.age string type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
 			fprintf(HARBOL_debug_output, "root.age: %s\n", type->CStr);
 		}
@@ -1629,7 +1629,7 @@ void TestCfg(void)
 		
 		union HarbolColor color = {0};
 		const bool gotcolor = HarbolCfg_GetColorByKey(larger_cfg, "root.colors", &color);
-		fprintf(HARBOL_debug_output, "root.color color?: '%s': '%u, %u, %u, %u'\n", gotcolor ? "yes" : "no", color.R, color.G, color.B, color.A);
+		fprintf(HARBOL_debug_output, "root.colors color?: '%s': '[%u, %u, %u, %u]'\n", gotcolor ? "yes" : "no", color.R, color.G, color.B, color.A);
 		HarbolCfg_Free(&larger_cfg);
 	}
 	

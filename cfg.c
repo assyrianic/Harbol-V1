@@ -247,6 +247,7 @@ static bool HarbolCfg_ParseKeyVal(struct HarbolLinkMap *const restrict map, cons
 			union HarbolColor color;
 			union HarbolVec4D vec4d;
 		} matrix_value = {0};
+		
 		size_t iterations = 0;
 		while( **cfgcoderef && **cfgcoderef != ']' ) {
 			struct HarbolString numstr = {NULL, 0};
@@ -563,38 +564,45 @@ HARBOL_EXPORT struct HarbolLinkMap *HarbolCfg_GetSectionByKey(struct HarbolLinkM
 	if( !cfgmap || !key )
 		return NULL;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap
-		*itermap = cfgmap,
-		*restrict retmap = NULL
-	;
-	
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
-		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var || var->TypeTag != HarbolTypeLinkMap )
-			break;
-		
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
-			retmap = var->Val.LinkMapPtr;
-			break;
-		}
-		else itermap = var->Val.LinkMapPtr;
-		HarbolString_Del(&sectionstr);
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeLinkMap ) ? NULL : var->Val.LinkMapPtr;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return retmap;
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap
+			*itermap = cfgmap,
+			*restrict retmap = NULL
+		;
+		while( !retmap ) {
+			HarbolString_Del(&sectionstr);
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			
+			if( !var || var->TypeTag != HarbolTypeLinkMap )
+				break;
+			else if( !HarbolString_CmpStr(&sectionstr, &targetstr) )
+				retmap = var->Val.LinkMapPtr;
+			else itermap = var->Val.LinkMapPtr;
+		}
+		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return retmap;
+	}
 }
 
 HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *const cfgmap, const char key[])
@@ -602,36 +610,46 @@ HARBOL_EXPORT struct HarbolString *HarbolCfg_GetStrByKey(struct HarbolLinkMap *c
 	if( !cfgmap || !key )
 		return NULL;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	struct HarbolString *restrict retstr = NULL;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeString ) ? NULL : var->Val.StrObjPtr;
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		struct HarbolString *restrict retstr = NULL;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeString ) {
-			retstr = var->Val.StrObjPtr;
-			break;
+		while( !retstr ) {
+			HarbolString_Del(&sectionstr);
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeString && !HarbolString_CmpStr(&sectionstr, &targetstr) )
+				retstr = var->Val.StrObjPtr;
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
+			else break;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return retstr;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return retstr;
 }
 
 HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *const cfgmap, const char key[])
@@ -639,36 +657,47 @@ HARBOL_EXPORT double HarbolCfg_GetFloatByKey(struct HarbolLinkMap *const cfgmap,
 	if( !cfgmap || !key )
 		return 0.0;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	double retdbl = 0.0;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeFloat ) ? 0.0 : var->Val.Double;
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		double retval = 0.0;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeFloat ) {
-			retdbl = var->Val.Double;
-			break;
+		while( itermap ) {
+			HarbolString_Del(&sectionstr);
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeFloat && !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
+				retval = var->Val.Double;
+				break;
+			}
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return retval;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return retdbl;
 }
 
 HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *const cfgmap, const char key[])
@@ -676,36 +705,46 @@ HARBOL_EXPORT int64_t HarbolCfg_GetIntByKey(struct HarbolLinkMap *const cfgmap, 
 	if( !cfgmap || !key )
 		return 0LL;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	int64_t retint = 0LL;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeInt ) ? 0 : var->Val.Int64;
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		int64_t retval = 0;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeInt ) {
-			retint = var->Val.Int64;
-			break;
+		while( itermap ) {
+			HarbolString_Del(&sectionstr);
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeInt && !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
+				retval = var->Val.Int64;
+				break;
+			}
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return retval;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return retint;
 }
 
 HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, const char key[], bool *const restrict boolref)
@@ -713,37 +752,51 @@ HARBOL_EXPORT bool HarbolCfg_GetBoolByKey(struct HarbolLinkMap *const cfgmap, co
 	if( !cfgmap || !key || !boolref )
 		return false;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		if( !var || var->TypeTag != HarbolTypeBool )
+			return false;
+		*boolref = var->Val.Bool;
+		return true;
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		bool success = false;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeBool ) {
-			*boolref = var->Val.Bool;
+		while( itermap ) {
 			HarbolString_Del(&sectionstr);
-			HarbolString_Del(&targetstr);
-			return true;
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeBool && !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
+				*boolref = var->Val.Bool;
+				success = true;
+				break;
+			}
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return success;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return false;
 }
 
 HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, const char key[], union HarbolColor *const restrict colorref)
@@ -751,37 +804,46 @@ HARBOL_EXPORT bool HarbolCfg_GetColorByKey(struct HarbolLinkMap *const cfgmap, c
 	if( !cfgmap || !key || !colorref )
 		return false;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeColor ) ? false : HarbolTuple_ToStruct(var->Val.TuplePtr, colorref);
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		bool success = false;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeColor ) {
-			HarbolTuple_ToStruct(var->Val.TuplePtr, colorref);
+		while( itermap ) {
 			HarbolString_Del(&sectionstr);
-			HarbolString_Del(&targetstr);
-			return true;
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeColor && !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
+				success = HarbolTuple_ToStruct(var->Val.TuplePtr, colorref);
+				break;
+			}
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return success;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return false;
 }
 
 
@@ -790,35 +852,44 @@ HARBOL_EXPORT bool HarbolCfg_GetVec4ByKey(struct HarbolLinkMap *const cfgmap, co
 	if( !cfgmap || !key || !vec4ref )
 		return false;
 	
-	struct HarbolString
-		sectionstr = {NULL, 0},
-		targetstr = {NULL, 0}
-	;
-	HarbolCfg_ParseTargetStringPath(key, &targetstr);
-	const char *iter = key;
-	
-	// use a single linkmap ptr to iterate.
-	struct HarbolLinkMap *itermap = cfgmap;
-	while( itermap ) {
-		while( *iter && *iter != '.' )
-			HarbolString_AddChar(&sectionstr, *iter++);
-		iter++;
+	const struct HarbolVariant *restrict var = NULL;
+	// first check if we're getting a singular value OR we iterate through a sectional path.
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		var = HarbolLinkMap_Get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag != HarbolTypeVec4D ) ? false : HarbolTuple_ToStruct(var->Val.TuplePtr, vec4ref);
+	}
+	// ok, not a singular value, iterate to the specific linkmap section then.
+	else {
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		HarbolCfg_ParseTargetStringPath(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		bool success = false;
 		
-		const struct HarbolVariant *const restrict var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
-		if( !var ) {
-			break;
-		}
-		else if( var->TypeTag==HarbolTypeLinkMap )
-			itermap = var->Val.LinkMapPtr;
-		else if( !HarbolString_CmpStr(&sectionstr, &targetstr) && var->TypeTag==HarbolTypeVec4D ) {
-			HarbolTuple_ToStruct(var->Val.TuplePtr, vec4ref);
+		while( itermap ) {
 			HarbolString_Del(&sectionstr);
-			HarbolString_Del(&targetstr);
-			return true;
+			while( *iter && *iter != '.' )
+				HarbolString_AddChar(&sectionstr, *iter++);
+			if( *iter )
+				iter++;
+			
+			var = HarbolLinkMap_Get(itermap, sectionstr.CStr).VarPtr;
+			if( !var )
+				break;
+			else if( var->TypeTag==HarbolTypeVec4D && !HarbolString_CmpStr(&sectionstr, &targetstr) ) {
+				success = HarbolTuple_ToStruct(var->Val.TuplePtr, vec4ref);
+				break;
+			}
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
 		HarbolString_Del(&sectionstr);
+		HarbolString_Del(&targetstr);
+		return success;
 	}
-	HarbolString_Del(&sectionstr);
-	HarbolString_Del(&targetstr);
-	return false;
 }

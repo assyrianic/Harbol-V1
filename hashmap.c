@@ -52,6 +52,59 @@ HARBOL_EXPORT size_t GenHash(const char cstr[restrict])
 	return h;
 }
 
+uint32_t Int32Hash(uint32_t a)
+{
+	a = (a+0x7ed55d16) + (a<<12);
+	a = (a^0xc761c23c) ^ (a>>19);
+	a = (a+0x165667b1) + (a<<5);
+	a = (a+0xd3a2646c) ^ (a<<9);
+	a = (a+0xfd7046c5) + (a<<3);
+	a = (a^0xb55a4f09) ^ (a>>16);
+	return a;
+}
+
+uint64_t Int64Hash(uint64_t a)
+{
+	a = (~a) + (a << 21);
+	a = a ^ (a >> 24);
+	a = (a + (a << 3)) + (a << 8);
+	a = a ^ (a >> 14);
+	a = (a + (a << 2)) + (a << 4);
+	a = a ^ (a >> 28);
+	a = a + (a << 31);
+	return a;
+}
+
+size_t GenIntHash(size_t a)
+{
+	return sizeof(size_t)==4 ? Int32Hash(a) : sizeof(size_t)==8 ? Int64Hash(a) : 0;
+}
+
+size_t PtrHash(const void *const p)
+{
+	size_t y = (size_t)p;
+	return (y >> 4u) | (y << (8u * sizeof(void *) - 4u));
+}
+
+size_t FloatHash(const float fval)
+{
+	union {
+		float f;
+		size_t s;
+	} conv = {fval};
+	return GenIntHash(conv.s);
+}
+
+uint64_t DoubleHash(const double dbl)
+{
+	union {
+		double d;
+		uint64_t l;
+	} conv = {dbl};
+	return Int64Hash(conv.l);
+}
+
+
 HARBOL_EXPORT struct HarbolHashmap *HarbolMap_New(void)
 {
 	struct HarbolHashmap *map = calloc(1, sizeof *map);
