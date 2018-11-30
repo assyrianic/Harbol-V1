@@ -87,4 +87,4 @@ I can be contacted at edyonan@yahoo.com
 
 ## License
 
-This project is licensed under MIT License.
+This project is licensed under Apache License.
