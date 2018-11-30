@@ -490,9 +490,9 @@ Used by the Harbol Config Parser for storing vector values like `'keyname': v[ 1
 
 # Functions/Methods
 
-## HarbolString_New
+## harbol_string_new
 ```c
-struct HarbolString *HarbolString_New(void);
+struct HarbolString *harbol_string_new(void);
 ```
 
 ### Description
@@ -505,9 +505,9 @@ None.
 returns a pointer to a dynamically allocated, empty string object. `NULL` if err occurred.
 
 
-## HarbolString_NewStr
+## harbol_string_new_cstr
 ```c
-struct HarbolString *HarbolString_NewStr(const char *cstr);
+struct HarbolString *harbol_string_new_cstr(const char *cstr);
 ```
 
 ### Description
@@ -520,9 +520,9 @@ allocates an empty string object and initializes it with a C string.
 returns a pointer to a dynamically allocated, empty string object. `NULL` if err occurred.
 
 
-## HarbolString_Del
+## harbol_string_del
 ```c
-void HarbolString_Del(struct HarbolString *str);
+void harbol_string_del(struct HarbolString *str);
 ```
 
 ### Description
@@ -535,9 +535,9 @@ cleans and clears a string object's data.
 None.
 
 
-## HarbolString_Init
+## harbol_string_init
 ```c
-void HarbolString_Init(struct HarbolString *str);
+void harbol_string_init(struct HarbolString *str);
 ```
 
 ### Description
@@ -550,9 +550,9 @@ initializes a string object to zero.
 None.
 
 
-## HarbolString_InitStr
+## harbol_string_init_cstr
 ```c
-void HarbolString_InitStr(struct HarbolString *str, const char *cstr);
+void harbol_string_init_cstr(struct HarbolString *str, const char *cstr);
 ```
 
 ### Description
@@ -566,9 +566,9 @@ initializes a string object and copies a given C string.
 None.
 
 
-## HarbolString_AddChar
+## harbol_string_add_char
 ```c
-void HarbolString_AddChar(struct HarbolString *str, char chr);
+void harbol_string_add_char(struct HarbolString *str, char chr);
 ```
 
 ### Description
@@ -582,9 +582,9 @@ appends a single character to the end of the string object.
 None.
 
 
-## HarbolString_Add
+## harbol_string_add_str
 ```c
-void HarbolString_Add(struct HarbolString *str1, const struct HarbolString *str2);
+void harbol_string_add_str(struct HarbolString *str1, const struct HarbolString *str2);
 ```
 
 ### Description
@@ -598,9 +598,9 @@ concatenates `str2` to `str1` string object.
 None.
 
 
-## HarbolString_AddStr
+## harbol_string_add_cstr
 ```c
-void HarbolString_AddStr(struct HarbolString *str, const char *cstr);
+void harbol_string_add_cstr(struct HarbolString *str, const char *cstr);
 ```
 
 ### Description
@@ -614,9 +614,9 @@ concatenates a C string to a string object.
 None.
 
 
-## HarbolString_GetStr
+## harbol_string_get_cstr
 ```c
-char *HarbolString_GetStr(const struct HarbolString *str);
+char *harbol_string_get_cstr(const struct HarbolString *str);
 ```
 
 ### Description
@@ -629,9 +629,9 @@ converts the string object to a C string.
 returns a pointer to the allocated string data.
 
 
-## HarbolString_Len
+## harbol_string_get_len
 ```c
-size_t HarbolString_Len(const struct HarbolString *str);
+size_t harbol_string_get_len(const struct HarbolString *str);
 ```
 
 ### Description
@@ -644,9 +644,9 @@ gets the size of the string.
 size of the string's allocated data.
 
 
-## HarbolString_Copy
+## harbol_string_add_str
 ```c
-void HarbolString_Copy(struct HarbolString *str1, const struct HarbolString *str2);
+void harbol_string_add_str(struct HarbolString *str1, const struct HarbolString *str2);
 ```
 
 ### Description

@@ -32,21 +32,21 @@
 
 int main(const int argc, char *argv[])
 {
-	HarbolString str; HarbolString_InitStr(&str, "my initial string!");
-	HarbolString_AddStr(&str, "and another string concatenated!");
-	HarbolString_Del(&str);
+	HarbolString str; harbol_string_init_cstr(&str, "my initial string!");
+	harbol_string_add_cstr(&str, "and another string concatenated!");
+	harbol_string_del(&str);
 	
-	HarbolVector vec; HarbolVector_Init(&vec);
-	HarbolVector_Insert(&vec, (HarbolValue){.Float=2.f});
-	HarbolVector_Insert(&vec, (HarbolValue){.Float=3.f});
-	HarbolVector_Insert(&vec, (HarbolValue){.Float=4.f});
-	const float f = HarbolVector_Get(&vec, 1).Float;
-	HarbolVector_Del(&vec, NULL);
+	HarbolVector vec; harbol_vector_init(&vec);
+	harbol_vector_insert(&vec, (HarbolValue){.Float=2.f});
+	harbol_vector_insert(&vec, (HarbolValue){.Float=3.f});
+	harbol_vector_insert(&vec, (HarbolValue){.Float=4.f});
+	const float f = harbol_vector_get(&vec, 1).Float;
+	harbol_vector_del(&vec, NULL);
 	
-	HarbolHashmap *ptrmap = HarbolMap_New();
-	HarbolMap_Insert(ptrmap, "style", (HarbolValue){.Float=2.3553f});
-	HarbolMap_Insert(ptrmap, "border", (HarbolValue){.Double=12.995});
-	HarbolMap_Free(&ptrmap, NULL);
+	HarbolHashmap *ptrmap = harbol_hashmap_new();
+	harbol_hashmap_insert(ptrmap, "style", (HarbolValue){.Float=2.3553f});
+	harbol_hashmap_insert(ptrmap, "border", (HarbolValue){.Double=12.995});
+	harbol_hashmap_free(&ptrmap, NULL);
 }
 ```
 
