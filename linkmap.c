@@ -70,7 +70,7 @@ HARBOL_EXPORT bool harbol_linkmap_insert_node(struct HarbolLinkMap *const map, s
 		map->Len = 8;
 		map->Table = calloc(map->Len, sizeof *map->Table);
 		if( !map->Table ) {
-			puts("**** Memory Allocation Error **** harbol_hashmap_insert_node::map->Table is NULL\n");
+			//puts("**** Memory Allocation Error **** harbol_hashmap_insert_node::map->Table is NULL\n");
 			map->Len = 0;
 			return false;
 		}

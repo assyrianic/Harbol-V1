@@ -169,7 +169,7 @@ HARBOL_EXPORT bool harbol_hashmap_rehash(struct HarbolHashmap *const map)
 		*temp = calloc(map->Len, sizeof *temp)
 	;
 	if( !temp ) {
-		puts("**** Memory Allocation Error **** harbol_hashmap_rehash::temp is NULL\n");
+		//puts("**** Memory Allocation Error **** harbol_hashmap_rehash::temp is NULL\n");
 		map->Len = 0;
 		return false;
 	}
@@ -198,7 +198,7 @@ HARBOL_EXPORT bool harbol_hashmap_insert_node(struct HarbolHashmap *const map, s
 		map->Len = 8;
 		map->Table = calloc(map->Len, sizeof *map->Table);
 		if( !map->Table ) {
-			puts("**** Memory Allocation Error **** harbol_hashmap_insert_node::map->Table is NULL\n");
+			//puts("**** Memory Allocation Error **** harbol_hashmap_insert_node::map->Table is NULL\n");
 			map->Len = 0;
 			return false;
 		}
@@ -206,7 +206,7 @@ HARBOL_EXPORT bool harbol_hashmap_insert_node(struct HarbolHashmap *const map, s
 	else if( map->Count >= map->Len )
 		harbol_hashmap_rehash(map);
 	else if( harbol_hashmap_has_key(map, node->KeyName.CStr) ) {
-		puts("harbol_hashmap_insert_node::map already has entry!\n");
+		//puts("harbol_hashmap_insert_node::map already has entry!\n");
 		return false;
 	}
 	
