@@ -992,31 +992,31 @@ void TestTree(void)
 	// Test allocation and initializations
 	fputs("tree :: test allocation/initialization.\n", HARBOL_debug_output);
 	struct HarbolTree i = (struct HarbolTree){0};
-	HarbolTree_init(&i);
-	struct HarbolTree *p = HarbolTree_new((union HarbolValue){0});
+	harbol_tree_init(&i);
+	struct HarbolTree *p = harbol_tree_new((union HarbolValue){0});
 	if( p )
 		fputs("graph :: allocation/initialization of p is GOOD.\n", HARBOL_debug_output);
 	
 	
 	// Test insertions
 	fputs("\ntree :: test insertions.\n", HARBOL_debug_output);
-	fprintf(HARBOL_debug_output, "insertion by node success?: '%u'\n", HarbolTree_insert_child_node(p, HarbolTree_new((union HarbolValue){.Int64=20})));
-	fprintf(HARBOL_debug_output, "insertion by value success?: '%u'\n", HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=10}));
-	HarbolTree_del(p, NULL);
+	fprintf(HARBOL_debug_output, "insertion by node success?: '%u'\n", harbol_tree_insert_child_node(p, harbol_tree_new((union HarbolValue){.Int64=20})));
+	fprintf(HARBOL_debug_output, "insertion by value success?: '%u'\n", harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=10}));
+	harbol_tree_del(p, NULL);
 	
 	// Test deletions
 	fputs("\ntree :: test deletions by first adding 5 children.\n", HARBOL_debug_output);
-	HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=1});
-	HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=2});
-	HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=3});
-	HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=4});
-	HarbolTree_insert_child_val(p, (union HarbolValue){.Int64=5});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=1});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=2});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=3});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=4});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.Int64=5});
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
 		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
 	}
 	fputs("\ndeleting index 1\n", HARBOL_debug_output);
-	HarbolTree_delete_child_by_index(p, 1, NULL);
+	harbol_tree_delete_child_by_index(p, 1, NULL);
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
 		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
@@ -1025,20 +1025,20 @@ void TestTree(void)
 	fputs("\ntree :: test deletion by node reference.\n", HARBOL_debug_output);
 	// delete first child!
 	fputs("\ndeleting index 0\n", HARBOL_debug_output);
-	HarbolTree_delete_child_by_ref(p, (struct HarbolTree **)&p->Children.Table[0].Ptr, NULL);
+	harbol_tree_delete_child_by_ref(p, (struct HarbolTree **)&p->Children.Table[0].Ptr, NULL);
 	for( size_t n=0 ; n<p->Children.Count ; n++ ) {
 		struct HarbolTree *child = p->Children.Table[n].Ptr;
 		fprintf(HARBOL_debug_output, "child #%zu value: '%" PRIi64 "'\n", n, child->Data.Int64);
 	}
 	// Test creating something of an abstract syntax tree.
 	fputs("\ntree :: test creating something of an abstract syntax tree.\n", HARBOL_debug_output);
-	HarbolTree_del(p, NULL);
-	HarbolTree_set_val(p, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("program")});
-	HarbolTree_insert_child_val(p, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("stmt")});
-	HarbolTree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("if")});
-	HarbolTree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("cond")});
-	HarbolTree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("stmt")});
-	HarbolTree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("else")});
+	harbol_tree_del(p, NULL);
+	harbol_tree_set_val(p, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("program")});
+	harbol_tree_insert_child_val(p, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("stmt")});
+	harbol_tree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("if")});
+	harbol_tree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("cond")});
+	harbol_tree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("stmt")});
+	harbol_tree_insert_child_val(p->Children.Table[0].Ptr, (union HarbolValue){.StrObjPtr=harbol_string_new_cstr("else")});
 	fprintf(HARBOL_debug_output, "p's data: '%s'\n", p->Data.StrObjPtr->CStr);
 	struct HarbolTree *kid = p->Children.Table[0].Ptr;
 	fprintf(HARBOL_debug_output, "p's child data: '%s'\n", kid->Data.StrObjPtr->CStr);
@@ -1047,16 +1047,16 @@ void TestTree(void)
 		fprintf(HARBOL_debug_output, "p's child's children data: '%s'\n", child->Data.StrObjPtr->CStr);
 	}
 	fputs("\nfreeing string data.\n", HARBOL_debug_output);
-	HarbolTree_del(p, (fnDestructor *)harbol_string_free);
+	harbol_tree_del(p, (fnDestructor *)harbol_string_free);
 	
 	// free data
 	fputs("\ntree :: test destruction.\n", HARBOL_debug_output);
-	HarbolTree_del(&i, NULL);
+	harbol_tree_del(&i, NULL);
 	fprintf(HARBOL_debug_output, "i's Children vector is null? '%s'\n", i.Children.Table ? "no" : "yes");
 	
-	HarbolTree_del(p, NULL);
+	harbol_tree_del(p, NULL);
 	fprintf(HARBOL_debug_output, "p's Children vector is null? '%s'\n", p->Children.Table ? "no" : "yes");
-	HarbolTree_free(&p, NULL);
+	harbol_tree_free(&p, NULL);
 	fprintf(HARBOL_debug_output, "p is null? '%s'\n", p ? "no" : "yes");
 }
 
