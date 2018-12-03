@@ -598,26 +598,26 @@ typedef struct HarbolTree {
 	union HarbolValue Data;
 } HarbolTree;
 
-HARBOL_EXPORT struct HarbolTree *HarbolTree_new(union HarbolValue);
-HARBOL_EXPORT void HarbolTree_init(struct HarbolTree *);
-HARBOL_EXPORT void HarbolTree_init_val(struct HarbolTree *, union HarbolValue);
-HARBOL_EXPORT void HarbolTree_del(struct HarbolTree *, fnDestructor *);
-HARBOL_EXPORT void HarbolTree_free(struct HarbolTree **, fnDestructor *);
+HARBOL_EXPORT struct HarbolTree *harbol_tree_new(union HarbolValue);
+HARBOL_EXPORT void harbol_tree_init(struct HarbolTree *);
+HARBOL_EXPORT void harbol_tree_init_val(struct HarbolTree *, union HarbolValue);
+HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *, fnDestructor *);
+HARBOL_EXPORT void harbol_tree_free(struct HarbolTree **, fnDestructor *);
 
-HARBOL_EXPORT bool HarbolTree_insert_child_node(struct HarbolTree *, struct HarbolTree *);
-HARBOL_EXPORT bool HarbolTree_insert_child_val(struct HarbolTree *, union HarbolValue);
+HARBOL_EXPORT bool harbol_tree_insert_child_node(struct HarbolTree *, struct HarbolTree *);
+HARBOL_EXPORT bool harbol_tree_insert_child_val(struct HarbolTree *, union HarbolValue);
 
-HARBOL_EXPORT bool HarbolTree_delete_child_by_ref(struct HarbolTree *, struct HarbolTree **, fnDestructor *);
-HARBOL_EXPORT bool HarbolTree_delete_child_by_index(struct HarbolTree *, size_t, fnDestructor *);
-HARBOL_EXPORT bool HarbolTree_delete_child_by_val(struct HarbolTree *, union HarbolValue, fnDestructor *);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *, struct HarbolTree **, fnDestructor *);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *, size_t, fnDestructor *);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *, union HarbolValue, fnDestructor *);
 
-HARBOL_EXPORT struct HarbolTree *HarbolTree_get_child_by_index(const struct HarbolTree *, size_t);
-HARBOL_EXPORT struct HarbolTree *HarbolTree_get_child_by_val(const struct HarbolTree *, union HarbolValue);
-HARBOL_EXPORT union HarbolValue HarbolTree_get_val(const struct HarbolTree *);
-HARBOL_EXPORT void HarbolTree_set_val(struct HarbolTree *, union HarbolValue);
-HARBOL_EXPORT struct HarbolVector *HarbolTree_get_children_vector(const struct HarbolTree *);
-HARBOL_EXPORT size_t HarbolTree_get_children_len(const struct HarbolTree *);
-HARBOL_EXPORT size_t HarbolTree_get_children_count(const struct HarbolTree *);
+HARBOL_EXPORT struct HarbolTree *harbol_tree_get_child_by_index(const struct HarbolTree *, size_t);
+HARBOL_EXPORT struct HarbolTree *harbol_tree_get_child_by_val(const struct HarbolTree *, union HarbolValue);
+HARBOL_EXPORT union HarbolValue harbol_tree_get_val(const struct HarbolTree *);
+HARBOL_EXPORT void harbol_tree_set_val(struct HarbolTree *, union HarbolValue);
+HARBOL_EXPORT struct HarbolVector *harbol_tree_get_children_vector(struct HarbolTree *);
+HARBOL_EXPORT size_t harbol_tree_get_children_len(const struct HarbolTree *);
+HARBOL_EXPORT size_t harbol_tree_get_children_count(const struct HarbolTree *);
 /***************/
 
 
