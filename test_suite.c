@@ -1569,7 +1569,7 @@ void TestCfg(void)
 		}, \
 		'phoneNumbers': { \
 			'1' { \
-				'type': 'home', \
+				'type': 'home \\x5c', \
 				'number': '212 555-1234' \
 			}, \
 			'2' { \
@@ -1612,26 +1612,60 @@ void TestCfg(void)
 		}
 		
 		fputs("cfg :: test retrieving string value from subsection of realistic config.\n", HARBOL_debug_output);
-		struct HarbolString *type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers.1.type");
+		char *restrict type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers.1.type");
 		fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
-			fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type: %s\n", type->CStr);
+			fprintf(HARBOL_debug_output, "root.phoneNumbers.1.type: %s\n", type);
 		}
 		type = harbol_cfg_get_str_by_key(larger_cfg, "root.age");
 		fprintf(HARBOL_debug_output, "root.age string type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
-			fprintf(HARBOL_debug_output, "root.age: %s\n", type->CStr);
+			fprintf(HARBOL_debug_output, "root.age: %s\n", type);
 		}
-		const int64_t age = harbol_cfg_get_int_by_key(larger_cfg, "root.age");
+		int64_t age; harbol_cfg_get_int_by_key(larger_cfg, "root.age", &age);
 		fprintf(HARBOL_debug_output, "root.age int?: '%" PRIi64 "'\n", age);
-		const double money = harbol_cfg_get_float_by_key(larger_cfg, "root.money");
+		double money = harbol_cfg_get_float_by_key(larger_cfg, "root.money", &money);
 		fprintf(HARBOL_debug_output, "root.money float?: '%f'\n", money);
 		
 		union HarbolColor color = {0};
 		const bool gotcolor = harbol_cfg_get_color_by_key(larger_cfg, "root.colors", &color);
 		fprintf(HARBOL_debug_output, "root.colors color?: '%s': '[%u, %u, %u, %u]'\n", gotcolor ? "yes" : "no", color.R, color.G, color.B, color.A);
+		
+		fputs("cfg :: test override setting an existing key-value from null to a string type.\n", HARBOL_debug_output);
+		harbol_cfg_set_str_by_key(larger_cfg, "root.spouse", "Jane Smith", true);
+		{
+			struct HarbolString stringcfg = {NULL, 0};
+			harbol_cfg_to_str(larger_cfg, &stringcfg);
+			fprintf(HARBOL_debug_output, "\nadded spouse!: \n%s\n", stringcfg.CStr);
+			harbol_string_del(&stringcfg);
+		}
+		
+		fputs("cfg :: test building cfg file!\n", HARBOL_debug_output);
+		fprintf(HARBOL_debug_output, "\nconfig construction result: '%s'\n", harbol_cfg_build_file(larger_cfg, "large_cfg.ini", true) ? "success" : "failure");
+		
+		fputs("cfg :: test setting a key back to null\n", HARBOL_debug_output);
+		harbol_cfg_set_key_to_null(larger_cfg, "root.spouse");
+		{
+			struct HarbolString stringcfg = {NULL, 0};
+			harbol_cfg_to_str(larger_cfg, &stringcfg);
+			fprintf(HARBOL_debug_output, "\nremoved spouse!: \n%s\n", stringcfg.CStr);
+			harbol_string_del(&stringcfg);
+		}
+		
+		fputs("cfg :: test adding other cfg as a new section\n", HARBOL_debug_output);
+		{
+			harbol_linkmap_insert(larger_cfg, "former lovers", (union HarbolValue){ .VarPtr=harbol_variant_new((union HarbolValue){ .LinkMapPtr=cfg }, HarbolTypeLinkMap) });
+			struct HarbolString stringcfg = {NULL, 0};
+			harbol_cfg_to_str(larger_cfg, &stringcfg);
+			fprintf(HARBOL_debug_output, "\nremoved spouse!: \n%s\n", stringcfg.CStr);
+			harbol_string_del(&stringcfg);
+		}
+		fputs("cfg :: test building newer cfg file!\n", HARBOL_debug_output);
+		fprintf(HARBOL_debug_output, "\nconfig construction result: '%s'\n", harbol_cfg_build_file(larger_cfg, "large_cfg_new_sect.ini", true) ? "success" : "failure");
 		harbol_cfg_free(&larger_cfg);
+		fprintf(HARBOL_debug_output, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
 	}
+	
 	
 	fputs("cfg :: test destruction.\n", HARBOL_debug_output);
 	harbol_cfg_free(&cfg);
