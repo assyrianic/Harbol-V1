@@ -29,7 +29,7 @@ int main()
 	if( !g_harbol_debug_stream )
 		return -1;
 	
-	//test_harbol_string();
+	test_harbol_string();
 	//test_harbol_vector();
 	//test_harbol_hashmap();
 	//test_harbol_unilist();
@@ -109,9 +109,10 @@ void test_harbol_string(void)
 	// test string formatting.
 	fputs("\nstring :: test string formatting.\n", g_harbol_debug_stream);
 	harbol_string_del(&i);
-	harbol_string_reserve(&i, 100);
+	//harbol_string_reserve(&i, 100);
 	harbol_string_format(&i, "%i + %f%% + %i", 900, 4242.2, 10);
 	fputs(harbol_string_get_cstr(&i), g_harbol_debug_stream);
+	fprintf(g_harbol_debug_stream, "\ni's string len '%zu' | strlen val '%zu'\n", i.Len, strlen(i.CStr));
 	fputs("\n", g_harbol_debug_stream);
 	
 	// free data

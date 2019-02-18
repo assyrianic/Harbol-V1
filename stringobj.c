@@ -174,10 +174,27 @@ HARBOL_EXPORT int32_t harbol_string_format(struct HarbolString *const restrict s
 	if( !strobj || !fmt )
 		return -1;
 	
-	va_list ap;
+	va_list ap, st;
 	va_start(ap, fmt);
-	const int32_t result = vsnprintf(strobj->CStr, strobj->Len, fmt, ap);
+	va_start(st, fmt);
+	/*
+		'*snprintf' family returns the size of how large the writing
+		would be if the buffer was large enough.
+	*/
+	char c = 0;
+	const int32_t size = vsnprintf(&c, 1, fmt, ap);
 	va_end(ap);
+	if( strobj->CStr )
+		free(strobj->CStr), strobj->CStr=NULL;
+	
+	strobj->CStr = calloc(size+1, sizeof *strobj->CStr);
+	if( !strobj->CStr )
+		return -1;
+	strobj->Len = size;
+	
+	/* vsnprintf always checks n-1 so gotta increase len a bit to accomodate. */
+	const int32_t result = vsnprintf(strobj->CStr, strobj->Len+1, fmt, st);
+	va_end(st);
 	return result;
 }
 
@@ -230,4 +247,40 @@ HARBOL_EXPORT void harbol_string_clear(struct HarbolString *const strobj)
 		return;
 	
 	memset(strobj->CStr, 0, strobj->Len);
+}
+
+HARBOL_EXPORT bool harbol_string_read_file(struct HarbolString *const strobj, FILE *const file)
+{
+	if( !strobj || !file )
+		return false;
+	else {
+		fseek(file, 0, SEEK_END);
+		const long filesize = ftell(file);
+		if( filesize<=0 )
+			return false;
+		else rewind(file);
+		
+		if( strobj->CStr )
+			free(strobj->CStr), strobj->CStr=NULL;
+		strobj->CStr = calloc(filesize, sizeof *strobj->CStr);
+		
+		if( !strobj->CStr )
+			return false;
+		else {
+			strobj->Len = fread(strobj->CStr, sizeof *strobj->CStr, filesize, file);
+			return true;
+		}
+	}
+}
+
+HARBOL_EXPORT bool harbol_string_replace(struct HarbolString *const strobj, const char to_replace, const char with)
+{
+	if( !strobj || !strobj->CStr || !to_replace || !with )
+		return false;
+	else {
+		for( char *i=strobj->CStr ; *i ; i++ )
+			if( *i==to_replace )
+				*i = with;
+		return true;
+	}
 }

@@ -273,6 +273,8 @@ HARBOL_EXPORT bool harbol_string_is_empty(const struct HarbolString *str);
 HARBOL_EXPORT bool harbol_string_reserve(struct HarbolString *str, size_t size);
 HARBOL_EXPORT char *harbol_string_fgets(struct HarbolString *str, FILE *file);
 HARBOL_EXPORT void harbol_string_clear(struct HarbolString *str);
+HARBOL_EXPORT bool harbol_string_read_file(struct HarbolString *str, FILE *file);
+HARBOL_EXPORT bool harbol_string_replace(struct HarbolString *str, char to_replace, char with);
 /***************/
 
 
