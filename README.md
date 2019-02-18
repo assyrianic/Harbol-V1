@@ -22,6 +22,7 @@
 * General Tree - each node supports an 'n' number of children nodes.
 * Linked Hashmap (preserves insertion order).
 * JSON-like Key-Value Configuration File Parser (allows retrieving data from keys through python-style pathing).
+* General plugin system manager that is designed to be wrapped around to provide an easy-to-setup plugin API and plugin SDK.
 
 
 ## Usage
@@ -62,7 +63,7 @@ Simply drop a message or your question and you'll be reached in no time!
 
 ### Requirements
 
-C99 compiler and libc implementation with stdlib.h, stdio.h, and stddef.h.
+C99 compliant compiler and libc implementation with stdlib.h, stdio.h, and stddef.h.
 
 ### Installation
 

@@ -278,7 +278,7 @@ HARBOL_EXPORT bool harbol_mempool_defrag(struct HarbolMemoryPool *const mempool)
 		iter = &curr->NextFree;
 	}
 	/*
-	for( struct HarbolAllocNode *n=mempool->FreeList ; n ; n = n->NextFree )
+	for( struct HarbolAllocNode *restrict n=mempool->FreeList ; n ; n = n->NextFree )
 		printf(!n->Size ? "n == %zu | next == %zu | size of 0.\n" : "n == %zu | next == %zu\n", (uintptr_t)n, (uintptr_t)n->NextFree);
 	printf("HeapBottom == %zu\n", (uintptr_t)mempool->HeapBottom);
 	*/

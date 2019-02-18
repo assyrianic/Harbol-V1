@@ -18,7 +18,7 @@ void test_harbol_tree(void);
 void test_harbol_linkmap(void);
 void test_conversions(void);
 void test_harbol_cfg(void);
-//void test_harbol_plugins(void);
+void test_harbol_plugins(void);
 
 FILE *g_harbol_debug_stream = NULL;
 
@@ -29,19 +29,20 @@ int main()
 	if( !g_harbol_debug_stream )
 		return -1;
 	
-	test_harbol_string();
-	test_harbol_vector();
-	test_harbol_hashmap();
-	test_harbol_unilist();
-	test_harbol_bilist();
-	test_harbol_bytebuffer();
-	test_harbol_tuple();
-	test_harbol_mempool();
-	test_harbol_graph();
-	test_harbol_tree();
-	test_harbol_linkmap();
-	test_conversions();
-	test_harbol_cfg();
+	//test_harbol_string();
+	//test_harbol_vector();
+	//test_harbol_hashmap();
+	//test_harbol_unilist();
+	//test_harbol_bilist();
+	//test_harbol_bytebuffer();
+	//test_harbol_tuple();
+	//test_harbol_mempool();
+	//test_harbol_graph();
+	//test_harbol_tree();
+	//test_harbol_linkmap();
+	//test_conversions();
+	//test_harbol_cfg();
+	test_harbol_plugins();
 	fclose(g_harbol_debug_stream), g_harbol_debug_stream=NULL;
 }
 
@@ -342,7 +343,7 @@ void test_harbol_unilist(void)
 	for( struct HarbolUniListNode *n=harbol_unilist_get_head_node(p) ; n ; n = harbol_unilistnode_get_next_node(n) )
 		fprintf(g_harbol_debug_stream, "unilist value : %" PRIi64 "\n", harbol_unilistnode_get_val(n).Int64);
 	harbol_unilist_del_node_by_index(p, 0, NULL);
-	fprintf(g_harbol_debug_stream, "unilist head node ptr : %p, tail node ptr : %p\n", harbol_unilist_get_head_node(p), harbol_unilist_get_tail_node(p));
+	fprintf(g_harbol_debug_stream, "unilist head node ptr : %p, tail node ptr : %p\n", (void*)harbol_unilist_get_head_node(p), (void*)harbol_unilist_get_tail_node(p));
 	
 	
 	// test deleting items by index on a list size of 2.
@@ -467,7 +468,7 @@ void test_harbol_bilist(void)
 	for( struct HarbolBiListNode *n=harbol_bilist_get_head_node(p) ; n ; n = harbol_bilist_node_get_next_node(n) )
 		fprintf(g_harbol_debug_stream, "bilist value : %" PRIi64 "\n", harbol_bilist_node_get_val(n).Int64);
 	harbol_bilist_del_node_by_index(p, 0, NULL);
-	fprintf(g_harbol_debug_stream, "bilist head node ptr : %p, tail node ptr : %p\n", harbol_bilist_get_head_node(p), harbol_bilist_get_tail_node(p));
+	fprintf(g_harbol_debug_stream, "bilist head node ptr : %p, tail node ptr : %p\n", (void*)harbol_bilist_get_head_node(p), (void*)harbol_bilist_get_tail_node(p));
 	
 	
 	// test deleting items by index on a list size of 2.
@@ -805,7 +806,7 @@ void test_harbol_mempool(void)
 	
 	fprintf(g_harbol_debug_stream, "\nmempool :: pool size == %zu.\n", harbol_mempool_get_remaining(&i));
 	for( struct HarbolAllocNode *n = i.FreeList ; n ; n = n->NextFree )
-		fprintf(g_harbol_debug_stream, "defragged mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
+		fprintf(g_harbol_debug_stream, "mempool :: n (%zu) size == %zu.\n", (uintptr_t)n, n->Size);
 	
 	float *hk = harbol_mempool_alloc(&i, sizeof *hk * 99);
 	double *fg = harbol_mempool_alloc(&i, sizeof *fg * 10);
@@ -1671,32 +1672,56 @@ void test_harbol_cfg(void)
 	fprintf(g_harbol_debug_stream, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
 }
 
-/*
-#if OS_WINDOWS
-	#include <direct.h>
-#else
-	#include <unistd.h>
-#endif
+
+
+void on_plugin_load(struct HarbolPluginManager *manager, struct HarbolPlugin **const pluginref)
+{
+	(void)manager;
+	/* no way manager nor the plugin reference would be invalid... */
+	struct HarbolPlugin *const plugin = *pluginref;
+	struct HarbolString load_func_name; harbol_string_init_cstr(&load_func_name, harbol_plugin_get_name(plugin));
+	harbol_string_add_cstr(&load_func_name, "_load");
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_load - plugin name :: '%s'\n", harbol_plugin_get_name(plugin));
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_load :: getting function '%s'\n", harbol_string_get_cstr(&load_func_name));
+	int32_t (*const onload)() = (int32_t(*)())(intptr_t)harbol_plugin_get_sym(plugin, harbol_string_get_cstr(&load_func_name));
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_load :: function ptr valid? '%s'\n", onload ? "yes" : "no");
+	if( onload )
+		fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_load :: function return value: '%i'\n", (*onload)());
+	
+	harbol_string_del(&load_func_name);
+}
+
+void on_plugin_unload(struct HarbolPluginManager *manager, struct HarbolPlugin **const pluginref)
+{
+	(void)manager;
+	/* no way manager nor the plugin reference would be invalid... */
+	struct HarbolPlugin *const plugin = *pluginref;
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_unload - plugin name :: '%s'\n", harbol_plugin_get_name(plugin));
+	
+	struct HarbolString unload_func_name; harbol_string_init_cstr(&unload_func_name, harbol_plugin_get_name(plugin));
+	harbol_string_add_cstr(&unload_func_name, "_unload");
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_unload :: getting function '%s'\n", harbol_string_get_cstr(&unload_func_name));
+	void (*const onunload)() = (void(*)())(intptr_t)harbol_plugin_get_sym(plugin, harbol_string_get_cstr(&unload_func_name));
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: on_plugin_unload :: function ptr valid? '%s'\n", onunload ? "yes" : "no");
+	if( onunload )
+		(*onunload)();
+	harbol_string_del(&unload_func_name);
+}
 
 void test_harbol_plugins(void)
 {
 	if( !g_harbol_debug_stream )
 		return;
+	fputs("plugin manager :: test init.\n", g_harbol_debug_stream);
+	struct HarbolPluginManager pm = (struct HarbolPluginManager){0};
+	fprintf(g_harbol_debug_stream, "\nplugin manager :: initialization good?: '%s'\n", harbol_plugin_manager_init(&pm, "test_harbol_plugins/", true, on_plugin_load) ? "yes" : "no");
 	
-	struct PluginManager pm = (struct PluginManager){0};
-	char currdir[FILENAME_MAX]; // FILENAME_MAX is defined in <stdio.h>
-#if OS_WINDOWS
-	if( GetCurrentDirectory(sizeof currdir, currdir) )
-#else
-	if( getcwd(currdir, sizeof currdir) )
-#endif
-		PluginManager_init(&pm, currdir);
+	fputs("\nplugin manager :: test deleting plugin by name.\n", g_harbol_debug_stream);
+	harbol_plugin_manager_delete_plugin_by_name(&pm, "test_plugin", on_plugin_unload);
 	
-	bool r = PluginManager_LoadModule(&pm, "testplugin", 0, NULL);
-	fprintf(g_harbol_debug_stream, "module loaded testplugin.so?: %u\n", r);
-	r = PluginManager_LoadModule(&pm, "testplugin2", 0, NULL);
-	fprintf(g_harbol_debug_stream, "module loaded testplugin2.so?: %u\n", r);
-	//PluginManager_UnloadAllModules(&pm, 0, NULL);
-	PluginManager_del(&pm);
+	fputs("\nplugin manager :: test reloading all loaded plugins.\n", g_harbol_debug_stream);
+	harbol_plugin_manager_reload_plugins(&pm, NULL, NULL);
+	
+	fputs("\nplugin manager :: test destruction.\n", g_harbol_debug_stream);
+	harbol_plugin_manager_del(&pm, on_plugin_unload);
 }
-*/

@@ -813,6 +813,63 @@ HARBOL_EXPORT bool harbol_cfg_build_file(const struct HarbolLinkMap *cfg, const 
 /***************/
 
 
+/************* General Plugin System (plugins.c) *************/
+#ifdef OS_WINDOWS
+	typedef HMODULE HarbolModule_t;
+#else
+	typedef void *HarbolModule_t;
+#endif
+
+typedef struct HarbolPlugin {
+	struct HarbolString LibPath;
+	struct HarbolString *Name;
+	HarbolModule_t SharedLib;
+} HarbolPlugin;
+
+struct HarbolPlugin *harbol_plugin_new(HarbolModule_t module);
+bool harbol_plugin_free(struct HarbolPlugin **pluginref);
+
+HARBOL_EXPORT HarbolModule_t harbol_plugin_get_module(const struct HarbolPlugin *plugin);
+HARBOL_EXPORT const char *harbol_plugin_get_name(const struct HarbolPlugin *plugin);
+HARBOL_EXPORT const char *harbol_plugin_get_path(const struct HarbolPlugin *plugin);
+HARBOL_EXPORT void *harbol_plugin_get_sym(const struct HarbolPlugin *plugin, const char sym_name[]);
+
+HARBOL_EXPORT bool harbol_plugin_reload(struct HarbolPlugin *plugin);
+
+
+struct HarbolPluginManager;
+
+/* When an individual plugin has been changed such as being loaded, reloading, or unloaded, this callback will fire.
+ * You can use this callback to then individually do whatever you need to the plugin.
+ */
+typedef void fnHarbolPluginEvent(struct HarbolPluginManager *manager, struct HarbolPlugin **pluginref);
+
+typedef struct HarbolPluginManager {
+	struct HarbolLinkMap Plugins;
+	struct HarbolString Directory;
+} HarbolPluginManager;
+
+HARBOL_EXPORT struct HarbolPluginManager *harbol_plugin_manager_new(const char directory[], bool load_plugins, fnHarbolPluginEvent *load_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_init(struct HarbolPluginManager *manager, const char directory[], bool load_plugins, fnHarbolPluginEvent *load_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_del(struct HarbolPluginManager *manager, fnHarbolPluginEvent *unload_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_free(struct HarbolPluginManager **managerref, fnHarbolPluginEvent *unload_cb);
+
+HARBOL_EXPORT struct HarbolPlugin *harbol_plugin_manager_get_plugin_by_name(const struct HarbolPluginManager *manager, const char plugin_name[]);
+HARBOL_EXPORT struct HarbolPlugin *harbol_plugin_manager_get_plugin_by_index(const struct HarbolPluginManager *manager, size_t index);
+
+HARBOL_EXPORT size_t harbol_plugin_manager_get_plugin_count(const struct HarbolPluginManager *manager);
+HARBOL_EXPORT const char *harbol_plugin_manager_get_plugin_dir(const struct HarbolPluginManager *manager);
+
+HARBOL_EXPORT bool harbol_plugin_manager_load_plugin_by_name(struct HarbolPluginManager *manager, const char plugin_name[], fnHarbolPluginEvent *load_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_delete_plugin_by_name(struct HarbolPluginManager *manager, const char plugin_name[], fnHarbolPluginEvent *unload_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_delete_plugin_by_index(struct HarbolPluginManager *manager, size_t index, fnHarbolPluginEvent *unload_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_load_plugins(struct HarbolPluginManager *manager, fnHarbolPluginEvent *load_cb);
+
+HARBOL_EXPORT bool harbol_plugin_manager_unload_plugins(struct HarbolPluginManager *manager, fnHarbolPluginEvent *unload_cb);
+HARBOL_EXPORT bool harbol_plugin_manager_reload_plugins(struct HarbolPluginManager *manager, fnHarbolPluginEvent *prereload_cb, fnHarbolPluginEvent *postreload_cb);
+/***************/
+
+
 #ifdef __cplusplus
 }
 #endif
