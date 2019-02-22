@@ -1,7 +1,4 @@
-#include <stdlib.h>
-#include <stdio.h>
 #include <assert.h>
-#include <time.h>
 #include <stdalign.h>
 #include "harbol.h"
 
@@ -19,6 +16,7 @@ void test_harbol_linkmap(void);
 void test_conversions(void);
 void test_harbol_cfg(void);
 void test_harbol_plugins(void);
+void test_harbol_multithreading(void);
 
 FILE *g_harbol_debug_stream = NULL;
 
@@ -29,7 +27,7 @@ int main()
 	if( !g_harbol_debug_stream )
 		return -1;
 	
-	test_harbol_string();
+	//test_harbol_string();
 	//test_harbol_vector();
 	//test_harbol_hashmap();
 	//test_harbol_unilist();
@@ -42,7 +40,8 @@ int main()
 	//test_harbol_linkmap();
 	//test_conversions();
 	//test_harbol_cfg();
-	test_harbol_plugins();
+	//test_harbol_plugins();
+	test_harbol_multithreading();
 	fclose(g_harbol_debug_stream), g_harbol_debug_stream=NULL;
 }
 
@@ -1725,4 +1724,68 @@ void test_harbol_plugins(void)
 	
 	fputs("\nplugin manager :: test destruction.\n", g_harbol_debug_stream);
 	harbol_plugin_manager_del(&pm, on_plugin_unload);
+}
+
+
+static int first_thread_test(void *const vargp) 
+{
+	(void)vargp;
+	puts("Hello from Thread!"); 
+	return 0;
+}
+
+static HarbolMutex g_mutex;
+
+static int second_thread_test_mutex(void *const vargp) 
+{
+	harbol_mutex_lock(&g_mutex);
+	struct {
+		int i[3];
+		double g;
+	} *const restrict p = vargp;
+	p->i[0] = 2;
+	p->i[1] = p->i[0] * 2;
+	p->i[2] = p->i[1] * 2;
+	p->g = 5.0;
+	harbol_mutex_unlock(&g_mutex);
+	return 0;
+}
+
+static int second_thread_test_mutex2(void *const vargp) 
+{
+	harbol_mutex_lock(&g_mutex);
+	struct {
+		int i[3];
+		double g;
+	} *const restrict p = vargp;
+	p->i[0] = 5;
+	p->i[1] = p->i[0] * 2;
+	p->i[2] = p->i[1] * 2;
+	p->g = 1.0;
+	harbol_mutex_unlock(&g_mutex);
+	return 0;
+}
+
+void test_harbol_multithreading(void)
+{
+	if( !g_harbol_debug_stream )
+		return;
+	
+	fputs("multithreading :: test thread init.\n", g_harbol_debug_stream);
+	struct HarbolThread thread = {0};
+	const enum HarbolThreadRes res = harbol_thread_init(&thread, first_thread_test, NULL);
+	fprintf(g_harbol_debug_stream, "\nmultithreading :: initialization good?: '%s'\n", res==HarbolThreadResSuccess ? "yes" : "no");
+	fprintf(g_harbol_debug_stream, "\nmultithreading :: thread joining good?: '%s'\n", harbol_thread_join(&thread, NULL)==HarbolThreadResSuccess ? "yes" : "no");
+	
+	fputs("\nmultithreading :: test mutex init.\n", g_harbol_debug_stream);
+	struct { int i[3]; double g; } f = {0};
+	harbol_mutex_init(&g_mutex, HarbolMutexTypeRecursive);
+	struct HarbolThread thread2 = {0};
+	harbol_thread_init(&thread2, second_thread_test_mutex2, &f);
+	harbol_thread_init(&thread, second_thread_test_mutex, &f);
+	
+	harbol_thread_join(&thread, NULL);
+	fprintf(g_harbol_debug_stream, "\nmultithreading :: mutex data: f.i[0] = '%i', f.i[1] = '%i', f.i[2] = '%i', f.g = '%f'\n", f.i[0], f.i[1], f.i[2], f.g);
+	harbol_thread_join(&thread2, NULL);
+	fprintf(g_harbol_debug_stream, "\nmultithreading :: mutex data: f.i[0] = '%i', f.i[1] = '%i', f.i[2] = '%i', f.g = '%f'\n", f.i[0], f.i[1], f.i[2], f.g);
 }

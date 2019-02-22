@@ -1,15 +1,14 @@
-#include <stdlib.h>
-#include <stdio.h>
 #ifdef OS_WINDOWS
-	#define HARBOL_LIB
-	#include <windows.h>
-	#include <direct.h>
+#	define HARBOL_LIB
+#	include <windows.h>
+#	include <direct.h>
 #else
-	#include <dlfcn.h>
-	#include <unistd.h>
+#	include <dlfcn.h>
+#	include <unistd.h>
 #endif
-#include "harbol.h"
+
 #include "tinydir.h"
+#include "harbol.h"
 
 
 #if OS_WINDOWS
@@ -106,7 +105,7 @@ HARBOL_EXPORT bool harbol_plugin_reload(struct HarbolPlugin *const plugin)
 #if OS_WINDOWS
 		LoadLibrary(plugin->LibPath.CStr);
 #else
-		dlopen(plugin->LibPath.CStr, RTLD_NOW);
+		dlopen(plugin->LibPath.CStr, RTLD_NOW | RTLD_GLOBAL);
 #endif
 		return plugin->SharedLib != NULL;
 	}
@@ -129,7 +128,7 @@ static void _load_plugin(struct HarbolPluginManager *const manager, tinydir_file
 #if OS_WINDOWS
 			LoadLibrary(f->path);
 #else
-			dlopen(f->path, RTLD_NOW);
+			dlopen(f->path,  RTLD_NOW | RTLD_GLOBAL);
 #endif
 	if( !module ) {
 	#ifdef OS_WINDOWS

@@ -1,8 +1,5 @@
-#include <stdlib.h>
-#include <stdio.h>
-
 #ifdef OS_WINDOWS
-	#define HARBOL_LIB
+#	define HARBOL_LIB
 #endif
 #include "harbol.h"
 

@@ -1,9 +1,7 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <stdalign.h>
 #ifdef OS_WINDOWS
 	#define HARBOL_LIB
 #endif
+
 #include "harbol.h"
 
 typedef uint32_t tuple_size_t;

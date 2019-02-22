@@ -1,8 +1,7 @@
-#include <stdlib.h>
-#include <stdio.h>
 #ifdef OS_WINDOWS
-	#define HARBOL_LIB
+#	define HARBOL_LIB
 #endif
+
 #include "harbol.h"
 
 HARBOL_EXPORT struct HarbolTree *harbol_tree_new(const union HarbolValue val)

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef HARBOL_INCLUDED
+#	define HARBOL_INCLUDED
 
 #ifdef __cplusplus
 extern "C" {
@@ -7,25 +8,25 @@ extern "C" {
 #	endif
 #endif
 
-// Windows
+/* Check if Windows */
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
 #	ifndef OS_WINDOWS
 #		define OS_WINDOWS 1
 #	endif
 
-// Linux/UNIX & FreeBSD
+/* Check if Linux/UNIX & FreeBSD */
 #elif defined(unix) || defined(__unix) || defined(__unix__) || defined(__linux__) || defined(linux) || defined(__linux) || defined(__freeBSD__)
 #	ifndef OS_LINUX_UNIX
 #		define OS_LINUX_UNIX 1
 #	endif
 
-// Android
+/* Check if Android */
 #elif defined(__ANDROID__)
 #	ifndef OS_ANDROID
 #		define OS_ANDROID 1
 #	endif
 
-// Solaris/SunOS
+/* Check if Solaris/SunOS */
 #elif defined(sun) || defined(__sun)
 #	if defined(__SVR4) || defined(__svr4__)
 #		ifndef OS_SOLARIS
@@ -37,13 +38,15 @@ extern "C" {
 #		endif
 #	endif
 
-// Macintosh/MacOS
+/* Check if Macintosh/MacOS */
 #elif defined(macintosh) || defined(Macintosh) || defined(__APPLE__)
 #	ifndef OS_MAC
 #		define OS_MAC 1
 #	endif
-#endif
 
+#endif /* end OS checks */
+
+/* check what compiler we got */
 #if defined(__clang__)
 #	ifndef COMPILER_CLANG
 #		define COMPILER_CLANG
@@ -56,8 +59,80 @@ extern "C" {
 #	ifndef COMPILER_MSVC
 #		define COMPILER_MSVC
 #	endif
+#elif defined(__INTEL_COMPILER)
+#	ifndef COMPILER_INTEL
+#		define COMPILER_INTEL
+#	endif
+#endif /* end compiler check macros */
+
+/* set up the C standard macros! */
+#ifdef __STDC__
+#	ifndef C89
+#		define C89
+#	endif
+#	ifdef __STDC_VERSION__
+#		ifndef C90
+#			define C90
+#		endif
+#		if (__STDC_VERSION__ >= 199409L)
+#			ifndef C94
+#				define C94
+#			endif
+#		endif
+#		if (__STDC_VERSION__ >= 199901L)
+#			ifndef C99
+#				define C99
+#			endif
+#		endif
+#		if (__STDC_VERSION__ >= 201112L)
+#			ifndef C11
+#				define C11
+#			endif
+#		endif
+#		if (__STDC_VERSION__ >= 201710L)
+#			ifndef C18
+#				define C18
+#			endif
+#		endif
+#	endif
 #endif
 
+
+/* setup RAII destructor macro if possibru to mark functions as cleaner-uppers. */
+#ifndef RAII_DTOR
+#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+#		define RAII_DTOR(func) __attribute__ ((cleanup((func))))
+#	else
+#		define RAII_DTOR(func)
+#	endif
+#endif
+
+/* setup macro to mark a param as "cannot or can never be NULL". */
+#ifndef NEVER_NULL
+#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+#		define NEVER_NULL(...) __attribute__( (nonnull(__VA_ARGS__)) )
+#	else
+#		define NEVER_NULL(...)
+#	endif
+#endif
+#ifndef NO_NULL
+#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+#		define NO_NULL __attribute__((nonnull))
+#	else
+#		define NO_NULL
+#	endif
+#endif
+
+/* setup macro to mark a function as never returning a null pointer. */
+#ifndef NONNULL_RET
+#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
+#		define NONNULL_RET __attribute__((returns_nonnull))
+#	else
+#		define NONNULL_RET
+#	endif
+#endif
+
+/* DLL crap to deal with Windows asinine poppycock DLL construction. */
 #ifdef HARBOL_DLL
 #	ifndef HARBOL_LIB 
 #		define HARBOL_EXPORT __declspec(dllimport)
@@ -68,48 +143,24 @@ extern "C" {
 #	define HARBOL_EXPORT
 #endif
 
+/* includes, duh. */
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
 #include <stdalign.h>
+#include <time.h>
 #include <iso646.h>
 
-
-#ifndef RAII_DTOR
-#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
-#		define RAII_DTOR(func) __attribute__ ((cleanup((func))))
-#	else
-#		define RAII_DTOR(func)
-#	endif
+#ifdef OS_WINDOWS
+#	include <windows.h>
+#else
+#	include <pthread.h>
 #endif
 
-#ifndef NEVER_NULL
-#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
-#		define NEVER_NULL(...) __attribute__( (nonnull(__VA_ARGS__)) )
-#	else
-#		define NEVER_NULL(...)
-#	endif
-#endif
 
-#ifndef NO_NULL
-#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
-#		define NO_NULL __attribute__((nonnull))
-#	else
-#		define NO_NULL
-#	endif
-#endif
-
-#ifndef NONNULL_RET
-#	if defined(COMPILER_CLANG) || defined(COMPILER_GCC)
-#		define NONNULL_RET __attribute__((returns_nonnull))
-#	else
-#		define NONNULL_RET
-#	endif
-#endif
-
-typedef bool fnDestructor(void *); // use pointer to a pointer.
+typedef bool fnDestructor(void *ptr_ref); /* use pointer to a pointer. */
 
 struct HarbolVariant;
 struct HarbolString;
@@ -164,7 +215,7 @@ typedef union HarbolValue {
 	struct HarbolLinkMap *LinkMapPtr;
 } HarbolValue;
 
-#if __STDC_VERSION__ >= 201112L
+#ifdef C11
 #	ifndef harbol_value_set_val
 #		define harbol_value_set_val(val, data) \
 			_Generic((data), \
@@ -245,7 +296,7 @@ typedef union HarbolValue {
 #	endif
 #endif
 
-/************* C++ Style Automated HarbolString (stringobj.c) *************/
+/************* C++ Style Automated String (stringobj.c) *************/
 typedef struct HarbolString {
 	char *CStr;
 	size_t Len;
@@ -278,7 +329,7 @@ HARBOL_EXPORT bool harbol_string_replace(struct HarbolString *str, char to_repla
 /***************/
 
 
-/************* HarbolVector / Dynamic Array (vector.c) *************/
+/************* Vector / Dynamic Array (vector.c) *************/
 typedef struct HarbolVector {
 	union HarbolValue *Table;
 	size_t Len, Count;
@@ -320,7 +371,7 @@ HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_linkmap(const struct H
 /***************/
 
 
-/************* HarbolHashmap (hashmap.c) *************/
+/************* String Key Hashmap (hashmap.c) *************/
 typedef struct HarbolKeyValPair {
 	struct HarbolString KeyName;
 	union HarbolValue Data;
@@ -546,7 +597,7 @@ HARBOL_EXPORT bool harbol_tuple_to_struct(const struct HarbolTuple *tuple, void 
 
 #ifdef POOL_NO_MALLOC
 	#ifndef POOL_HEAPSIZE
-		#define POOL_HEAPSIZE    0xFFFF //(65535)
+		#define POOL_HEAPSIZE	0xFFFF //(65535)
 	#endif
 #endif
 
@@ -572,12 +623,7 @@ typedef struct HarbolMemoryPool {
 	struct HarbolAllocNode *FreeList;
 } HarbolMemoryPool;
 
-#ifdef POOL_NO_MALLOC
-HARBOL_EXPORT void harbol_mempool_init(struct HarbolMemoryPool *mempool);
-#else
 HARBOL_EXPORT void harbol_mempool_init(struct HarbolMemoryPool *mempool, size_t bytes);
-#endif
-
 HARBOL_EXPORT void harbol_mempool_del(struct HarbolMemoryPool *mempool);
 HARBOL_EXPORT void *harbol_mempool_alloc(struct HarbolMemoryPool *mempool, size_t bytes);
 HARBOL_EXPORT void *harbol_mempool_realloc(struct HarbolMemoryPool *mempool, void *ptr, size_t bytes);
@@ -590,7 +636,7 @@ HARBOL_EXPORT bool harbol_mempool_defrag(struct HarbolMemoryPool *mempool);
 /***************/
 
 
-/************* HarbolGraph (Adjacency List) (graph.c) *************/
+/************* Weighted Graph (Adjacency List) (graph.c) *************/
 struct HarbolGraphVertex;
 typedef struct HarbolGraphEdge {
 	union HarbolValue Weight;
@@ -696,7 +742,7 @@ HARBOL_EXPORT size_t harbol_tree_get_children_count(const struct HarbolTree *tre
 /***************/
 
 
-/************* Ordered Hash Map (preserves insertion order) (linkmap.c) *************/
+/************* Ordered String Key Hash Map (preserves insertion order) (linkmap.c) *************/
 typedef struct HarbolLinkMap {
 	struct HarbolHashmap Map;
 	struct HarbolVector Order;
@@ -767,7 +813,7 @@ HARBOL_EXPORT void harbol_variant_set_type(struct HarbolVariant *var, int32_t ty
 /***************/
 
 
-/************* Minimal JSON-like Configuration File Parser (cfg.c) *************/
+/************* Minimal, JSON-like Configuration File Parser (cfg.c) *************/
 typedef enum HarbolCfgType {
 	HarbolTypeNull=0,
 	HarbolTypeLinkMap,
@@ -872,6 +918,140 @@ HARBOL_EXPORT bool harbol_plugin_manager_reload_plugins(struct HarbolPluginManag
 /***************/
 
 
+/************* Multi-Threading Library (threads.c) *************/
+#ifndef TIME_UTC
+#	define TIME_UTC 1
+#	define HARBOL_TIMESPEC
+#	ifdef OS_WINDOWS
+#		ifndef HAVE_STRUCT_TIMESPEC
+#			define HAVE_STRUCT_TIMESPEC
+#		endif
+#	endif
+#endif
+
+typedef enum HarbolThreadRes {
+	HarbolThreadResError,
+	HarbolThreadResSuccess,
+	HarbolThreadResTimedOut,
+	HarbolThreadResBusy,
+} HarbolThreadRes;
+
+typedef enum HarbolMutexType {
+	HarbolMutexTypeNormal,
+	HarbolMutexTypeRecursive,
+	HarbolMutexTypeTimer,
+} HarbolMutexType;
+
+#ifdef OS_WINDOWS
+typedef struct {
+	union {
+		CRITICAL_SECTION CriticalSect;
+		HANDLE Mutex;
+	} MutexHandle;
+	bool
+		Locked : 1,
+		Recursive : 1,
+		Timed : 1
+	;
+} HarbolMutex;
+#else
+typedef pthread_mutex_t HarbolMutex;
+#endif
+
+HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_init(HarbolMutex *mutex, enum HarbolMutexType mutex_type);
+HARBOL_EXPORT bool harbol_mutex_del(HarbolMutex *mutex);
+
+HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_lock(HarbolMutex *mutex);
+HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_timedlock(HarbolMutex *mutex, const struct timespec *t);
+HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_trylock(HarbolMutex *mutex);
+HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_unlock(HarbolMutex *mutex);
+
+
+#ifdef OS_WINDOWS
+typedef struct {
+	HANDLE EventHandles[2];
+	unsigned int CountWaiting;
+	CRITICAL_SECTION CountWaitingLock;
+} HarbolCond;
+#else
+typedef pthread_cond_t HarbolCond;
+#endif
+
+HARBOL_EXPORT enum HarbolThreadRes harbol_cond_init(HarbolCond *cond);
+HARBOL_EXPORT void harbol_cond_del(HarbolCond *cond);
+
+HARBOL_EXPORT enum HarbolThreadRes harbol_cond_signal(HarbolCond *cond);
+HARBOL_EXPORT enum HarbolThreadRes harbol_cond_broadcast(HarbolCond *cond);
+HARBOL_EXPORT enum HarbolThreadRes harbol_cond_wait(HarbolCond *cond, HarbolMutex *mutex);
+HARBOL_EXPORT enum HarbolThreadRes harbol_cond_timedwait(HarbolCond *cond, HarbolMutex *mutex, const struct timespec *t);
+
+
+#ifdef OS_WINDOWS
+typedef HANDLE HarbolThreadCtxt;
+#else
+typedef pthread_t HarbolThreadCtxt;
+#endif
+
+#ifdef C11
+#	ifndef HARBOL_THREAD_NORETURN
+#		define HARBOL_THREAD_NORETURN _Noreturn
+#	endif
+#elif defined(COMPILER_GCC)
+#	ifndef HARBOL_THREAD_NORETURN
+#		define HARBOL_THREAD_NORETURN __attribute__((__noreturn__))
+#	endif
+#else
+#	ifndef HARBOL_THREAD_NORETURN
+#		define HARBOL_THREAD_NORETURN
+#	endif
+#endif
+
+typedef int fnHarbolThread(void *arg);
+
+typedef struct HarbolThread {
+	fnHarbolThread *Func;
+	void *Args;
+	HarbolThreadCtxt Thread;
+} HarbolThread;
+
+
+HARBOL_EXPORT struct HarbolThread *harbol_thread_new(fnHarbolThread *func, void *arg);
+HARBOL_EXPORT enum HarbolThreadRes harbol_thread_init(struct HarbolThread *thr, fnHarbolThread *func, void *arg);
+
+HARBOL_EXPORT HarbolThreadCtxt harbol_thread_get_curr(void);
+HARBOL_EXPORT enum HarbolThreadRes harbol_thread_detach(struct HarbolThread *thr);
+HARBOL_EXPORT bool harbol_thread_equal(struct HarbolThread *thrA, struct HarbolThread *thrB);
+HARBOL_EXPORT HARBOL_THREAD_NORETURN void harbol_thread_exit(int res, void *retval);
+HARBOL_EXPORT enum HarbolThreadRes harbol_thread_join(struct HarbolThread *thr, int *res);
+HARBOL_EXPORT int harbol_thread_sleep(const struct timespec *duration, struct timespec *remaining);
+HARBOL_EXPORT void harbol_thread_yield(void);
+
+
+#ifdef OS_WINDOWS
+typedef uint32_t HarbolThreadStorage;
+#else
+typedef pthread_key_t HarbolThreadStorage;
+#endif
+
+typedef void fnThreadStorageDtor(void *val);
+
+typedef struct HarbolTSS {
+#ifdef OS_WINDOWS
+	fnThreadStorageDtor *CacheDtor;
+	void *CacheVal;
+#endif
+	HarbolThreadStorage Key;
+} HarbolTSS;
+
+HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *key, fnThreadStorageDtor *dtor);
+HARBOL_EXPORT void harbol_tss_delete(struct HarbolTSS *key);
+HARBOL_EXPORT void *harbol_tss_get(struct HarbolTSS *key);
+HARBOL_EXPORT enum HarbolThreadRes harbol_tss_set(struct HarbolTSS *key, void *val);
+/***************/
+
+
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* HARBOL_INCLUDED */

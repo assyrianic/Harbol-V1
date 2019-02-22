@@ -1,12 +1,12 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 
-gcc -Wall -Wextra -std=c99 -pedantic -g -O2 stringobj.c vector.c hashmap.c unilist.c bilist.c bytebuffer.c tuple.c mempool.c graph.c tree.c linkmap.c variant.c cfg.c plugins.c test_suite.c -o harbol_testprogram -ldl -Wl,--export-dynamic
+gcc -Wall -Wextra -std=c11 -pedantic -g -O2 stringobj.c vector.c hashmap.c unilist.c bilist.c bytebuffer.c tuple.c mempool.c graph.c tree.c linkmap.c variant.c cfg.c plugins.c threads.c test_suite.c -o harbol_testprogram -ldl -lpthread -Wl,--export-dynamic
 
-gcc -Wall -Wextra -std=c99 -g -O2 -shared -c test_harbol_plugins/test_plugin.c
+gcc -Wall -Wextra -std=c11 -g -O2 -shared -c test_harbol_plugins/test_plugin.c
 gcc -shared -o test_plugin.so test_plugin.o
 
-gcc -Wall -Wextra -std=c99 -g -O2 -shared -c test_harbol_plugins/plugin_subfolder/plugin.c
+gcc -Wall -Wextra -std=c11 -g -O2 -shared -c test_harbol_plugins/plugin_subfolder/plugin.c
 gcc -shared -o plugin.so plugin.o
 
 rm test_plugin.o plugin.o

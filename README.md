@@ -23,6 +23,7 @@
 * Linked Hashmap (preserves insertion order).
 * JSON-like Key-Value Configuration File Parser (allows retrieving data from keys through python-style pathing).
 * General plugin system manager that is designed to be wrapped around to provide an easy-to-setup plugin API and plugin SDK.
+* Cross-Platform Multi-threading Lib (Beta stage).
 
 
 ## Usage
