@@ -202,7 +202,7 @@ HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_node_by_index(const str
 	
 	const bool prev_dir = ( index >= list->Len/2 );
 	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
-	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+	for( size_t i=prev_dir ? list->Len-1 : 0; i<list->Len; prev_dir ? i-- : i++ ) {
 		if( node && i==index )
 			return node;
 		node = prev_dir ? node->Prev : node->Next;
@@ -214,7 +214,7 @@ HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_node_by_val(const struc
 {
 	if( !list )
 		return NULL;
-	for( struct HarbolBiListNode *i=list->Head ; i ; i=i->Next )
+	for( struct HarbolBiListNode *i=list->Head; i; i=i->Next )
 		if( !memcmp(&i->Data, &val, sizeof val) )
 			return i;
 	return NULL;
@@ -231,7 +231,7 @@ HARBOL_EXPORT union HarbolValue harbol_bilist_get_val(const struct HarbolBiList 
 	
 	const bool prev_dir = ( index >= list->Len/2 );
 	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
-	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+	for( size_t i=prev_dir ? list->Len-1 : 0; i<list->Len; prev_dir ? i-- : i++ ) {
 		if( node && i==index )
 			return node->Data;
 		if( (prev_dir && !node->Prev) || (!prev_dir && !node->Next) )
@@ -256,7 +256,7 @@ HARBOL_EXPORT void harbol_bilist_set_val(struct HarbolBiList *const list, const 
 	
 	const bool prev_dir = ( index >= list->Len/2 );
 	struct HarbolBiListNode *node = prev_dir ? list->Tail : list->Head;
-	for( size_t i=prev_dir ? list->Len-1 : 0 ; i<list->Len ; prev_dir ? i-- : i++ ) {
+	for( size_t i=prev_dir ? list->Len-1 : 0; i<list->Len; prev_dir ? i-- : i++ ) {
 		if( node && i==index ) {
 			node->Data = val;
 			break;
@@ -317,18 +317,18 @@ HARBOL_EXPORT void harbol_bilist_from_unilist(struct HarbolBiList *const bilist,
 	if( !bilist || !unilist )
 		return;
 	
-	for( struct HarbolUniListNode *n=unilist->Head ; n ; n = n->Next )
+	for( struct HarbolUniListNode *n=unilist->Head; n; n = n->Next )
 		harbol_bilist_insert_at_tail(bilist, n->Data);
 }
 
-HARBOL_EXPORT void harbol_bilist_from_hashmap(struct HarbolBiList *const bilist, const struct HarbolHashmap *const map)
+HARBOL_EXPORT void harbol_bilist_from_hashmap(struct HarbolBiList *const bilist, const struct HarbolHashMap *const map)
 {
 	if( !bilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ ) {
+	for( size_t i=0; i<map->Len; i++ ) {
 		struct HarbolVector *vec = map->Table + i;
-		for( size_t n=0 ; n<harbol_vector_get_count(vec) ; n++ ) {
+		for( size_t n=0; n<harbol_vector_get_count(vec); n++ ) {
 			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
 			harbol_bilist_insert_at_tail(bilist, node->Data);
 		}
@@ -340,7 +340,7 @@ HARBOL_EXPORT void harbol_bilist_from_vector(struct HarbolBiList *const bilist, 
 	if( !bilist || !v )
 		return;
 	
-	for( size_t i=0 ; i<v->Count ; i++ )
+	for( size_t i=0; i<v->Count; i++ )
 		harbol_bilist_insert_at_tail(bilist, v->Table[i]);
 }
 
@@ -349,7 +349,7 @@ HARBOL_EXPORT void harbol_bilist_from_graph(struct HarbolBiList *const bilist, c
 	if( !bilist || !graph || !graph->Vertices.Table )
 		return;
 	
-	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+	for( size_t i=0; i<graph->Vertices.Count; i++ ) {
 		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
 		harbol_bilist_insert_at_tail(bilist, vert->Data);
 	}
@@ -360,7 +360,7 @@ HARBOL_EXPORT void harbol_bilist_from_linkmap(struct HarbolBiList *const bilist,
 	if( !bilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
 		harbol_bilist_insert_at_tail(bilist, n->Data);
 	}
@@ -375,7 +375,7 @@ HARBOL_EXPORT struct HarbolBiList *harbol_bilist_new_from_unilist(const struct H
 	return bilist;
 }
 
-HARBOL_EXPORT struct HarbolBiList *harbol_bilist_new_from_hashmap(const struct HarbolHashmap *const map)
+HARBOL_EXPORT struct HarbolBiList *harbol_bilist_new_from_hashmap(const struct HarbolHashMap *const map)
 {
 	if( !map )
 		return NULL;

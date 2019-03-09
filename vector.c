@@ -31,7 +31,7 @@ HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *const v, fnDestructor 
 		return;
 	
 	if( dtor )
-		for( size_t i=0 ; i<v->Len ; i++ )
+		for( size_t i=0; i<v->Len; i++ )
 			(*dtor)(&v->Table[i].Ptr);
 	
 	free(v->Table); memset(v, 0, sizeof *v);
@@ -75,50 +75,16 @@ HARBOL_EXPORT void harbol_vector_resize(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
-	
-	// first we get our old size.
-	// then resize the actual size.
-	const size_t oldsize = v->Len;
-	v->Len <<= 1;
-	if( !v->Len )
-		v->Len = 4;
-	
-	// allocate new table.
-	union HarbolValue *newdata = calloc(v->Len, sizeof *newdata);
-	if( !newdata ) {
-		v->Len >>= 1;
-		if( v->Len == 1 )
-			v->Len=0;
-		return;
-	}
-	
-	// copy the old table to new then free old table.
-	if( v->Table ) {
-		memcpy(newdata, v->Table, sizeof *newdata * oldsize);
-		free(v->Table), v->Table = NULL;
-	}
-	v->Table = newdata;
+	else harbol_generic_vector_resizer(&v->Table, &v->Len, sizeof *v->Table);
 }
+
 
 HARBOL_EXPORT void harbol_vector_truncate(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
-	
-	if( v->Count < v->Len>>1 ) {
-		v->Len >>= 1;
-		// allocate new table.
-		union HarbolValue *newdata = calloc(v->Len, sizeof *newdata);
-		if( !newdata )
-			return;
-		
-		// copy the old table to new then free old table.
-		if( v->Table ) {
-			memcpy(newdata, v->Table, sizeof *newdata * v->Len);
-			free(v->Table), v->Table = NULL;
-		}
-		v->Table = newdata;
-	}
+	else if( v->Count < (v->Len >> 1) )
+		harbol_generic_vector_truncater(&v->Table, &v->Len, sizeof *v->Table);
 }
 
 HARBOL_EXPORT bool harbol_vector_insert(struct HarbolVector *const v, const union HarbolValue val)
@@ -158,7 +124,7 @@ HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *const v, const size
 	if( dtor )
 		(*dtor)(&v->Table[index].Ptr);
 	
-	size_t
+	const size_t
 		i=index+1,
 		j=index
 	;
@@ -206,7 +172,7 @@ HARBOL_EXPORT void harbol_vector_from_unilist(struct HarbolVector *const v, cons
 		while( v->Count+list->Len >= v->Len )
 			harbol_vector_resize(v);
 	
-	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next )
+	for( struct HarbolUniListNode *n=list->Head; n; n = n->Next )
 		v->Table[v->Count++] = n->Data;
 }
 
@@ -218,11 +184,11 @@ HARBOL_EXPORT void harbol_vector_from_bilist(struct HarbolVector *const v, const
 		while( v->Count+list->Len >= v->Len )
 			harbol_vector_resize(v);
 	
-	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next )
+	for( struct HarbolBiListNode *n=list->Head; n; n = n->Next )
 		v->Table[v->Count++] = n->Data;
 }
 
-HARBOL_EXPORT void harbol_vector_from_hashmap(struct HarbolVector *const restrict v, const struct HarbolHashmap *const map)
+HARBOL_EXPORT void harbol_vector_from_hashmap(struct HarbolVector *const restrict v, const struct HarbolHashMap *const map)
 {
 	if( !v || !map )
 		return;
@@ -230,9 +196,9 @@ HARBOL_EXPORT void harbol_vector_from_hashmap(struct HarbolVector *const restric
 		while( v->Count+map->Count >= v->Len )
 			harbol_vector_resize(v);
 	
-	for( size_t i=0 ; i<map->Len ; i++ ) {
+	for( size_t i=0; i<map->Len; i++ ) {
 		struct HarbolVector *restrict vec = map->Table + i;
-		for( size_t n=0 ; n<harbol_vector_get_count(vec) ; n++ ) {
+		for( size_t n=0; n<harbol_vector_get_count(vec); n++ ) {
 			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
 			v->Table[v->Count++] = node->Data;
 		}
@@ -247,7 +213,7 @@ HARBOL_EXPORT void harbol_vector_from_graph(struct HarbolVector *const v, const 
 		while( v->Count+graph->Vertices.Count >= v->Len )
 			harbol_vector_resize(v);
 	
-	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+	for( size_t i=0; i<graph->Vertices.Count; i++ ) {
 		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
 		v->Table[v->Count++] = vert->Data;
 	}
@@ -261,7 +227,7 @@ HARBOL_EXPORT void harbol_vector_from_linkmap(struct HarbolVector *const v, cons
 		while( v->Count+map->Map.Count >= v->Len )
 			harbol_vector_resize(v);
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
 		v->Table[v->Count++] = n->Data;
 	}
@@ -285,7 +251,7 @@ HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_bilist(const struct Ha
 	return v;
 }
 
-HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_hashmap(const struct HarbolHashmap *const map)
+HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_hashmap(const struct HarbolHashMap *const map)
 {
 	if( !map )
 		return NULL;
@@ -310,4 +276,55 @@ HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_linkmap(const struct H
 	struct HarbolVector *v = harbol_vector_new();
 	harbol_vector_from_linkmap(v, map);
 	return v;
+}
+
+
+HARBOL_EXPORT void harbol_generic_vector_resizer(void *const table_ref, size_t *const restrict curr_len, const size_t element_size)
+{
+	void **const restrict table = table_ref;
+	if( !table )
+		return;
+	
+	// first we get our old size.
+	// then resize the actual size.
+	const size_t oldsize = *curr_len;
+	*curr_len <<= 1;
+	if( !*curr_len )
+		*curr_len = 4;
+	
+	// allocate new table.
+	void *newdata = calloc(*curr_len, element_size);
+	if( !newdata ) {
+		*curr_len >>= 1;
+		if( *curr_len<=2 )
+			*curr_len=0;
+		return;
+	}
+	
+	// copy the old table to new then free old table.
+	if( *table ) {
+		memcpy(newdata, *table, element_size * oldsize);
+		free(*table), *table = NULL;
+	}
+	*table = newdata;
+}
+
+HARBOL_EXPORT void harbol_generic_vector_truncater(void *const table_ref, size_t *const restrict curr_len, const size_t element_size)
+{
+	void **const restrict table = table_ref;
+	if( !table )
+		return;
+	
+	*curr_len >>= 1;
+	// allocate new table.
+	void *newdata = calloc(*curr_len, element_size);
+	if( !newdata )
+		return;
+	
+	// copy the old table to new then free old table.
+	if( *table ) {
+		memcpy(newdata, *table, element_size * *curr_len);
+		free(*table), *table = NULL;
+	}
+	*table = newdata;
 }

@@ -202,7 +202,7 @@ HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_node_by_index(const s
 		return list->Tail;
 	
 	struct HarbolUniListNode *node = list->Head;
-	for( size_t i=0 ; i<list->Len ; i++ ) {
+	for( size_t i=0; i<list->Len; i++ ) {
 		if( node && i==index )
 			return node;
 		node = node->Next;
@@ -214,7 +214,7 @@ HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_node_by_val(const str
 {
 	if( !list )
 		return NULL;
-	for( struct HarbolUniListNode *i=list->Head ; i ; i=i->Next )
+	for( struct HarbolUniListNode *i=list->Head; i; i=i->Next )
 		if( !memcmp(&i->Data, &val, sizeof val) )
 			return i;
 	return NULL;
@@ -230,7 +230,7 @@ HARBOL_EXPORT union HarbolValue harbol_unilist_get_val(const struct HarbolUniLis
 		return list->Tail->Data;
 	
 	struct HarbolUniListNode *node = list->Head;
-	for( size_t i=0 ; i<list->Len ; i++ ) {
+	for( size_t i=0; i<list->Len; i++ ) {
 		if( node && i==index )
 			return node->Data;
 		if( !node->Next )
@@ -254,7 +254,7 @@ HARBOL_EXPORT void harbol_unilist_set_val(struct HarbolUniList *const list, cons
 	}
 	
 	struct HarbolUniListNode *node = list->Head;
-	for( size_t i=0 ; i<list->Len ; i++ ) {
+	for( size_t i=0; i<list->Len; i++ ) {
 		if( node && i==index ) {
 			node->Data = val;
 			break;
@@ -278,7 +278,7 @@ HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *const 
 		list->Head = node->Next;
 	else {
 		struct HarbolUniListNode *travnode = list->Head;
-		for( size_t i=0 ; i<list->Len ; i++ ) {
+		for( size_t i=0; i<list->Len; i++ ) {
 			if( travnode->Next == node ) {
 				if( list->Tail == node ) {
 					travnode->Next = NULL;
@@ -311,7 +311,7 @@ HARBOL_EXPORT bool harbol_unilist_del_node_by_ref(struct HarbolUniList *const li
 		list->Head = node->Next;
 	else {
 		struct HarbolUniListNode *travnode = list->Head;
-		for( size_t i=0 ; i<list->Len ; i++ ) {
+		for( size_t i=0; i<list->Len; i++ ) {
 			if( travnode->Next == node ) {
 				if( list->Tail == node ) {
 					travnode->Next = NULL;
@@ -346,18 +346,18 @@ HARBOL_EXPORT void harbol_unilist_from_bilist(struct HarbolUniList *const unilis
 	if( !unilist || !bilist )
 		return;
 	
-	for( struct HarbolBiListNode *n=bilist->Head ; n ; n = n->Next )
+	for( struct HarbolBiListNode *n=bilist->Head; n; n = n->Next )
 		harbol_unilist_insert_at_tail(unilist, n->Data);
 }
 
-HARBOL_EXPORT void harbol_unilist_from_hashmap(struct HarbolUniList *const unilist, const struct HarbolHashmap *const map)
+HARBOL_EXPORT void harbol_unilist_from_hashmap(struct HarbolUniList *const unilist, const struct HarbolHashMap *const map)
 {
 	if( !unilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ ) {
+	for( size_t i=0; i<map->Len; i++ ) {
 		struct HarbolVector *vec = map->Table + i;
-		for( size_t n=0 ; n<harbol_vector_get_count(vec) ; n++ ) {
+		for( size_t n=0; n<harbol_vector_get_count(vec); n++ ) {
 			struct HarbolKeyValPair *node = vec->Table[n].Ptr;
 			harbol_unilist_insert_at_tail(unilist, node->Data);
 		}
@@ -369,7 +369,7 @@ HARBOL_EXPORT void harbol_unilist_from_vector(struct HarbolUniList *const unilis
 	if( !unilist || !v || !v->Table )
 		return;
 	
-	for( size_t i=0 ; i<v->Count ; i++ )
+	for( size_t i=0; i<v->Count; i++ )
 		harbol_unilist_insert_at_tail(unilist, v->Table[i]);
 }
 
@@ -378,7 +378,7 @@ HARBOL_EXPORT void harbol_unilist_from_graph(struct HarbolUniList *const unilist
 	if( !unilist || !graph )
 		return;
 	
-	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+	for( size_t i=0; i<graph->Vertices.Count; i++ ) {
 		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
 		harbol_unilist_insert_at_tail(unilist, vert->Data);
 	}
@@ -389,7 +389,7 @@ HARBOL_EXPORT void harbol_unilist_from_linkmap(struct HarbolUniList *const unili
 	if( !unilist || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		struct HarbolKeyValPair *n = map->Order.Table[i].Ptr;
 		harbol_unilist_insert_at_tail(unilist, n->Data);
 	}
@@ -404,7 +404,7 @@ HARBOL_EXPORT struct HarbolUniList *harbol_unilist_new_from_bilist(const struct 
 	return unilist;
 }
 
-HARBOL_EXPORT struct HarbolUniList *harbol_unilist_new_from_hashmap(const struct HarbolHashmap *const map)
+HARBOL_EXPORT struct HarbolUniList *harbol_unilist_new_from_hashmap(const struct HarbolHashMap *const map)
 {
 	if( !map )
 		return NULL;

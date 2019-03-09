@@ -23,9 +23,9 @@ HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *const map, fnDestruc
 	if( !map || !map->Map.Table )
 		return;
 	
-	for( size_t i=0 ; i<map->Map.Len ; i++ ) {
+	for( size_t i=0; i<map->Map.Len; i++ ) {
 		struct HarbolVector *vec = map->Map.Table+i;
-		for( size_t i=0 ; i<vec->Len ; i++ ) {
+		for( size_t i=0; i<vec->Len; i++ ) {
 			struct HarbolKeyValPair *kv = vec->Table[i].Ptr;
 			harbol_kvpair_free(&kv, dtor);
 		}
@@ -79,7 +79,7 @@ HARBOL_EXPORT bool harbol_linkmap_insert_node(struct HarbolLinkMap *const map, s
 	else if( harbol_linkmap_has_key(map, node->KeyName.CStr) )
 		return false;
 	
-	const size_t hash = GenHash(node->KeyName.CStr) % map->Map.Len;
+	const size_t hash = generic_hash(node->KeyName.CStr) % map->Map.Len;
 	harbol_vector_insert(map->Map.Table + hash, (union HarbolValue){.Ptr=node});
 	harbol_vector_insert(&map->Order, (union HarbolValue){.Ptr=node});
 	++map->Map.Count;
@@ -196,7 +196,7 @@ HARBOL_EXPORT size_t harbol_linkmap_get_index_by_name(const struct HarbolLinkMap
 	if( !map || !strkey )
 		return SIZE_MAX;
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		if( !harbol_string_cmpcstr(&map->Order.Table[i].KvPairPtr->KeyName, strkey) )
 			return i;
 	}
@@ -208,7 +208,7 @@ HARBOL_EXPORT size_t harbol_linkmap_get_index_by_node(const struct HarbolLinkMap
 	if( !map || !node )
 		return SIZE_MAX;
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		if( (uintptr_t)map->Order.Table[i].Ptr == (uintptr_t)node )
 			return i;
 	}
@@ -220,21 +220,21 @@ HARBOL_EXPORT size_t harbol_linkmap_get_index_by_val(const struct HarbolLinkMap 
 	if( !map )
 		return SIZE_MAX;
 	
-	for( size_t i=0 ; i<map->Order.Count ; i++ ) {
+	for( size_t i=0; i<map->Order.Count; i++ ) {
 		if( map->Order.Table[i].KvPairPtr->Data.UInt64 == val.UInt64 )
 			return i;
 	}
 	return SIZE_MAX;
 }
 
-HARBOL_EXPORT void harbol_linkmap_from_hashmap(struct HarbolLinkMap *const linkmap, const struct HarbolHashmap *const map)
+HARBOL_EXPORT void harbol_linkmap_from_hashmap(struct HarbolLinkMap *const linkmap, const struct HarbolHashMap *const map)
 {
 	if( !linkmap || !map )
 		return;
 	
-	for( size_t i=0 ; i<map->Len ; i++ ) {
+	for( size_t i=0; i<map->Len; i++ ) {
 		struct HarbolVector *vec = map->Table + i;
-		for( size_t n=0 ; n<harbol_vector_get_count(vec) ; n++ ) {
+		for( size_t n=0; n<harbol_vector_get_count(vec); n++ ) {
 			struct HarbolKeyValPair *kv = vec->Table[n].Ptr;
 			harbol_linkmap_insert_node(linkmap, harbol_kvpair_new_strval(kv->KeyName.CStr, kv->Data));
 		}
@@ -247,7 +247,7 @@ HARBOL_EXPORT void harbol_linkmap_from_unilist(struct HarbolLinkMap *const map, 
 		return;
 	
 	size_t i=0;
-	for( struct HarbolUniListNode *n=list->Head ; n ; n = n->Next ) {
+	for( struct HarbolUniListNode *n=list->Head; n; n = n->Next ) {
 		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		harbol_linkmap_insert(map, cstrkey, n->Data);
@@ -261,7 +261,7 @@ HARBOL_EXPORT void harbol_linkmap_from_bilist(struct HarbolLinkMap *const map, c
 		return;
 	
 	size_t i=0;
-	for( struct HarbolBiListNode *n=list->Head ; n ; n = n->Next ) {
+	for( struct HarbolBiListNode *n=list->Head; n; n = n->Next ) {
 		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		harbol_linkmap_insert(map, cstrkey, n->Data);
@@ -274,7 +274,7 @@ HARBOL_EXPORT void harbol_linkmap_from_vector(struct HarbolLinkMap *const map, c
 	if( !map || !v )
 		return;
 	
-	for( size_t i=0 ; i<v->Count ; i++ ) {
+	for( size_t i=0; i<v->Count; i++ ) {
 		char cstrkey[21] = {0};
 		sprintf(cstrkey, "%zu", i);
 		harbol_linkmap_insert(map, cstrkey, v->Table[i]);
@@ -286,7 +286,7 @@ HARBOL_EXPORT void harbol_linkmap_from_graph(struct HarbolLinkMap *const map, co
 	if( !map || !graph )
 		return;
 	
-	for( size_t i=0 ; i<graph->Vertices.Count ; i++ ) {
+	for( size_t i=0; i<graph->Vertices.Count; i++ ) {
 		char cstrkey[10] = {0};
 		sprintf(cstrkey, "%zu", i);
 		struct HarbolGraphVertex *vert = graph->Vertices.Table[i].Ptr;
@@ -294,7 +294,7 @@ HARBOL_EXPORT void harbol_linkmap_from_graph(struct HarbolLinkMap *const map, co
 	}
 }
 
-HARBOL_EXPORT struct HarbolLinkMap *harbol_linkmap_new_from_hashmap(const struct HarbolHashmap *const map)
+HARBOL_EXPORT struct HarbolLinkMap *harbol_linkmap_new_from_hashmap(const struct HarbolHashMap *const map)
 {
 	if( !map )
 		return NULL;

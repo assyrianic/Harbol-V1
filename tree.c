@@ -33,12 +33,11 @@ HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *const tn, fnDestructor *co
 	if( dtor )
 		(*dtor)(&tn->Data.Ptr);
 	
-	struct HarbolVector *vec = &tn->Children;
-	for( size_t i=0 ; i<vec->Count ; i++ ) {
-		struct HarbolTree *node = vec->Table[i].Ptr;
+	for( size_t i=0; i<tn->Children.Count; i++ ) {
+		struct HarbolTree *node = tn->Children.Table[i].Ptr;
 		harbol_tree_free(&node, dtor);
 	}
-	harbol_vector_del(vec, NULL);
+	harbol_vector_del(&tn->Children, NULL);
 	memset(tn, 0, sizeof *tn);
 }
 
@@ -72,14 +71,14 @@ HARBOL_EXPORT bool harbol_tree_insert_child_val(struct HarbolTree *const restric
 	return true;
 }
 
-HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *const restrict tn, struct HarbolTree **noderef, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *const restrict tn, struct HarbolTree **const restrict noderef, fnDestructor *const dtor)
 {
 	if( !tn || !tn->Children.Table || !*noderef )
 		return false;
 	
-	struct HarbolTree *restrict node = *noderef;
+	const struct HarbolTree *const node = *noderef;
 	struct HarbolVector *vec = &tn->Children;
-	for( size_t i=0 ; i<vec->Count ; i++ ) {
+	for( size_t i=0; i<vec->Count; i++ ) {
 		if( vec->Table[i].Ptr==node ) {
 			struct HarbolTree *child = vec->Table[i].Ptr;
 			harbol_tree_free(&child, dtor);
@@ -109,7 +108,7 @@ HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *const rest
 		return false;
 	
 	struct HarbolVector *vec = &tn->Children;
-	for( size_t i=0 ; i<vec->Count ; i++ ) {
+	for( size_t i=0; i<vec->Count; i++ ) {
 		struct HarbolTree *node = vec->Table[i].Ptr;
 		if( node->Data.Int64==val.Int64 ) {
 			harbol_tree_free(&node, dtor);
@@ -133,7 +132,7 @@ HARBOL_EXPORT struct HarbolTree *harbol_tree_get_child_by_val(const struct Harbo
 	if( !tn || !tn->Children.Table )
 		return NULL;
 	
-	for( size_t i=0 ; i<tn->Children.Count ; i++ ) {
+	for( size_t i=0; i<tn->Children.Count; i++ ) {
 		struct HarbolTree *restrict node = tn->Children.Table[i].Ptr;
 		if( node->Data.Int64==val.Int64 )
 			return node;

@@ -51,7 +51,7 @@
 #endif
 
 
-struct HarbolPlugin *harbol_plugin_new(HarbolModule_t module)
+struct HarbolPlugin *harbol_plugin_new(HarbolModule module)
 {
 	struct HarbolPlugin *plugin = calloc(1, sizeof *plugin);
 	if( plugin )
@@ -73,7 +73,7 @@ bool harbol_plugin_free(struct HarbolPlugin **const pluginref)
 	return true;
 }
 
-HARBOL_EXPORT HarbolModule_t harbol_plugin_get_module(const struct HarbolPlugin *const plugin)
+HARBOL_EXPORT HarbolModule harbol_plugin_get_module(const struct HarbolPlugin *const plugin)
 {
 	return !plugin ? NULL : plugin->SharedLib;
 }
@@ -103,9 +103,9 @@ HARBOL_EXPORT bool harbol_plugin_reload(struct HarbolPlugin *const plugin)
 		}
 		plugin->SharedLib = 
 #if OS_WINDOWS
-		LoadLibrary(plugin->LibPath.CStr);
+			LoadLibrary(plugin->LibPath.CStr);
 #else
-		dlopen(plugin->LibPath.CStr, RTLD_NOW | RTLD_GLOBAL);
+			dlopen(plugin->LibPath.CStr, RTLD_NOW | RTLD_GLOBAL);
 #endif
 		return plugin->SharedLib != NULL;
 	}
@@ -124,7 +124,7 @@ HARBOL_EXPORT struct HarbolPluginManager *harbol_plugin_manager_new(const char d
 
 static void _load_plugin(struct HarbolPluginManager *const manager, tinydir_file *const f, fnHarbolPluginEvent *const load_cb)
 {
-	HarbolModule_t module = 
+	HarbolModule module = 
 #if OS_WINDOWS
 			LoadLibrary(f->path);
 #else
@@ -234,9 +234,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_init(struct HarbolPluginManager *const 
 		if( getcwd(currdir, sizeof currdir) )
 #endif
 		{
-			harbol_string_init_cstr(&manager->Directory, currdir);
-			harbol_string_add_cstr(&manager->Directory, DIRECTORY_SEP);
-			harbol_string_add_cstr(&manager->Directory, directory);
+			harbol_string_format(&manager->Directory, "%s%s%s", currdir, DIRECTORY_SEP, directory);
 			if( load_plugins )
 				return harbol_plugin_manager_load_plugins(manager, load_cb);
 			else return true;
@@ -351,7 +349,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_unload_plugins(struct HarbolPluginManag
 	if( !manager )
 		return false;
 	else {
-		for( size_t i=0 ; i<manager->Plugins.Order.Count ; i++ ) {
+		for( size_t i=0; i<manager->Plugins.Order.Count; i++ ) {
 			struct HarbolPlugin *plugin = harbol_plugin_manager_get_plugin_by_index(manager, i);
 			if( unload_cb )
 				(*unload_cb)(manager, &plugin);
@@ -367,7 +365,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_reload_plugins(struct HarbolPluginManag
 		return false;
 	else {
 		const union HarbolValue *const end = harbol_linkmap_get_iter_end_count(&manager->Plugins);
-		for( const union HarbolValue *iter = harbol_linkmap_get_iter(&manager->Plugins) ; iter && iter<end ; iter++ ) {
+		for( const union HarbolValue *iter = harbol_linkmap_get_iter(&manager->Plugins); iter && iter<end; iter++ ) {
 			struct HarbolPlugin *plugin = iter->KvPairPtr->Data.Ptr;
 			if( prereload_cb )
 				(*prereload_cb)(manager, &plugin);

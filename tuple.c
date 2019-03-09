@@ -49,7 +49,7 @@ HARBOL_EXPORT void harbol_tuple_init(struct HarbolTuple *const tup, const size_t
 	const size_t sizeptr = sizeof(intptr_t);
 	size_t largestmemb=0;
 	// first we find the largest member of the tuple:
-	for( size_t i=0 ; i<array_len ; i++ )
+	for( size_t i=0; i<array_len; i++ )
 		if( largestmemb<datasizes[i] )
 			largestmemb=datasizes[i];
 	
@@ -59,7 +59,7 @@ HARBOL_EXPORT void harbol_tuple_init(struct HarbolTuple *const tup, const size_t
 		totalsize=0,
 		prevsize=0
 	;
-	for( size_t i=0 ; i<array_len ; i++ ) {
+	for( size_t i=0; i<array_len; i++ ) {
 		totalsize += datasizes[i];
 		if( packed || array_len==1 )
 			continue;
@@ -76,7 +76,7 @@ HARBOL_EXPORT void harbol_tuple_init(struct HarbolTuple *const tup, const size_t
 	
 	tup->Len = packed ? totalsize : aligned_total;
 	tuple_size_t offset = 0;
-	for( size_t i=0 ; i<array_len ; i++ ) {
+	for( size_t i=0; i<array_len; i++ ) {
 		TupleElement field = {0};
 		field.Struc.Size = datasizes[i];
 		field.Struc.Offset = offset;

@@ -278,7 +278,7 @@ HARBOL_EXPORT bool harbol_string_replace(struct HarbolString *const strobj, cons
 	if( !strobj || !strobj->CStr || !to_replace || !with )
 		return false;
 	else {
-		for( char *i=strobj->CStr ; *i ; i++ )
+		for( char *i=strobj->CStr; *i; i++ )
 			if( *i==to_replace )
 				*i = with;
 		return true;

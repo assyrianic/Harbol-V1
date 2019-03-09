@@ -127,8 +127,8 @@ HARBOL_EXPORT void harbol_bytebuffer_delete_byte(struct HarbolByteBuffer *const 
 		i=index+1,
 		j=index
 	;
-	memmove(p->Buffer+j, p->Buffer+i, p->Count);
 	p->Count--;
+	memmove(p->Buffer+j, p->Buffer+i, p->Count-j);
 }
 
 HARBOL_EXPORT void harbol_bytebuffer_del(struct HarbolByteBuffer *const p)
@@ -155,24 +155,7 @@ HARBOL_EXPORT void harbol_bytebuffer_resize(struct HarbolByteBuffer *const restr
 {
 	if( !p )
 		return;
-	
-	// first we get our old size.
-	// then resize the actual size.
-	size_t oldsize = p->Len;
-	p->Len <<= 1;
-	if( p->Len==0 )
-		p->Len=4;
-	
-	// allocate new table.
-	uint8_t *newdata = calloc(p->Len, sizeof *newdata);
-	assert( newdata );
-	
-	// copy the old table to new then free old table.
-	if( p->Buffer ) {
-		memcpy(newdata, p->Buffer, oldsize);
-		free(p->Buffer), p->Buffer = NULL;
-	}
-	p->Buffer = newdata;
+	else harbol_generic_vector_resizer(&p->Buffer, &p->Len, sizeof *p->Buffer);
 }
 
 HARBOL_EXPORT void harbol_bytebuffer_to_file(const struct HarbolByteBuffer *const p, FILE *const file)

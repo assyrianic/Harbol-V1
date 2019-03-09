@@ -42,7 +42,7 @@ static void skip_single_comment(const char **strRef)
 	if( !*strRef || !**strRef )
 		return;
 	
-	for( ; **strRef != '\n' ; (*strRef)++ );
+	for(; **strRef != '\n'; (*strRef)++ );
 	__LineNo++;
 }
 
@@ -104,7 +104,7 @@ int32_t _lex_hex_escape_char(const char **restrict strRef)
 	if( !is_hex(**strRef) ) {
 		fprintf(stderr, "Harbol Config Parser :: \\x escape hex with no digits!. Line: %zu\n", __LineNo);
 	} else {
-		for( ; **strRef ; (*strRef)++ ) {
+		for(; **strRef; (*strRef)++ ) {
 			const char c = **strRef;
 			if( c>='0' && c<='9' )
 				r = (r << 4) | (c - '0');
@@ -447,34 +447,29 @@ HARBOL_EXPORT struct HarbolLinkMap *harbol_cfg_parse_cstr(const char cfgcode[])
 	return objs;
 }
 
+static void _harbol_cfgkey_del(struct HarbolVariant *const var)
+{
+	switch( var->TypeTag ) {
+		case HarbolTypeLinkMap:
+			harbol_cfg_free(&var->Val.LinkMapPtr); break;
+		case HarbolTypeString:
+			harbol_string_free(&var->Val.StrObjPtr); break;
+		case HarbolTypeColor:
+		case HarbolTypeVec4D:
+			harbol_tuple_free(&var->Val.TuplePtr); break;
+	}
+	memset(var, 0, sizeof *var);
+}
+
 HARBOL_EXPORT bool harbol_cfg_free(struct HarbolLinkMap **mapref)
 {
 	if( !mapref || !*mapref )
 		return false;
 	
 	const union HarbolValue *const end = harbol_linkmap_get_iter_end_count(*mapref);
-	for( union HarbolValue *iter = harbol_linkmap_get_iter(*mapref) ; iter && iter<end ; iter++ ) {
+	for( union HarbolValue *iter = harbol_linkmap_get_iter(*mapref); iter && iter<end; iter++ ) {
 		struct HarbolKeyValPair *n = iter->KvPairPtr;
-		switch( n->Data.VarPtr->TypeTag ) {
-			case HarbolTypeLinkMap: {
-				struct HarbolLinkMap *innermap = harbol_variant_get_val(n->Data.VarPtr).LinkMapPtr;
-				harbol_cfg_free(&innermap);
-				break;
-			}
-			case HarbolTypeString: {
-				struct HarbolString *strtype = harbol_variant_get_val(n->Data.VarPtr).StrObjPtr;
-				harbol_string_free(&strtype);
-				break;
-			}
-			case HarbolTypeColor:
-			case HarbolTypeVec4D: {
-				struct HarbolTuple *tup = harbol_variant_get_val(n->Data.VarPtr).TuplePtr;
-				harbol_tuple_free(&tup);
-				break;
-			}
-			default:
-				break;
-		}
+		_harbol_cfgkey_del(n->Data.VarPtr);
 		harbol_variant_free(&n->Data.VarPtr, NULL);
 	}
 	harbol_linkmap_free(mapref, NULL);
@@ -505,7 +500,7 @@ HARBOL_EXPORT bool harbol_cfg_to_str(const struct HarbolLinkMap *const restrict 
 	
 	# define BUFFER_SIZE    512
 	const union HarbolValue *const end = harbol_linkmap_get_iter_end_count(map);
-	for( union HarbolValue *iter = harbol_linkmap_get_iter(map) ; iter && iter<end ; iter++ ) {
+	for( union HarbolValue *iter = harbol_linkmap_get_iter(map); iter && iter<end; iter++ ) {
 		const struct HarbolKeyValPair *kv = iter->KvPairPtr;
 		const int32_t type = kv->Data.VarPtr->TypeTag;
 		// print out key and notation.
@@ -945,15 +940,7 @@ HARBOL_EXPORT bool harbol_cfg_set_str_by_key(struct HarbolLinkMap *const restric
 			return false;
 		else if( var->TypeTag != HarbolTypeString ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeVec4D: case HarbolTypeColor:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeString;
 				var->Val.StrObjPtr = harbol_string_new_cstr(cstr);
 				return true;
@@ -992,15 +979,7 @@ HARBOL_EXPORT bool harbol_cfg_set_str_by_key(struct HarbolLinkMap *const restric
 					harbol_string_copy_cstr(var->Val.StrObjPtr, cstr);
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeVec4D: case HarbolTypeColor:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeString;
 					var->Val.StrObjPtr = harbol_string_new_cstr(cstr);
 					success = true;
@@ -1031,15 +1010,7 @@ HARBOL_EXPORT bool harbol_cfg_set_float_by_key(struct HarbolLinkMap *const restr
 			return false;
 		else if( var->TypeTag != HarbolTypeFloat ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeVec4D: case HarbolTypeColor:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeFloat;
 				var->Val.Double = val;
 				return true;
@@ -1077,15 +1048,7 @@ HARBOL_EXPORT bool harbol_cfg_set_float_by_key(struct HarbolLinkMap *const restr
 					var->Val.Double = val;
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeVec4D: case HarbolTypeColor:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeFloat;
 					var->Val.Double = val;
 					success = true;
@@ -1116,15 +1079,7 @@ HARBOL_EXPORT bool harbol_cfg_set_int_by_key(struct HarbolLinkMap *const restric
 			return false;
 		else if( var->TypeTag != HarbolTypeInt ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeVec4D: case HarbolTypeColor:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeInt;
 				var->Val.Int64 = val;
 				return true;
@@ -1162,15 +1117,7 @@ HARBOL_EXPORT bool harbol_cfg_set_int_by_key(struct HarbolLinkMap *const restric
 					var->Val.Int64 = val;
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeVec4D: case HarbolTypeColor:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeInt;
 					var->Val.Int64 = val;
 					success = true;
@@ -1201,15 +1148,7 @@ HARBOL_EXPORT bool harbol_cfg_set_bool_by_key(struct HarbolLinkMap *const restri
 			return false;
 		else if( var->TypeTag != HarbolTypeBool ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeVec4D: case HarbolTypeColor:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeBool;
 				var->Val.Bool = val;
 				return true;
@@ -1247,15 +1186,7 @@ HARBOL_EXPORT bool harbol_cfg_set_bool_by_key(struct HarbolLinkMap *const restri
 					var->Val.Bool = val;
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeVec4D: case HarbolTypeColor:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeBool;
 					var->Val.Bool = val;
 					success = true;
@@ -1286,15 +1217,7 @@ HARBOL_EXPORT bool harbol_cfg_set_color_by_key(struct HarbolLinkMap *const restr
 			return false;
 		else if( var->TypeTag != HarbolTypeColor ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeVec4D:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeColor;
 				const size_t matrix_data[] = { sizeof(union HarbolColor) };
 				var->Val.TuplePtr = harbol_tuple_new(1, matrix_data, false);
@@ -1334,15 +1257,7 @@ HARBOL_EXPORT bool harbol_cfg_set_color_by_key(struct HarbolLinkMap *const restr
 					memcpy(var->Val.TuplePtr, val, sizeof *val);
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeVec4D:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeColor;
 					const size_t matrix_data[] = { sizeof(union HarbolColor) };
 					var->Val.TuplePtr = harbol_tuple_new(1, matrix_data, false);
@@ -1375,15 +1290,7 @@ HARBOL_EXPORT bool harbol_cfg_set_vec4D_by_key(struct HarbolLinkMap *const restr
 			return false;
 		} else if( var->TypeTag != HarbolTypeVec4D ) {
 			if( override_convert ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeColor:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeVec4D;
 				const size_t matrix_data[] = { sizeof(union HarbolVec4D) };
 				var->Val.TuplePtr = harbol_tuple_new(1, matrix_data, false);
@@ -1423,15 +1330,7 @@ HARBOL_EXPORT bool harbol_cfg_set_vec4D_by_key(struct HarbolLinkMap *const restr
 					memcpy(var->Val.TuplePtr, val, sizeof *val);
 					success = true;
 				} else if( override_convert ) {
-					switch( var->TypeTag ) {
-						case HarbolTypeLinkMap:
-							harbol_cfg_free(&var->Val.LinkMapPtr); break;
-						case HarbolTypeString:
-							harbol_string_free(&var->Val.StrObjPtr); break;
-						case HarbolTypeColor:
-							harbol_tuple_free(&var->Val.TuplePtr); break;
-					}
-					memset(&var->Val, 0, sizeof var->Val);
+					_harbol_cfgkey_del(var);
 					var->TypeTag = HarbolTypeVec4D;
 					const size_t matrix_data[] = { sizeof(union HarbolVec4D) };
 					var->Val.TuplePtr = harbol_tuple_new(1, matrix_data, false);
@@ -1463,15 +1362,7 @@ HARBOL_EXPORT bool harbol_cfg_set_key_to_null(struct HarbolLinkMap *const restri
 		if( !var ) {
 			return false;
 		} else {
-			switch( var->TypeTag ) {
-				case HarbolTypeLinkMap:
-					harbol_cfg_free(&var->Val.LinkMapPtr); break;
-				case HarbolTypeString:
-					harbol_string_free(&var->Val.StrObjPtr); break;
-				case HarbolTypeColor: case HarbolTypeVec4D:
-					harbol_tuple_free(&var->Val.TuplePtr); break;
-			}
-			memset(&var->Val, 0, sizeof var->Val);
+			_harbol_cfgkey_del(var);
 			var->TypeTag = HarbolTypeNull;
 			return true;
 		}
@@ -1499,15 +1390,7 @@ HARBOL_EXPORT bool harbol_cfg_set_key_to_null(struct HarbolLinkMap *const restri
 			if( !var )
 				break;
 			else if( !harbol_string_cmpstr(&sectionstr, &targetstr) ) {
-				switch( var->TypeTag ) {
-					case HarbolTypeLinkMap:
-						harbol_cfg_free(&var->Val.LinkMapPtr); break;
-					case HarbolTypeString:
-						harbol_string_free(&var->Val.StrObjPtr); break;
-					case HarbolTypeColor: case HarbolTypeVec4D:
-						harbol_tuple_free(&var->Val.TuplePtr); break;
-				}
-				memset(&var->Val, 0, sizeof var->Val);
+				_harbol_cfgkey_del(var);
 				var->TypeTag = HarbolTypeNull;
 				success = true;
 				break;
@@ -1572,19 +1455,19 @@ HARBOL_EXPORT struct HarbolVariant *harbol_cfg_create_null(void)
 }
 */
 
-void _write_tabs(FILE *const file, const size_t tabs)
+static void _write_tabs(FILE *const file, const size_t tabs)
 {
-	for( size_t i=0 ; i<tabs ; i++ )
+	for( size_t i=0; i<tabs; i++ )
 		fputs("\t", file);
 }
 
-bool _harbol_cfg_build_file(const struct HarbolLinkMap *const map, FILE *const file, const size_t tabs)
+static bool _harbol_cfg_build_file(const struct HarbolLinkMap *const map, FILE *const file, const size_t tabs)
 {
 	if( !map || !file )
 		return false;
 	
 	const union HarbolValue *const end = harbol_linkmap_get_iter_end_count(map);
-	for( union HarbolValue *iter = harbol_linkmap_get_iter(map) ; iter && iter<end ; iter++ ) {
+	for( union HarbolValue *iter = harbol_linkmap_get_iter(map); iter && iter<end; iter++ ) {
 		const struct HarbolKeyValPair *kv = iter->KvPairPtr;
 		const int32_t type = kv->Data.VarPtr->TypeTag;
 		_write_tabs(file, tabs);
