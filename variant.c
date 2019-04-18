@@ -12,7 +12,7 @@ HARBOL_EXPORT struct HarbolVariant *harbol_variant_new(const union HarbolValue v
 	return variant;
 }
 
-HARBOL_EXPORT void harbol_variant_free(struct HarbolVariant **varref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_variant_free(struct HarbolVariant **varref, fnHarbolDestructor *const dtor)
 {
 	if( !varref || !*varref )
 		return;
@@ -30,7 +30,7 @@ HARBOL_EXPORT void harbol_variant_init(struct HarbolVariant *const variant, cons
 	variant->TypeTag = tagtype;
 }
 
-HARBOL_EXPORT void harbol_variant_del(struct HarbolVariant *const variant, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_variant_del(struct HarbolVariant *const variant, fnHarbolDestructor *const dtor)
 {
 	if( !variant )
 		return;

@@ -18,7 +18,7 @@ HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_node_new_val(const union Ha
 	return node;
 }
 
-HARBOL_EXPORT void harbol_bilist_node_del(struct HarbolBiListNode *const node, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_bilist_node_del(struct HarbolBiListNode *const node, fnHarbolDestructor *const dtor)
 {
 	if( !node )
 		return;
@@ -31,7 +31,7 @@ HARBOL_EXPORT void harbol_bilist_node_del(struct HarbolBiListNode *const node, f
 	harbol_bilist_node_free(&node->Next, dtor);
 }
 
-HARBOL_EXPORT void harbol_bilist_node_free(struct HarbolBiListNode ** noderef, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_bilist_node_free(struct HarbolBiListNode ** noderef, fnHarbolDestructor *const dtor)
 {
 	if( !*noderef )
 		return;
@@ -66,7 +66,7 @@ HARBOL_EXPORT struct HarbolBiList *harbol_bilist_new(void)
 	return list;
 }
 
-HARBOL_EXPORT void harbol_bilist_del(struct HarbolBiList *const list, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_bilist_del(struct HarbolBiList *const list, fnHarbolDestructor *const dtor)
 {
 	if( !list )
 		return;
@@ -75,7 +75,7 @@ HARBOL_EXPORT void harbol_bilist_del(struct HarbolBiList *const list, fnDestruct
 	memset(list, 0, sizeof *list);
 }
 
-HARBOL_EXPORT void harbol_bilist_free(struct HarbolBiList **listref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_bilist_free(struct HarbolBiList **listref, fnHarbolDestructor *const dtor)
 {
 	if( !*listref )
 		return;
@@ -267,7 +267,7 @@ HARBOL_EXPORT void harbol_bilist_set_val(struct HarbolBiList *const list, const 
 	}
 }
 
-HARBOL_EXPORT bool harbol_bilist_del_node_by_index(struct HarbolBiList *const list, const size_t index, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_bilist_del_node_by_index(struct HarbolBiList *const list, const size_t index, fnHarbolDestructor *const dtor)
 {
 	if( !list || !list->Len )
 		return false;
@@ -284,7 +284,7 @@ HARBOL_EXPORT bool harbol_bilist_del_node_by_index(struct HarbolBiList *const li
 	return true;
 }
 
-HARBOL_EXPORT bool harbol_bilist_del_node_by_ref(struct HarbolBiList *const list, struct HarbolBiListNode **noderef, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_bilist_del_node_by_ref(struct HarbolBiList *const list, struct HarbolBiListNode **noderef, fnHarbolDestructor *const dtor)
 {
 	if( !list || !*noderef )
 		return false;

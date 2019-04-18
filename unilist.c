@@ -19,7 +19,7 @@ HARBOL_EXPORT struct HarbolUniListNode *harbol_unilistnode_new_val(const union H
 	return node;
 }
 
-HARBOL_EXPORT void harbol_unilistnode_del(struct HarbolUniListNode *const node, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_unilistnode_del(struct HarbolUniListNode *const node, fnHarbolDestructor *const dtor)
 {
 	if( !node )
 		return;
@@ -31,7 +31,7 @@ HARBOL_EXPORT void harbol_unilistnode_del(struct HarbolUniListNode *const node, 
 		harbol_unilistnode_free(&node->Next, dtor);
 }
 
-HARBOL_EXPORT void harbol_unilistnode_free(struct HarbolUniListNode **noderef, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_unilistnode_free(struct HarbolUniListNode **noderef, fnHarbolDestructor *const dtor)
 {
 	if( !noderef || !*noderef )
 		return;
@@ -60,7 +60,7 @@ HARBOL_EXPORT struct HarbolUniList *harbol_unilist_new(void)
 	return list;
 }
 
-HARBOL_EXPORT void harbol_unilist_del(struct HarbolUniList *const list, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_unilist_del(struct HarbolUniList *const list, fnHarbolDestructor *const dtor)
 {
 	if( !list )
 		return;
@@ -69,7 +69,7 @@ HARBOL_EXPORT void harbol_unilist_del(struct HarbolUniList *const list, fnDestru
 	memset(list, 0, sizeof *list);
 }
 
-HARBOL_EXPORT void harbol_unilist_free(struct HarbolUniList **listref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_unilist_free(struct HarbolUniList **listref, fnHarbolDestructor *const dtor)
 {
 	if( !*listref )
 		return;
@@ -86,7 +86,7 @@ HARBOL_EXPORT void harbol_unilist_init(struct HarbolUniList *const list)
 	memset(list, 0, sizeof *list);
 }
 
-HARBOL_EXPORT size_t harbol_unilistnode_get_len(const struct HarbolUniList *const list)
+HARBOL_EXPORT size_t harbol_unilist_get_len(const struct HarbolUniList *const list)
 {
 	return list ? list->Len : 0;
 }
@@ -265,7 +265,7 @@ HARBOL_EXPORT void harbol_unilist_set_val(struct HarbolUniList *const list, cons
 	}
 }
 
-HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *const list, const size_t index, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *const list, const size_t index, fnHarbolDestructor *const dtor)
 {
 	if( !list || !list->Len )
 		return false;
@@ -301,7 +301,7 @@ HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *const 
 	return true;
 }
 
-HARBOL_EXPORT bool harbol_unilist_del_node_by_ref(struct HarbolUniList *const list, struct HarbolUniListNode **noderef, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_unilist_del_node_by_ref(struct HarbolUniList *const list, struct HarbolUniListNode **noderef, fnHarbolDestructor *const dtor)
 {
 	if( !list || !*noderef )
 		return false;

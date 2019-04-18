@@ -18,7 +18,7 @@ HARBOL_EXPORT void harbol_linkmap_init(struct HarbolLinkMap *const map)
 	memset(map, 0, sizeof *map);
 }
 
-HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *const map, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *const map, fnHarbolDestructor *const dtor)
 {
 	if( !map || !map->Map.Table )
 		return;
@@ -36,7 +36,7 @@ HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *const map, fnDestruc
 	memset(map, 0, sizeof *map);
 }
 
-HARBOL_EXPORT void harbol_linkmap_free(struct HarbolLinkMap **linkmapref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_linkmap_free(struct HarbolLinkMap **linkmapref, fnHarbolDestructor *const dtor)
 {
 	if( !*linkmapref )
 		return;
@@ -135,7 +135,7 @@ HARBOL_EXPORT void harbol_linkmap_set_by_index(struct HarbolLinkMap *const map, 
 		node->Data = val;
 }
 
-HARBOL_EXPORT void harbol_linkmap_delete(struct HarbolLinkMap *const restrict map, const char strkey[restrict], fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_linkmap_delete(struct HarbolLinkMap *const restrict map, const char strkey[restrict], fnHarbolDestructor *const dtor)
 {
 	if( !map || !map->Map.Table || !harbol_linkmap_has_key(map, strkey) )
 		return;
@@ -145,7 +145,7 @@ HARBOL_EXPORT void harbol_linkmap_delete(struct HarbolLinkMap *const restrict ma
 	harbol_vector_delete(&map->Order, index, NULL);
 }
 
-HARBOL_EXPORT void harbol_linkmap_delete_by_index(struct HarbolLinkMap *const map, const size_t index, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_linkmap_delete_by_index(struct HarbolLinkMap *const map, const size_t index, fnHarbolDestructor *const dtor)
 {
 	if( !map || !map->Map.Table )
 		return;

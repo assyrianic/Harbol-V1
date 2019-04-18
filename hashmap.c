@@ -20,7 +20,7 @@ HARBOL_EXPORT struct HarbolKeyValPair *harbol_kvpair_new_strval(const char cstr[
 	return n;
 }
 
-HARBOL_EXPORT void harbol_kvpair_del(struct HarbolKeyValPair *const n, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_kvpair_del(struct HarbolKeyValPair *const n, fnHarbolDestructor *const dtor)
 {
 	if( !n )
 		return;
@@ -30,7 +30,7 @@ HARBOL_EXPORT void harbol_kvpair_del(struct HarbolKeyValPair *const n, fnDestruc
 		(*dtor)(&n->Data.Ptr);
 }
 
-HARBOL_EXPORT void harbol_kvpair_free(struct HarbolKeyValPair **noderef, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_kvpair_free(struct HarbolKeyValPair **noderef, fnHarbolDestructor *const dtor)
 {
 	if( !noderef || !*noderef )
 		return;
@@ -118,7 +118,7 @@ HARBOL_EXPORT void harbol_hashmap_init(struct HarbolHashMap *const map)
 	memset(map, 0, sizeof *map);
 }
 
-HARBOL_EXPORT void harbol_hashmap_del(struct HarbolHashMap *const map, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_hashmap_del(struct HarbolHashMap *const map, fnHarbolDestructor *const dtor)
 {
 	if( !map || !map->Table )
 		return;
@@ -135,7 +135,7 @@ HARBOL_EXPORT void harbol_hashmap_del(struct HarbolHashMap *const map, fnDestruc
 	memset(map, 0, sizeof *map);
 }
 
-HARBOL_EXPORT void harbol_hashmap_free(struct HarbolHashMap **mapref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_hashmap_free(struct HarbolHashMap **mapref, fnHarbolDestructor *const dtor)
 {
 	if( !*mapref )
 		return;
@@ -256,7 +256,7 @@ HARBOL_EXPORT void harbol_hashmap_set(struct HarbolHashMap *const restrict map, 
 	}
 }
 
-HARBOL_EXPORT void harbol_hashmap_delete(struct HarbolHashMap *const restrict map, const char strkey[restrict], fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_hashmap_delete(struct HarbolHashMap *const restrict map, const char strkey[restrict], fnHarbolDestructor *const dtor)
 {
 	if( !map || !map->Table || !harbol_hashmap_has_key(map, strkey) )
 		return;

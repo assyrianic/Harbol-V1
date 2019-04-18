@@ -42,6 +42,7 @@ int main()
 	test_harbol_cfg();
 	test_harbol_plugins();
 	test_harbol_multithreading();
+	
 	fclose(g_harbol_debug_stream), g_harbol_debug_stream=NULL;
 }
 
@@ -902,8 +903,8 @@ void test_harbol_graph(void)
 		for( size_t n=0; n<vert->Edges.Count; n++ ) {
 			struct HarbolGraphEdge *k = vert->Edges.Table[i].Ptr;
 			fprintf(g_harbol_debug_stream, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
-			if( k->VertexSocket )
-				fprintf(g_harbol_debug_stream, "Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
+			if( k->Link )
+				fprintf(g_harbol_debug_stream, "Vertex Socket Data: '%" PRIi64 "'\n", k->Link->Data.Int64);
 		}
 	}
 	
@@ -932,8 +933,8 @@ void test_harbol_graph(void)
 		for( size_t n=0; n<vert->Edges.Count; n++ ) {
 			struct HarbolGraphEdge *k = vert->Edges.Table[n].Ptr;
 			fprintf(g_harbol_debug_stream, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
-			if( k->VertexSocket )
-				fprintf(g_harbol_debug_stream, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
+			if( k->Link )
+				fprintf(g_harbol_debug_stream, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->Link->Data.Int64);
 		}
 	}
 	fprintf(g_harbol_debug_stream, "\nRemoving 5th value success?: '%u'\n", harbol_graph_delete_val_by_index(&g, 4, NULL, NULL));
@@ -943,8 +944,8 @@ void test_harbol_graph(void)
 		for( size_t n=0; n<vert->Edges.Count; n++ ) {
 			struct HarbolGraphEdge *k = vert->Edges.Table[n].Ptr;
 			fprintf(g_harbol_debug_stream, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
-			if( k->VertexSocket )
-				fprintf(g_harbol_debug_stream, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
+			if( k->Link )
+				fprintf(g_harbol_debug_stream, "Edge Vertex Socket Data: '%" PRIi64 "'\n", k->Link->Data.Int64);
 		}
 	}
 	
@@ -957,8 +958,8 @@ void test_harbol_graph(void)
 		for( size_t n=0; n<vert->Edges.Count; n++ ) {
 			struct HarbolGraphEdge *k = vert->Edges.Table[n].Ptr;
 			fprintf(g_harbol_debug_stream, "Edge Data: '%" PRIi64 "'\n", k->Weight.Int64);
-			if( k->VertexSocket )
-				fprintf(g_harbol_debug_stream, "Vertex Socket Data: '%" PRIi64 "'\n", k->VertexSocket->Data.Int64);
+			if( k->Link )
+				fprintf(g_harbol_debug_stream, "Vertex Socket Data: '%" PRIi64 "'\n", k->Link->Data.Int64);
 		}
 	}
 	
@@ -967,8 +968,8 @@ void test_harbol_graph(void)
 	struct HarbolGraphEdge *edge = harbol_graph_get_edge(&g, 0, 1);
 	if( edge ) {
 		fputs("edge ptr is VALID.\n", g_harbol_debug_stream);
-		if( edge->VertexSocket )
-			fprintf(g_harbol_debug_stream, "edge Vertex Socket Data: '%" PRIi64 "'\n", edge->VertexSocket->Data.Int64);
+		if( edge->Link )
+			fprintf(g_harbol_debug_stream, "edge Vertex Socket Data: '%" PRIi64 "'\n", edge->Link->Data.Int64);
 	}
 	
 	// test adjacency function
@@ -1048,7 +1049,7 @@ void test_harbol_tree(void)
 		fprintf(g_harbol_debug_stream, "p's child's children data: '%s'\n", child->Data.StrObjPtr->CStr);
 	}
 	fputs("\nfreeing string data.\n", g_harbol_debug_stream);
-	harbol_tree_del(p, (fnDestructor *)harbol_string_free);
+	harbol_tree_del(p, (fnHarbolDestructor *)harbol_string_free);
 	
 	// free data
 	fputs("\ntree :: test destruction.\n", g_harbol_debug_stream);
@@ -1599,7 +1600,7 @@ void test_harbol_cfg(void)
 		fprintf(g_harbol_debug_stream, "\ncfg :: test config to string conversion:\n%s\n", stringcfg.CStr);
 		harbol_string_del(&stringcfg);
 		
-		fputs("cfg :: test retrieving sub section of realistic config.\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test retrieving sub section of realistic config.\n", g_harbol_debug_stream);
 		struct HarbolLinkMap *phone_numbers1 = harbol_cfg_get_section_by_key(larger_cfg, "root.phoneNumbers.1");
 		harbol_cfg_to_str(phone_numbers1, &stringcfg);
 		fprintf(g_harbol_debug_stream, "\nphone_numbers to string conversion: \n%s\n", stringcfg.CStr);
@@ -1612,7 +1613,7 @@ void test_harbol_cfg(void)
 			harbol_string_del(&stringcfg);
 		}
 		
-		fputs("cfg :: test retrieving string value from subsection of realistic config.\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test retrieving string value from subsection of realistic config.\n", g_harbol_debug_stream);
 		char *restrict type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers.1.type");
 		fprintf(g_harbol_debug_stream, "root.phoneNumbers.1.type type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
@@ -1625,14 +1626,14 @@ void test_harbol_cfg(void)
 		}
 		int64_t age; harbol_cfg_get_int_by_key(larger_cfg, "root.age", &age);
 		fprintf(g_harbol_debug_stream, "root.age int?: '%" PRIi64 "'\n", age);
-		double money = harbol_cfg_get_float_by_key(larger_cfg, "root.money", &money);
+		double money; harbol_cfg_get_float_by_key(larger_cfg, "root.money", &money);
 		fprintf(g_harbol_debug_stream, "root.money float?: '%f'\n", money);
 		
 		union HarbolColor color = {0};
 		const bool gotcolor = harbol_cfg_get_color_by_key(larger_cfg, "root.colors", &color);
 		fprintf(g_harbol_debug_stream, "root.colors color?: '%s': '[%u, %u, %u, %u]'\n", gotcolor ? "yes" : "no", color.Struc.R, color.Struc.G, color.Struc.B, color.Struc.A);
 		
-		fputs("cfg :: test override setting an existing key-value from null to a string type.\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test override setting an existing key-value from null to a string type.\n", g_harbol_debug_stream);
 		harbol_cfg_set_str_by_key(larger_cfg, "root.spouse", "Jane Smith", true);
 		{
 			struct HarbolString stringcfg = {NULL, 0};
@@ -1641,10 +1642,10 @@ void test_harbol_cfg(void)
 			harbol_string_del(&stringcfg);
 		}
 		
-		fputs("cfg :: test building cfg file!\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test building cfg file!\n", g_harbol_debug_stream);
 		fprintf(g_harbol_debug_stream, "\nconfig construction result: '%s'\n", harbol_cfg_build_file(larger_cfg, "large_cfg.ini", true) ? "success" : "failure");
 		
-		fputs("cfg :: test setting a key back to null\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test setting a key back to null\n", g_harbol_debug_stream);
 		harbol_cfg_set_key_to_null(larger_cfg, "root.spouse");
 		{
 			struct HarbolString stringcfg = {NULL, 0};
@@ -1653,7 +1654,18 @@ void test_harbol_cfg(void)
 			harbol_string_del(&stringcfg);
 		}
 		
-		fputs("cfg :: test adding other cfg as a new section\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test getting the type of a key\n", g_harbol_debug_stream);
+		enum HarbolCfgType n = 0;
+		harbol_cfg_get_key_type(larger_cfg, "root.phoneNumbers", &n);
+		fprintf(g_harbol_debug_stream, "Type of root.phoneNumbers: %i\n", n);
+		harbol_cfg_get_key_type(larger_cfg, "root.spouse", &n);
+		fprintf(g_harbol_debug_stream, "Type of root.spouse: %i\n", n);
+		harbol_cfg_get_key_type(larger_cfg, "root.money", &n);
+		fprintf(g_harbol_debug_stream, "Type of root.money: %i\n", n);
+		harbol_cfg_get_key_type(larger_cfg, "root.origin", &n);
+		fprintf(g_harbol_debug_stream, "Type of root.origin: %i\n", n);
+		
+		fputs("\ncfg :: test adding other cfg as a new section\n", g_harbol_debug_stream);
 		{
 			harbol_linkmap_insert(larger_cfg, "former lovers", (union HarbolValue){ .VarPtr=harbol_variant_new((union HarbolValue){ .LinkMapPtr=cfg }, HarbolTypeLinkMap) });
 			struct HarbolString stringcfg = {NULL, 0};
@@ -1661,13 +1673,13 @@ void test_harbol_cfg(void)
 			fprintf(g_harbol_debug_stream, "\nremoved spouse!: \n%s\n", stringcfg.CStr);
 			harbol_string_del(&stringcfg);
 		}
-		fputs("cfg :: test building newer cfg file!\n", g_harbol_debug_stream);
+		fputs("\ncfg :: test building newer cfg file!\n", g_harbol_debug_stream);
 		fprintf(g_harbol_debug_stream, "\nconfig construction result: '%s'\n", harbol_cfg_build_file(larger_cfg, "large_cfg_new_sect.ini", true) ? "success" : "failure");
 		harbol_cfg_free(&larger_cfg);
 		fprintf(g_harbol_debug_stream, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
 	}
 	cfg = NULL;
-	fputs("cfg :: test destruction.\n", g_harbol_debug_stream);
+	fputs("\ncfg :: test destruction.\n", g_harbol_debug_stream);
 	harbol_cfg_free(&cfg);
 	fprintf(g_harbol_debug_stream, "cfg ptr valid?: '%s'\n", cfg ? "yes" : "no");
 }

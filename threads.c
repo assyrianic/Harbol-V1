@@ -542,7 +542,7 @@ HARBOL_EXPORT void harbol_thread_yield(void)
 #endif
 }
 
-HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *const key, fnThreadStorageDtor *const dtor)
+HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *const key, fnHarbolStorageDtor *const dtor)
 {
 	if( !key )
 		return HarbolThreadResError;

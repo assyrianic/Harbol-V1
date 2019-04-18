@@ -309,7 +309,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_delete_plugin_by_name(struct HarbolPlug
 		struct HarbolPlugin *plugin = harbol_plugin_manager_get_plugin_by_name(manager, plugin_name);
 		if( unload_cb )
 			(*unload_cb)(manager, &plugin);
-		harbol_linkmap_delete(&manager->Plugins, plugin_name, (fnDestructor *)(uintptr_t)harbol_plugin_free);
+		harbol_linkmap_delete(&manager->Plugins, plugin_name, (fnHarbolDestructor *)(uintptr_t)harbol_plugin_free);
 		return true;
 	}
 }
@@ -322,7 +322,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_delete_plugin_by_index(struct HarbolPlu
 		struct HarbolPlugin *plugin = harbol_plugin_manager_get_plugin_by_index(manager, index);
 		if( unload_cb )
 			(*unload_cb)(manager, &plugin);
-		harbol_linkmap_delete_by_index(&manager->Plugins, index, (fnDestructor *)(uintptr_t)harbol_plugin_free);
+		harbol_linkmap_delete_by_index(&manager->Plugins, index, (fnHarbolDestructor *)(uintptr_t)harbol_plugin_free);
 		return true;
 	}
 }
@@ -354,7 +354,7 @@ HARBOL_EXPORT bool harbol_plugin_manager_unload_plugins(struct HarbolPluginManag
 			if( unload_cb )
 				(*unload_cb)(manager, &plugin);
 		}
-		harbol_linkmap_del(&manager->Plugins, (fnDestructor *)(uintptr_t)harbol_plugin_free);
+		harbol_linkmap_del(&manager->Plugins, (fnHarbolDestructor *)(uintptr_t)harbol_plugin_free);
 		return true;
 	}
 }

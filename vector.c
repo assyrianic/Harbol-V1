@@ -25,7 +25,7 @@ HARBOL_EXPORT void harbol_vector_init(struct HarbolVector *const v)
 	memset(v, 0, sizeof *v);
 }
 
-HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *const v, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *const v, fnHarbolDestructor *const dtor)
 {
 	if( !v || !v->Table )
 		return;
@@ -37,7 +37,7 @@ HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *const v, fnDestructor 
 	free(v->Table); memset(v, 0, sizeof *v);
 }
 
-HARBOL_EXPORT void harbol_vector_free(struct HarbolVector **vecref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_vector_free(struct HarbolVector **vecref, fnHarbolDestructor *const dtor)
 {
 	if( !*vecref )
 		return;
@@ -116,7 +116,7 @@ HARBOL_EXPORT void harbol_vector_set(struct HarbolVector *const v, const size_t 
 	v->Table[index] = val;
 }
 
-HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *const v, const size_t index, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *const v, const size_t index, fnHarbolDestructor *const dtor)
 {
 	if( !v || !v->Table || index >= v->Count )
 		return;

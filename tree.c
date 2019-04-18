@@ -26,7 +26,7 @@ HARBOL_EXPORT void harbol_tree_init_val(struct HarbolTree *const tn, const union
 	tn->Data = val;
 }
 
-HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *const tn, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *const tn, fnHarbolDestructor *const dtor)
 {
 	if( !tn )
 		return;
@@ -41,7 +41,7 @@ HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *const tn, fnDestructor *co
 	memset(tn, 0, sizeof *tn);
 }
 
-HARBOL_EXPORT void harbol_tree_free(struct HarbolTree **tnref, fnDestructor *const dtor)
+HARBOL_EXPORT void harbol_tree_free(struct HarbolTree **tnref, fnHarbolDestructor *const dtor)
 {
 	if( !*tnref )
 		return;
@@ -71,7 +71,7 @@ HARBOL_EXPORT bool harbol_tree_insert_child_val(struct HarbolTree *const restric
 	return true;
 }
 
-HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *const restrict tn, struct HarbolTree **const restrict noderef, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *const restrict tn, struct HarbolTree **const restrict noderef, fnHarbolDestructor *const dtor)
 {
 	if( !tn || !tn->Children.Table || !*noderef )
 		return false;
@@ -89,7 +89,7 @@ HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *const rest
 	return false;
 }
 
-HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *const restrict tn, const size_t index, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *const restrict tn, const size_t index, fnHarbolDestructor *const dtor)
 {
 	if( !tn || index >= tn->Children.Count )
 		return false;
@@ -102,7 +102,7 @@ HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *const re
 	return true;
 }
 
-HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *const restrict tn, const union HarbolValue val, fnDestructor *const dtor)
+HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *const restrict tn, const union HarbolValue val, fnHarbolDestructor *const dtor)
 {
 	if( !tn || !tn->Children.Table )
 		return false;

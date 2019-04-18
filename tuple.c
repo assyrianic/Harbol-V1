@@ -12,13 +12,13 @@ typedef union {
 } TupleElement;
 
 /*
-static size_t CalcPadding(const size_t offset, const size_t align)
+static size_t calc_padding(const size_t offset, const size_t align)
 {
 	return -offset & (align - 1);
 }
 */
 
-static size_t AlignSize(const size_t size, const size_t align)
+static size_t align_size(const size_t size, const size_t align)
 {
 	return (size + (align-1)) & -align;
 }
@@ -64,11 +64,11 @@ HARBOL_EXPORT void harbol_tuple_init(struct HarbolTuple *const tup, const size_t
 		if( packed || array_len==1 )
 			continue;
 		const size_t offalign = (i+1<array_len) ? datasizes[i+1] : prevsize;
-		totalsize = AlignSize(totalsize, offalign>=sizeptr ? sizeptr : offalign);
+		totalsize = align_size(totalsize, offalign>=sizeptr ? sizeptr : offalign);
 		prevsize = datasizes[i];
 	}
 	// now do a final size alignment with the largest member.
-	const size_t aligned_total = AlignSize(totalsize, largestmemb>=sizeptr ? sizeptr : largestmemb);
+	const size_t aligned_total = align_size(totalsize, largestmemb>=sizeptr ? sizeptr : largestmemb);
 	
 	tup->Datum = calloc(packed ? totalsize : aligned_total, sizeof *tup->Datum);
 	if( !tup->Datum )
@@ -86,7 +86,7 @@ HARBOL_EXPORT void harbol_tuple_init(struct HarbolTuple *const tup, const size_t
 		if( packed || array_len==1 )
 			continue;
 		const size_t offalign = (i+1<array_len) ? datasizes[i+1] : prevsize;
-		offset = AlignSize(offset, offalign>=sizeptr ? sizeptr : offalign);
+		offset = align_size(offset, offalign>=sizeptr ? sizeptr : offalign);
 		prevsize = datasizes[i];
 	}
 }

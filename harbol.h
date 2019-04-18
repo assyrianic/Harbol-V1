@@ -8,12 +8,6 @@
 #	define HARBOL_VERSION_STRING \
 			STR(HARBOL_VERSION_MAJOR) STR(HARBOL_VERSION_MINOR) STR(HARBOL_VERSION_PATCH)
 
-#ifdef __cplusplus
-extern "C" {
-#	ifndef restrict
-#		define restrict __restrict
-#	endif
-#endif
 
 /* Check if Windows */
 #if defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__)
@@ -150,6 +144,19 @@ extern "C" {
 #	define HARBOL_EXPORT
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#	ifdef OS_WINDOWS
+#		ifndef restrict
+#			define restrict __restrict
+#		endif
+#	else
+#		ifndef restrict
+#			define restrict __restrict__
+#		endif
+#	endif
+#endif
+
 /* includes, duh. */
 #include <stdbool.h>
 #include <stdio.h>
@@ -167,7 +174,7 @@ extern "C" {
 #endif
 
 
-typedef bool fnDestructor(void *ptr_ref); /* use pointer to a pointer. */
+typedef bool fnHarbolDestructor(void *ptr_ref); /* use pointer to a pointer. */
 
 struct HarbolVariant;
 struct HarbolString;
@@ -347,8 +354,8 @@ HARBOL_EXPORT void harbol_generic_vector_truncater(void *table_ref, size_t *curr
 
 HARBOL_EXPORT struct HarbolVector *harbol_vector_new(void);
 HARBOL_EXPORT void harbol_vector_init(struct HarbolVector *vec);
-HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *vec, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_vector_free(struct HarbolVector **vecref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_vector_del(struct HarbolVector *vec, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_vector_free(struct HarbolVector **vecref, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT size_t harbol_vector_get_len(const struct HarbolVector *vec);
 HARBOL_EXPORT size_t harbol_vector_get_count(const struct HarbolVector *vec);
@@ -363,7 +370,7 @@ HARBOL_EXPORT union HarbolValue harbol_vector_pop(struct HarbolVector *vec);
 HARBOL_EXPORT union HarbolValue harbol_vector_get(const struct HarbolVector *vec, size_t index);
 HARBOL_EXPORT void harbol_vector_set(struct HarbolVector *vec, size_t index, union HarbolValue val);
 
-HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *vec, size_t index, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *vec, size_t index, fnHarbolDestructor *dtor);
 HARBOL_EXPORT void harbol_vector_add(struct HarbolVector *vecA, const struct HarbolVector *vecB);
 HARBOL_EXPORT void harbol_vector_copy(struct HarbolVector *vecA, const struct HarbolVector *vecB);
 
@@ -390,8 +397,8 @@ typedef struct HarbolKeyValPair {
 HARBOL_EXPORT struct HarbolKeyValPair *harbol_kvpair_new(void);
 HARBOL_EXPORT struct HarbolKeyValPair *harbol_kvpair_new_strval(const char cstr[], union HarbolValue val);
 
-HARBOL_EXPORT void harbol_kvpair_del(struct HarbolKeyValPair *kv, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_kvpair_free(struct HarbolKeyValPair **kvref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_kvpair_del(struct HarbolKeyValPair *kv, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_kvpair_free(struct HarbolKeyValPair **kvref, fnHarbolDestructor *dtor);
 
 
 typedef struct HarbolHashMap {
@@ -402,8 +409,8 @@ typedef struct HarbolHashMap {
 HARBOL_EXPORT size_t generic_hash(const char key[]);
 HARBOL_EXPORT struct HarbolHashMap *harbol_hashmap_new(void);
 HARBOL_EXPORT void harbol_hashmap_init(struct HarbolHashMap *map);
-HARBOL_EXPORT void harbol_hashmap_del(struct HarbolHashMap *map, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_hashmap_free(struct HarbolHashMap **mapref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_hashmap_del(struct HarbolHashMap *map, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_hashmap_free(struct HarbolHashMap **mapref, fnHarbolDestructor *dtor);
 HARBOL_EXPORT size_t harbol_hashmap_get_count(const struct HarbolHashMap *map);
 HARBOL_EXPORT size_t harbol_hashmap_get_len(const struct HarbolHashMap *map);
 HARBOL_EXPORT bool harbol_hashmap_rehash(struct HarbolHashMap *map);
@@ -414,7 +421,7 @@ HARBOL_EXPORT bool harbol_hashmap_insert(struct HarbolHashMap *map, const char k
 HARBOL_EXPORT union HarbolValue harbol_hashmap_get(const struct HarbolHashMap *map, const char key[]);
 HARBOL_EXPORT void harbol_hashmap_set(struct HarbolHashMap *map, const char key[], union HarbolValue val);
 
-HARBOL_EXPORT void harbol_hashmap_delete(struct HarbolHashMap *map, const char key[], fnDestructor *dtor);
+HARBOL_EXPORT void harbol_hashmap_delete(struct HarbolHashMap *map, const char key[], fnHarbolDestructor *dtor);
 HARBOL_EXPORT bool harbol_hashmap_has_key(const struct HarbolHashMap *map, const char key[]);
 HARBOL_EXPORT struct HarbolKeyValPair *harbol_hashmap_get_node(const struct HarbolHashMap *map, const char key[]);
 struct HarbolVector *harbol_hashmap_get_buckets(const struct HarbolHashMap *map);
@@ -441,8 +448,8 @@ typedef struct HarbolUniListNode {
 
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilistnode_new(void);
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilistnode_new_val(union HarbolValue val);
-HARBOL_EXPORT void harbol_unilistnode_del(struct HarbolUniListNode *node, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_unilistnode_free(struct HarbolUniListNode **noderef, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_unilistnode_del(struct HarbolUniListNode *node, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_unilistnode_free(struct HarbolUniListNode **noderef, fnHarbolDestructor *dtor);
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilistnode_get_next_node(const struct HarbolUniListNode *node);
 HARBOL_EXPORT union HarbolValue harbol_unilistnode_get_val(const struct HarbolUniListNode *node);
 
@@ -453,11 +460,11 @@ typedef struct HarbolUniList {
 } HarbolUniList;
 
 HARBOL_EXPORT struct HarbolUniList *harbol_unilist_new(void);
-HARBOL_EXPORT void harbol_unilist_del(struct HarbolUniList *list, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_unilist_free(struct HarbolUniList **listref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_unilist_del(struct HarbolUniList *list, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_unilist_free(struct HarbolUniList **listref, fnHarbolDestructor *dtor);
 HARBOL_EXPORT void harbol_unilist_init(struct HarbolUniList *list);
 
-HARBOL_EXPORT size_t harbol_unilistnode_get_len(const struct HarbolUniList *list);
+HARBOL_EXPORT size_t harbol_unilist_get_len(const struct HarbolUniList *list);
 HARBOL_EXPORT bool harbol_unilist_insert_node_at_head(struct HarbolUniList *list, struct HarbolUniListNode *node);
 HARBOL_EXPORT bool harbol_unilist_insert_node_at_tail(struct HarbolUniList *list, struct HarbolUniListNode *node);
 HARBOL_EXPORT bool harbol_unilist_insert_node_at_index(struct HarbolUniList *list, struct HarbolUniListNode *node, size_t index);
@@ -469,8 +476,8 @@ HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_node_by_index(const s
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_node_by_val(const struct HarbolUniList *list, union HarbolValue val);
 HARBOL_EXPORT union HarbolValue harbol_unilist_get_val(const struct HarbolUniList *list, size_t index);
 HARBOL_EXPORT void harbol_unilist_set_val(struct HarbolUniList *list, size_t index, union HarbolValue val);
-HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *list, size_t index, fnDestructor *dtor);
-HARBOL_EXPORT bool harbol_unilist_del_node_by_ref(struct HarbolUniList *list, struct HarbolUniListNode **noderef, fnDestructor *dtor);
+HARBOL_EXPORT bool harbol_unilist_del_node_by_index(struct HarbolUniList *list, size_t index, fnHarbolDestructor *dtor);
+HARBOL_EXPORT bool harbol_unilist_del_node_by_ref(struct HarbolUniList *list, struct HarbolUniListNode **noderef, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_head_node(const struct HarbolUniList *list);
 HARBOL_EXPORT struct HarbolUniListNode *harbol_unilist_get_tail_node(const struct HarbolUniList *list);
@@ -497,8 +504,8 @@ typedef struct HarbolBiListNode {
 
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_node_new(void);
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_node_new_val(union HarbolValue val);
-HARBOL_EXPORT void harbol_bilist_node_del(struct HarbolBiListNode *node, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_bilist_node_free(struct HarbolBiListNode **noderef, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_bilist_node_del(struct HarbolBiListNode *node, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_bilist_node_free(struct HarbolBiListNode **noderef, fnHarbolDestructor *dtor);
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_node_get_next_node(const struct HarbolBiListNode *node);
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_node_get_prev_node(const struct HarbolBiListNode *node);
 HARBOL_EXPORT union HarbolValue harbol_bilist_node_get_val(const struct HarbolBiListNode *node);
@@ -510,8 +517,8 @@ typedef struct HarbolBiList {
 } HarbolBiList;
 
 HARBOL_EXPORT struct HarbolBiList *harbol_bilist_new(void);
-HARBOL_EXPORT void harbol_bilist_del(struct HarbolBiList *list, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_bilist_free(struct HarbolBiList **listref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_bilist_del(struct HarbolBiList *list, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_bilist_free(struct HarbolBiList **listref, fnHarbolDestructor *dtor);
 HARBOL_EXPORT void harbol_bilist_init(struct HarbolBiList *list);
 
 HARBOL_EXPORT size_t harbol_bilist_get_len(const struct HarbolBiList *list);
@@ -526,8 +533,8 @@ HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_node_by_index(const str
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_node_by_val(const struct HarbolBiList *list, union HarbolValue val);
 HARBOL_EXPORT union HarbolValue harbol_bilist_get_val(const struct HarbolBiList *list, size_t index);
 HARBOL_EXPORT void harbol_bilist_set_val(struct HarbolBiList *list, size_t index, union HarbolValue val);
-HARBOL_EXPORT bool harbol_bilist_del_node_by_index(struct HarbolBiList *list, size_t index, fnDestructor *dtor);
-HARBOL_EXPORT bool harbol_bilist_del_node_by_ref(struct HarbolBiList *list, struct HarbolBiListNode **noderef, fnDestructor *dtor);
+HARBOL_EXPORT bool harbol_bilist_del_node_by_index(struct HarbolBiList *list, size_t index, fnHarbolDestructor *dtor);
+HARBOL_EXPORT bool harbol_bilist_del_node_by_ref(struct HarbolBiList *list, struct HarbolBiListNode **noderef, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_head_node(const struct HarbolBiList *list);
 HARBOL_EXPORT struct HarbolBiListNode *harbol_bilist_get_tail_node(const struct HarbolBiList *list);
@@ -650,13 +657,13 @@ HARBOL_EXPORT bool harbol_mempool_defrag(struct HarbolMemoryPool *mempool);
 struct HarbolGraphVertex;
 typedef struct HarbolGraphEdge {
 	union HarbolValue Weight;
-	struct HarbolGraphVertex *VertexSocket;
+	struct HarbolGraphVertex *Link;
 } HarbolGraphEdge;
 
 HARBOL_EXPORT struct HarbolGraphEdge *harbol_edge_new(void);
 HARBOL_EXPORT struct HarbolGraphEdge *harbol_edge_new_val_vert(union HarbolValue val, struct HarbolGraphVertex *vert);
-HARBOL_EXPORT void harbol_edge_del(struct HarbolGraphEdge *edge, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_edge_free(struct HarbolGraphEdge **edgeref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_edge_del(struct HarbolGraphEdge *edge, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_edge_free(struct HarbolGraphEdge **edgeref, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT union HarbolValue harbol_edge_get_weight(const struct HarbolGraphEdge *edge);
 HARBOL_EXPORT void harbol_edge_set_weight(struct HarbolGraphEdge *edge, union HarbolValue val);
@@ -671,8 +678,8 @@ typedef struct HarbolGraphVertex {
 
 HARBOL_EXPORT struct HarbolGraphVertex *harbol_vertex_new(union HarbolValue val);
 HARBOL_EXPORT void harbol_vertex_init(struct HarbolGraphVertex *vert, union HarbolValue val);
-HARBOL_EXPORT void harbol_vertex_del(struct HarbolGraphVertex *vert, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
-HARBOL_EXPORT void harbol_vertex_free(struct HarbolGraphVertex **vertref, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
+HARBOL_EXPORT void harbol_vertex_del(struct HarbolGraphVertex *vert, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
+HARBOL_EXPORT void harbol_vertex_free(struct HarbolGraphVertex **vertref, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
 HARBOL_EXPORT bool harbol_vertex_add_edge(struct HarbolGraphVertex *vert, struct HarbolGraphEdge *edge);
 HARBOL_EXPORT struct HarbolVector *harbol_vertex_get_edges(struct HarbolGraphVertex *vert);
 HARBOL_EXPORT union HarbolValue harbol_vertex_get_val(const struct HarbolGraphVertex *vert);
@@ -685,15 +692,15 @@ typedef struct HarbolGraph {
 
 HARBOL_EXPORT struct HarbolGraph *harbol_graph_new(void);
 HARBOL_EXPORT void harbol_graph_init(struct HarbolGraph *graph);
-HARBOL_EXPORT void harbol_graph_del(struct HarbolGraph *graph, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
-HARBOL_EXPORT void harbol_graph_free(struct HarbolGraph **graphref, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
+HARBOL_EXPORT void harbol_graph_del(struct HarbolGraph *graph, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
+HARBOL_EXPORT void harbol_graph_free(struct HarbolGraph **graphref, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
 
 HARBOL_EXPORT bool harbol_graph_insert_val(struct HarbolGraph *graph, union HarbolValue val);
-HARBOL_EXPORT bool harbol_graph_delete_val(struct HarbolGraph *graph, union HarbolValue val, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
-HARBOL_EXPORT bool harbol_graph_delete_val_by_index(struct HarbolGraph *graph, size_t index, fnDestructor *dtor_edge, fnDestructor *dtor_vert);
+HARBOL_EXPORT bool harbol_graph_delete_val(struct HarbolGraph *graph, union HarbolValue val, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
+HARBOL_EXPORT bool harbol_graph_delete_val_by_index(struct HarbolGraph *graph, size_t index, fnHarbolDestructor *dtor_edge, fnHarbolDestructor *dtor_vert);
 
 HARBOL_EXPORT bool harbol_graph_insert_edge(struct HarbolGraph *graph, size_t index_vert1, size_t index_vert2, union HarbolValue weight);
-HARBOL_EXPORT bool harbol_graph_delete_edge(struct HarbolGraph *graph, size_t index_vert1, size_t index_vert2, fnDestructor *dtor_edge);
+HARBOL_EXPORT bool harbol_graph_delete_edge(struct HarbolGraph *graph, size_t index_vert1, size_t index_vert2, fnHarbolDestructor *dtor_edge);
 
 HARBOL_EXPORT struct HarbolGraphVertex *harbol_graph_get_vertex_by_index(struct HarbolGraph *graph, size_t index);
 HARBOL_EXPORT union HarbolValue harbol_graph_get_val_by_index(struct HarbolGraph *graph, size_t index);
@@ -732,15 +739,15 @@ typedef struct HarbolTree {
 HARBOL_EXPORT struct HarbolTree *harbol_tree_new(union HarbolValue val);
 HARBOL_EXPORT void harbol_tree_init(struct HarbolTree *tree);
 HARBOL_EXPORT void harbol_tree_init_val(struct HarbolTree *tree, union HarbolValue val);
-HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *tree, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_tree_free(struct HarbolTree **treeref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_tree_del(struct HarbolTree *tree, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_tree_free(struct HarbolTree **treeref, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT bool harbol_tree_insert_child_node(struct HarbolTree *tree, struct HarbolTree *child);
 HARBOL_EXPORT bool harbol_tree_insert_child_val(struct HarbolTree *tree, union HarbolValue val);
 
-HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *tree, struct HarbolTree **childref, fnDestructor *dtor);
-HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *tree, size_t index, fnDestructor *dtor);
-HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *tree, union HarbolValue val, fnDestructor *dtor);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_ref(struct HarbolTree *tree, struct HarbolTree **childref, fnHarbolDestructor *dtor);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_index(struct HarbolTree *tree, size_t index, fnHarbolDestructor *dtor);
+HARBOL_EXPORT bool harbol_tree_delete_child_by_val(struct HarbolTree *tree, union HarbolValue val, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT struct HarbolTree *harbol_tree_get_child_by_index(const struct HarbolTree *tree, size_t index);
 HARBOL_EXPORT struct HarbolTree *harbol_tree_get_child_by_val(const struct HarbolTree *tree, union HarbolValue val);
@@ -760,8 +767,8 @@ typedef struct HarbolLinkMap {
 
 HARBOL_EXPORT struct HarbolLinkMap *harbol_linkmap_new(void);
 HARBOL_EXPORT void harbol_linkmap_init(struct HarbolLinkMap *linkmap);
-HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *linkmap, fnDestructor *dtor);
-HARBOL_EXPORT void harbol_linkmap_free(struct HarbolLinkMap **linkmapref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_linkmap_del(struct HarbolLinkMap *linkmap, fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_linkmap_free(struct HarbolLinkMap **linkmapref, fnHarbolDestructor *dtor);
 HARBOL_EXPORT size_t harbol_linkmap_get_count(const struct HarbolLinkMap *linkmap);
 HARBOL_EXPORT size_t harbol_linkmap_get_len(const struct HarbolLinkMap *linkmap);
 HARBOL_EXPORT bool harbol_linkmap_rehash(struct HarbolLinkMap *linkmap);
@@ -775,8 +782,8 @@ HARBOL_EXPORT void harbol_linkmap_set(struct HarbolLinkMap *linkmap, const char 
 HARBOL_EXPORT union HarbolValue harbol_linkmap_get_by_index(const struct HarbolLinkMap *linkmap, size_t index);
 HARBOL_EXPORT void harbol_linkmap_set_by_index(struct HarbolLinkMap *linkmap, size_t index, union HarbolValue val);
 
-HARBOL_EXPORT void harbol_linkmap_delete(struct HarbolLinkMap *linkmap, const char key[], fnDestructor *dtor);
-HARBOL_EXPORT void harbol_linkmap_delete_by_index(struct HarbolLinkMap *linkmap, size_t, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_linkmap_delete(struct HarbolLinkMap *linkmap, const char key[], fnHarbolDestructor *dtor);
+HARBOL_EXPORT void harbol_linkmap_delete_by_index(struct HarbolLinkMap *linkmap, size_t, fnHarbolDestructor *dtor);
 HARBOL_EXPORT bool harbol_linkmap_has_key(const struct HarbolLinkMap *, const char key[]);
 HARBOL_EXPORT struct HarbolKeyValPair *harbol_linkmap_get_node_by_key(const struct HarbolLinkMap *linkmap, const char key[]);
 HARBOL_EXPORT struct HarbolVector *harbol_linkmap_get_buckets(const struct HarbolLinkMap *linkmap);
@@ -811,9 +818,9 @@ typedef struct HarbolVariant {
 } HarbolVariant;
 
 HARBOL_EXPORT struct HarbolVariant *harbol_variant_new(union HarbolValue val, int32_t typeval);
-HARBOL_EXPORT void harbol_variant_free(struct HarbolVariant **varref, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_variant_free(struct HarbolVariant **varref, fnHarbolDestructor *dtor);
 HARBOL_EXPORT void harbol_variant_init(struct HarbolVariant *var, union HarbolValue val, int32_t typeval);
-HARBOL_EXPORT void harbol_variant_del(struct HarbolVariant *var, fnDestructor *dtor);
+HARBOL_EXPORT void harbol_variant_del(struct HarbolVariant *var, fnHarbolDestructor *dtor);
 
 HARBOL_EXPORT union HarbolValue harbol_variant_get_val(const struct HarbolVariant *var);
 HARBOL_EXPORT void harbol_variant_set_val(struct HarbolVariant *var, union HarbolValue val);
@@ -846,6 +853,7 @@ typedef union HarbolVec4D {
 	float XYZW[4];
 } HarbolVec4D;
 
+
 HARBOL_EXPORT struct HarbolLinkMap *harbol_cfg_from_file(const char filename[]);
 HARBOL_EXPORT struct HarbolLinkMap *harbol_cfg_parse_cstr(const char cstr[]);
 HARBOL_EXPORT bool harbol_cfg_free(struct HarbolLinkMap **cfgref);
@@ -858,6 +866,8 @@ HARBOL_EXPORT bool harbol_cfg_get_int_by_key(struct HarbolLinkMap *cfg, const ch
 HARBOL_EXPORT bool harbol_cfg_get_bool_by_key(struct HarbolLinkMap *cfg, const char keypath[], bool *boolref);
 HARBOL_EXPORT bool harbol_cfg_get_color_by_key(struct HarbolLinkMap *cfg, const char keypath[], union HarbolColor *colorref);
 HARBOL_EXPORT bool harbol_cfg_get_vec4D_by_key(struct HarbolLinkMap *cfg, const char keypath[], union HarbolVec4D *vec4dref);
+
+HARBOL_EXPORT bool harbol_cfg_get_key_type(struct HarbolLinkMap *cfg, const char keypath[], enum HarbolCfgType *type);
 
 HARBOL_EXPORT bool harbol_cfg_set_str_by_key(struct HarbolLinkMap *cfg, const char keypath[], const char cstr[], bool override_convert);
 HARBOL_EXPORT bool harbol_cfg_set_float_by_key(struct HarbolLinkMap *cfg, const char keypath[], double fltval, bool override_convert);
@@ -1043,17 +1053,17 @@ typedef uint32_t HarbolThreadStorage;
 typedef pthread_key_t HarbolThreadStorage;
 #endif
 
-typedef void fnThreadStorageDtor(void *val);
+typedef void fnHarbolStorageDtor(void *val);
 
 typedef struct HarbolTSS {
 #ifdef OS_WINDOWS
-	fnThreadStorageDtor *CacheDtor;
+	fnHarbolStorageDtor *CacheDtor;
 	void *CacheVal;
 #endif
 	HarbolThreadStorage Key;
 } HarbolTSS;
 
-HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *key, fnThreadStorageDtor *dtor);
+HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *key, fnHarbolStorageDtor *dtor);
 HARBOL_EXPORT void harbol_tss_delete(struct HarbolTSS *key);
 HARBOL_EXPORT void *harbol_tss_get(struct HarbolTSS *key);
 HARBOL_EXPORT enum HarbolThreadRes harbol_tss_set(struct HarbolTSS *key, void *val);
