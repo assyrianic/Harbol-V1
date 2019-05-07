@@ -262,7 +262,7 @@ HARBOL_EXPORT bool harbol_string_read_file(struct HarbolString *const strobj, FI
 		
 		if( strobj->CStr )
 			free(strobj->CStr), strobj->CStr=NULL;
-		strobj->CStr = calloc(filesize, sizeof *strobj->CStr);
+		strobj->CStr = calloc(filesize + 1, sizeof *strobj->CStr);
 		
 		if( !strobj->CStr )
 			return false;
