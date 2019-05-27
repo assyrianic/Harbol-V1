@@ -310,6 +310,10 @@ typedef union HarbolValue {
 #	endif
 #endif
 
+inline size_t harbol_align_size(const size_t size, const size_t align) {
+	return (size + (align-1)) & -align;
+}
+
 /************* C++ Style Automated String (stringobj.c) *************/
 typedef struct HarbolString {
 	char *CStr;
@@ -349,8 +353,7 @@ typedef struct HarbolVector {
 	size_t Len, Count;
 } HarbolVector;
 
-HARBOL_EXPORT void harbol_generic_vector_resizer(void *table_ref, size_t *curr_len, size_t element_size);
-HARBOL_EXPORT void harbol_generic_vector_truncater(void *table_ref, size_t *curr_len, size_t element_size);
+HARBOL_EXPORT void harbol_generic_vector_resizer(void *table_n_len, size_t len, size_t element_size);
 
 HARBOL_EXPORT struct HarbolVector *harbol_vector_new(void);
 HARBOL_EXPORT void harbol_vector_init(struct HarbolVector *vec);

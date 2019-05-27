@@ -271,7 +271,7 @@ HARBOL_EXPORT struct HarbolPlugin *harbol_plugin_manager_get_plugin_by_name(cons
 
 HARBOL_EXPORT struct HarbolPlugin *harbol_plugin_manager_get_plugin_by_index(const struct HarbolPluginManager *const manager, const size_t index)
 {
-	return !manager || index>manager->Plugins.Order.Count ? NULL : manager->Plugins.Order.Table[index].KvPairPtr->Data.Ptr;
+	return !manager || index >= manager->Plugins.Order.Count ? NULL : manager->Plugins.Order.Table[index].Ptr;
 }
 
 HARBOL_EXPORT const char *harbol_plugin_manager_get_plugin_dir(const struct HarbolPluginManager *manager)

@@ -5,10 +5,6 @@
 #include "harbol.h"
 
 
-static size_t align_size(const size_t size, const size_t align)
-{
-	return (size + (align-1)) & -align;
-}
 
 HARBOL_EXPORT void harbol_mempool_init(struct HarbolMemoryPool *const mempool, const size_t size)
 {
@@ -26,7 +22,7 @@ HARBOL_EXPORT void harbol_mempool_init(struct HarbolMemoryPool *const mempool, c
 	mempool->HeapSize = POOL_HEAPSIZE;
 #else
 	// align the mempool size to at least the size of an alloc node.
-	mempool->HeapSize = align_size(size, sizeof(struct HarbolAllocNode));
+	mempool->HeapSize = harbol_align_size(size, sizeof(struct HarbolAllocNode));
 	mempool->HeapMem = calloc(mempool->HeapSize+1, sizeof *mempool->HeapMem);
 	//printf("harbol_mempool_init :: mempool->HeapSize == %zu\n", mempool->HeapSize);
 	if( !mempool->HeapMem )
@@ -119,7 +115,7 @@ HARBOL_EXPORT void *harbol_mempool_alloc(struct HarbolMemoryPool *const restrict
 	// |   memory   |
 	// |   space    | highest addr of block
 	// --------------
-	void *restrict ret_mem = (uint8_t *)new_mem + sizeof *new_mem;
+	void *ret_mem = (uint8_t *)new_mem + sizeof *new_mem;
 	memset(ret_mem, 0, new_mem->Size - sizeof *new_mem);
 	//printf("harbol_mempool_alloc :: alloc_size - sizeof *new_mem == %zu\n", alloc_size - sizeof *new_mem);
 	return ret_mem;

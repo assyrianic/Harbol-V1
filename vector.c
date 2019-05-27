@@ -11,6 +11,8 @@ struct HarbolVector {
 };
 */
 
+#define HARBOL_VECTOR_DEFAULT_SIZE 4
+
 HARBOL_EXPORT struct HarbolVector *harbol_vector_new(void)
 {
 	struct HarbolVector *v = calloc(1, sizeof *v);
@@ -75,7 +77,10 @@ HARBOL_EXPORT void harbol_vector_resize(struct HarbolVector *const v)
 {
 	if( !v )
 		return;
-	else harbol_generic_vector_resizer(&v->Table, &v->Len, sizeof *v->Table);
+	else {
+		
+		harbol_generic_vector_resizer(v, (v->Len << 1)==0 ? HARBOL_VECTOR_DEFAULT_SIZE : (v->Len << 1), sizeof *v->Table);
+	}
 }
 
 
@@ -84,7 +89,7 @@ HARBOL_EXPORT void harbol_vector_truncate(struct HarbolVector *const v)
 	if( !v )
 		return;
 	else if( v->Count < (v->Len >> 1) )
-		harbol_generic_vector_truncater(&v->Table, &v->Len, sizeof *v->Table);
+		harbol_generic_vector_resizer(v, (v->Len >> 1)<HARBOL_VECTOR_DEFAULT_SIZE ? HARBOL_VECTOR_DEFAULT_SIZE : (v->Len >> 1), sizeof *v->Table);
 }
 
 HARBOL_EXPORT bool harbol_vector_insert(struct HarbolVector *const v, const union HarbolValue val)
@@ -129,15 +134,13 @@ HARBOL_EXPORT void harbol_vector_delete(struct HarbolVector *const v, const size
 		j=index
 	;
 	v->Count--;
-	//while( i<v->Count )
-	//	v->Table[j++] = v->Table[i++];
 	memmove(v->Table+j, v->Table+i, (v->Count-j) * sizeof *v->Table);
 	// can't keep auto-truncating, allocating memory every time can be expensive.
 	// I'll let the programmers truncate whenever they need to.
 	//harbol_vector_truncate(v);
 }
 
-HARBOL_EXPORT void harbol_vector_add(struct HarbolVector *const restrict vA, const struct HarbolVector *const restrict vB)
+HARBOL_EXPORT void harbol_vector_add(struct HarbolVector *const vA, const struct HarbolVector *const vB)
 {
 	if( !vA || !vB || !vB->Table )
 		return;
@@ -150,7 +153,7 @@ HARBOL_EXPORT void harbol_vector_add(struct HarbolVector *const restrict vA, con
 	}
 }
 
-HARBOL_EXPORT void harbol_vector_copy(struct HarbolVector *const restrict vA, const struct HarbolVector *const restrict vB)
+HARBOL_EXPORT void harbol_vector_copy(struct HarbolVector *const vA, const struct HarbolVector *const vB)
 {
 	if( !vA || !vB || !vB->Table )
 		return;
@@ -279,43 +282,46 @@ HARBOL_EXPORT struct HarbolVector *harbol_vector_new_from_linkmap(const struct H
 }
 
 
-HARBOL_EXPORT void harbol_generic_vector_resizer(void *const table_ref, size_t *const restrict curr_len, const size_t element_size)
+HARBOL_EXPORT void harbol_generic_vector_resizer(void *const table_n_len, const size_t len, const size_t element_size)
 {
-	void **const restrict table = table_ref;
-	if( !table )
+	if( !table_n_len )
 		return;
-	
-	// first we get our old size.
-	// then resize the actual size.
-	const size_t oldsize = *curr_len;
-	*curr_len <<= 1;
-	if( !*curr_len )
-		*curr_len = 4;
-	
-	// allocate new table.
-	void *newdata = calloc(*curr_len, element_size);
-	if( !newdata ) {
-		*curr_len >>= 1;
-		if( *curr_len<=2 )
-			*curr_len=0;
-		return;
+	else {
+		struct {
+			void *tab;
+			size_t len;
+		} *restrict obj = table_n_len;
+		
+		// first we get our old size.
+		// then resize the actual size.
+		const size_t oldsize = obj->len;
+		obj->len = len;
+		
+		// allocate new table.
+		void *const newdata = calloc(len, element_size);
+		if( !newdata ) {
+			obj->len = oldsize;
+			return;
+		} else {
+			// copy the old table to new then free old table.
+			if( obj->tab ) {
+				memcpy(newdata, obj->tab, element_size * (oldsize>obj->len ? obj->len : oldsize));
+				free(obj->tab), obj->tab = NULL;
+			}
+			obj->tab = newdata;
+		}
 	}
-	
-	// copy the old table to new then free old table.
-	if( *table ) {
-		memcpy(newdata, *table, element_size * oldsize);
-		free(*table), *table = NULL;
-	}
-	*table = newdata;
 }
 
-HARBOL_EXPORT void harbol_generic_vector_truncater(void *const table_ref, size_t *const restrict curr_len, const size_t element_size)
+#if 0
+HARBOL_EXPORT void harbol_generic_vector_truncater(void *const table_ref, size_t *const restrict curr_len, size_t len, const size_t element_size)
 {
 	void **const restrict table = table_ref;
 	if( !table )
 		return;
-	
-	*curr_len >>= 1;
+	if( len==0 )
+		*curr_len >>= 1;
+	else if(  )
 	// allocate new table.
 	void *newdata = calloc(*curr_len, element_size);
 	if( !newdata )
@@ -328,3 +334,4 @@ HARBOL_EXPORT void harbol_generic_vector_truncater(void *const table_ref, size_t
 	}
 	*table = newdata;
 }
+#endif

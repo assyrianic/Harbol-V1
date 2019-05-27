@@ -1569,7 +1569,7 @@ void test_harbol_cfg(void)
 			'state': 'NY', \
 			'postalCode': '10021-3100' \
 		}, \
-		'phoneNumbers': { \
+		'phoneNumbers.': { \
 			'1' { \
 				'type': 'home \\x5c', \
 				'number': '212 555-1234' \
@@ -1601,7 +1601,7 @@ void test_harbol_cfg(void)
 		harbol_string_del(&stringcfg);
 		
 		fputs("\ncfg :: test retrieving sub section of realistic config.\n", g_harbol_debug_stream);
-		struct HarbolLinkMap *phone_numbers1 = harbol_cfg_get_section_by_key(larger_cfg, "root.phoneNumbers.1");
+		struct HarbolLinkMap *phone_numbers1 = harbol_cfg_get_section_by_key(larger_cfg, "root.phoneNumbers/..1");
 		harbol_cfg_to_str(phone_numbers1, &stringcfg);
 		fprintf(g_harbol_debug_stream, "\nphone_numbers to string conversion: \n%s\n", stringcfg.CStr);
 		harbol_string_del(&stringcfg);
@@ -1614,10 +1614,10 @@ void test_harbol_cfg(void)
 		}
 		
 		fputs("\ncfg :: test retrieving string value from subsection of realistic config.\n", g_harbol_debug_stream);
-		char *restrict type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers.1.type");
-		fprintf(g_harbol_debug_stream, "root.phoneNumbers.1.type type valid?: '%s'\n", type ? "yes" : "no");
+		char *restrict type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers\..1.type");
+		fprintf(g_harbol_debug_stream, "root.phoneNumbers\..1.type type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
-			fprintf(g_harbol_debug_stream, "root.phoneNumbers.1.type: %s\n", type);
+			fprintf(g_harbol_debug_stream, "root.phoneNumbers\..1.type: %s\n", type);
 		}
 		type = harbol_cfg_get_str_by_key(larger_cfg, "root.age");
 		fprintf(g_harbol_debug_stream, "root.age string type valid?: '%s'\n", type ? "yes" : "no");
@@ -1656,8 +1656,8 @@ void test_harbol_cfg(void)
 		
 		fputs("\ncfg :: test getting the type of a key\n", g_harbol_debug_stream);
 		enum HarbolCfgType n = 0;
-		harbol_cfg_get_key_type(larger_cfg, "root.phoneNumbers", &n);
-		fprintf(g_harbol_debug_stream, "Type of root.phoneNumbers: %i\n", n);
+		harbol_cfg_get_key_type(larger_cfg, "root.phoneNumbers/.", &n);
+		fprintf(g_harbol_debug_stream, "Type of root.phoneNumbers/.: %i\n", n);
 		harbol_cfg_get_key_type(larger_cfg, "root.spouse", &n);
 		fprintf(g_harbol_debug_stream, "Type of root.spouse: %i\n", n);
 		harbol_cfg_get_key_type(larger_cfg, "root.money", &n);

@@ -98,7 +98,7 @@ static bool skip_ws_and_comments(const char **strRef)
 	return **strRef != 0;
 }
 
-int32_t _lex_hex_escape_char(const char **restrict strRef)
+static int32_t _lex_hex_escape_char(const char **restrict strRef)
 {
 	int32_t r = 0;
 	if( !is_hex(**strRef) ) {
@@ -564,64 +564,82 @@ static bool harbol_cfg_parse_target_path(const char key[], struct HarbolString *
 	if( !key || !str )
 		return false;
 	else {
-		// parse something like: "root.section1.section2.section3"
+		// parse something like: "root.section1.section2.section3./.dotsection"
 		const char *iter = key;
 		/*
 			iterate to the null terminator and then work backwards to the last dot.
 			ughhh too many while loops lmao.
 		*/
-		iter += strlen(key);
-		while( *iter != '.' ) 
-			--iter;
-		iter++;
-		
-		// now we save the target section and then 
-		while( *iter )
-			harbol_string_add_char(str, *iter++);
+		iter += strlen(key) - 1;
+		while( iter != key ) {
+			// Patch: allow keys to use dot without interfering with dot path.
+			// check if we hit a dot.
+			if( *iter=='.' ) {
+				// if we hit a dot, check if the previous char is an "escape" char.
+				if( iter[-1]=='/' || iter[-1]=='\\' ) {
+					iter--;
+				} else {
+					iter++;
+					break;
+				}
+			} else {
+				iter--;
+			}
+		}
+		// now we save the target section and then use the resulting string.
+		while( *iter ) {
+			if( *iter=='/' ) {
+				iter++;
+				continue;
+			} else harbol_string_add_char(str, *iter++);
+		}
 		return str->Len > 0;
 	}
 }
 
-static struct HarbolVariant *get_var_by_key(struct HarbolLinkMap *const restrict cfgmap, const char key[])
+static struct HarbolVariant *_get_var_by_key(struct HarbolLinkMap *const restrict cfgmap, const char key[])
 {
-	if( !cfgmap || !key )
-		return NULL;
+	/* first check if we're getting a singular value OR we iterate through a sectional path. */
+	const bool has_dot_path = strchr(key, '.') != NULL;
+	if( !has_dot_path ) {
+		struct HarbolVariant *restrict var = harbol_linkmap_get(cfgmap, key).VarPtr;
+		return ( !var || var->TypeTag==HarbolTypeNull ) ? NULL : var;
+	}
+	/* ok, not a singular value, iterate to the specific linkmap section then. */
 	else {
-		/* first check if we're getting a singular value OR we iterate through a sectional path. */
-		const bool has_dot_path = strchr(key, '.') != NULL;
-		if( !has_dot_path ) {
-			struct HarbolVariant *restrict var = harbol_linkmap_get(cfgmap, key).VarPtr;
-			return ( !var || var->TypeTag==HarbolTypeNull ) ? NULL : var;
-		}
-		/* ok, not a singular value, iterate to the specific linkmap section then. */
-		else {
-			// parse the target key first.
-			const char *iter = key;
-			struct HarbolString
-				sectionstr = {NULL, 0},
-				targetstr = {NULL, 0}
-			;
-			harbol_cfg_parse_target_path(key, &targetstr);
-			struct HarbolLinkMap *itermap = cfgmap;
-			struct HarbolVariant *restrict var = NULL;
-		
-			while( itermap ) {
-				harbol_string_del(&sectionstr);
-				while( *iter && *iter != '.' )
-					harbol_string_add_char(&sectionstr, *iter++);
-				if( *iter )
-					iter++;
-				
-				var = harbol_linkmap_get(itermap, sectionstr.CStr).VarPtr;
-				if( !var || !harbol_string_cmpstr(&sectionstr, &targetstr) )
-					break;
-				else if( var->TypeTag==HarbolTypeLinkMap )
-					itermap = var->Val.LinkMapPtr;
-			}
+		// parse the target key first.
+		const char *iter = key;
+		struct HarbolString
+			sectionstr = {NULL, 0},
+			targetstr = {NULL, 0}
+		;
+		harbol_cfg_parse_target_path(key, &targetstr);
+		struct HarbolLinkMap *itermap = cfgmap;
+		struct HarbolVariant *restrict var = NULL;
+	
+		while( itermap ) {
 			harbol_string_del(&sectionstr);
-			harbol_string_del(&targetstr);
-			return var;
+			// Patch: allow keys to use dot without interfering with dot path.
+			while( *iter ) {
+				if( (*iter=='/' || *iter=='\\') && iter[1] && iter[1]=='.' ) {
+					iter++;
+					harbol_string_add_char(&sectionstr, *iter++);
+				} else if( *iter=='.' ) {
+					iter++;
+					break;
+				} else {
+					harbol_string_add_char(&sectionstr, *iter++);
+				}
+			}
+			var = harbol_linkmap_get(itermap, sectionstr.CStr).VarPtr;
+			if( !var || !harbol_string_cmpstr(&sectionstr, &targetstr) )
+				break;
+			else if( var->TypeTag==HarbolTypeLinkMap )
+				itermap = var->Val.LinkMapPtr;
 		}
+		harbol_string_del(&sectionstr);
+		harbol_string_del(&targetstr);
+		return var;
 	}
 }
 
@@ -630,7 +648,7 @@ HARBOL_EXPORT struct HarbolLinkMap *harbol_cfg_get_section_by_key(struct HarbolL
 	if( !cfgmap || !key )
 		return NULL;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		return !var || var->TypeTag != HarbolTypeLinkMap ? NULL : var->Val.LinkMapPtr;
 	}
 }
@@ -640,7 +658,7 @@ HARBOL_EXPORT char *harbol_cfg_get_str_by_key(struct HarbolLinkMap *const restri
 	if( !cfgmap || !key )
 		return NULL;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		return !var || var->TypeTag != HarbolTypeString ? NULL : var->Val.StrObjPtr->CStr;
 	}
 }
@@ -650,7 +668,7 @@ HARBOL_EXPORT bool harbol_cfg_get_float_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key || !dblref )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var || var->TypeTag != HarbolTypeFloat ) {
 			return false;
 		} else {
@@ -665,7 +683,7 @@ HARBOL_EXPORT bool harbol_cfg_get_int_by_key(struct HarbolLinkMap *const restric
 	if( !cfgmap || !key || !i64ref )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var || var->TypeTag != HarbolTypeInt ) {
 			return false;
 		} else {
@@ -680,7 +698,7 @@ HARBOL_EXPORT bool harbol_cfg_get_bool_by_key(struct HarbolLinkMap *const restri
 	if( !cfgmap || !key || !boolref )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var || var->TypeTag != HarbolTypeBool ) {
 			return false;
 		} else {
@@ -695,7 +713,7 @@ HARBOL_EXPORT bool harbol_cfg_get_color_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key || !colorref )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		return ( !var || var->TypeTag != HarbolTypeColor ) ? false : harbol_tuple_to_struct(var->Val.TuplePtr, colorref);
 	}
 }
@@ -706,7 +724,7 @@ HARBOL_EXPORT bool harbol_cfg_get_vec4D_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key || !vec4ref )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		return ( !var || var->TypeTag != HarbolTypeVec4D ) ? false : harbol_tuple_to_struct(var->Val.TuplePtr, vec4ref);
 	}
 }
@@ -716,7 +734,7 @@ HARBOL_EXPORT bool harbol_cfg_get_key_type(struct HarbolLinkMap *const restrict 
 	if( !cfgmap || !key )
 		return false;
 	else {
-		const struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( type )
 			*type = var->TypeTag;
 		return true;
@@ -729,7 +747,7 @@ HARBOL_EXPORT bool harbol_cfg_set_str_by_key(struct HarbolLinkMap *const restric
 	if( !cfgmap || !key || !cstr )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var )
 			return false;
 		else if( var->TypeTag != HarbolTypeString ) {
@@ -752,7 +770,7 @@ HARBOL_EXPORT bool harbol_cfg_set_float_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var )
 			return false;
 		else if( var->TypeTag != HarbolTypeFloat ) {
@@ -775,7 +793,7 @@ HARBOL_EXPORT bool harbol_cfg_set_int_by_key(struct HarbolLinkMap *const restric
 	if( !cfgmap || !key )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var )
 			return false;
 		else if( var->TypeTag != HarbolTypeInt ) {
@@ -798,7 +816,7 @@ HARBOL_EXPORT bool harbol_cfg_set_bool_by_key(struct HarbolLinkMap *const restri
 	if( !cfgmap || !key )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var )
 			return false;
 		else if( var->TypeTag != HarbolTypeBool ) {
@@ -821,7 +839,7 @@ HARBOL_EXPORT bool harbol_cfg_set_color_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key || !val )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var )
 			return false;
 		else if( var->TypeTag != HarbolTypeColor ) {
@@ -846,7 +864,7 @@ HARBOL_EXPORT bool harbol_cfg_set_vec4D_by_key(struct HarbolLinkMap *const restr
 	if( !cfgmap || !key || !val )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var ) {
 			return false;
 		} else if( var->TypeTag != HarbolTypeVec4D ) {
@@ -871,7 +889,7 @@ HARBOL_EXPORT bool harbol_cfg_set_key_to_null(struct HarbolLinkMap *const restri
 	if( !cfgmap || !key )
 		return false;
 	else {
-		struct HarbolVariant *restrict var = get_var_by_key(cfgmap, key);
+		struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
 		if( !var ) {
 			return false;
 		} else {

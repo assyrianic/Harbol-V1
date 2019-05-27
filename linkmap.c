@@ -100,7 +100,7 @@ HARBOL_EXPORT bool harbol_linkmap_insert(struct HarbolLinkMap *const restrict ma
 
 HARBOL_EXPORT struct HarbolKeyValPair *harbol_linkmap_get_node_by_index(const struct HarbolLinkMap *const map, const size_t index)
 {
-	return ( !map || !map->Map.Table || !map->Order.Table ) ? NULL : map->Order.Table[index].Ptr;
+	return ( !map || !map->Map.Table ) ? NULL : harbol_vector_get(&map->Order, index).Ptr;
 }
 
 HARBOL_EXPORT union HarbolValue harbol_linkmap_get(const struct HarbolLinkMap *const restrict map, const char strkey[restrict])
@@ -209,7 +209,7 @@ HARBOL_EXPORT size_t harbol_linkmap_get_index_by_node(const struct HarbolLinkMap
 		return SIZE_MAX;
 	
 	for( size_t i=0; i<map->Order.Count; i++ ) {
-		if( (uintptr_t)map->Order.Table[i].Ptr == (uintptr_t)node )
+		if( map->Order.Table[i].KvPairPtr==node )
 			return i;
 	}
 	return SIZE_MAX;
