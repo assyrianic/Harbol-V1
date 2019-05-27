@@ -310,7 +310,7 @@ typedef union HarbolValue {
 #	endif
 #endif
 
-inline size_t harbol_align_size(const size_t size, const size_t align) {
+static inline size_t harbol_align_size(const size_t size, const size_t align) {
 	return (size + (align-1)) & -align;
 }
 
