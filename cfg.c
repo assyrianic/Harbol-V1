@@ -600,8 +600,9 @@ static bool harbol_cfg_parse_target_path(const char key[], struct HarbolString *
 static struct HarbolVariant *_get_var_by_key(struct HarbolLinkMap *const restrict cfgmap, const char key[])
 {
 	/* first check if we're getting a singular value OR we iterate through a sectional path. */
-	const bool has_dot_path = strchr(key, '.') != NULL;
-	if( !has_dot_path ) {
+	const char *dot = strchr(key, '.');
+	// Patch: dot and escaped dot glitching out the hashmap hashing...
+	if( !dot || (dot>key && (dot[-1] == '/' || dot[-1] == '\\')) ) {
 		struct HarbolVariant *restrict var = harbol_linkmap_get(cfgmap, key).VarPtr;
 		return ( !var || var->TypeTag==HarbolTypeNull ) ? NULL : var;
 	}
