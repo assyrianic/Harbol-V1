@@ -192,22 +192,18 @@ HARBOL_EXPORT bool harbol_hashmap_insert_node(struct HarbolHashMap *const map, s
 {
 	if( !map || !node || !node->KeyName.CStr )
 		return false;
-	
 	else if( !map->Len ) {
 		map->Len = 8;
 		map->Table = calloc(map->Len, sizeof *map->Table);
 		if( !map->Table ) {
-			//puts("**** Memory Allocation Error **** harbol_hashmap_insert_node::map->Table is NULL\n");
 			map->Len = 0;
 			return false;
 		}
 	}
 	else if( map->Count >= map->Len )
 		harbol_hashmap_rehash(map);
-	else if( harbol_hashmap_has_key(map, node->KeyName.CStr) ) {
-		//puts("harbol_hashmap_insert_node::map already has entry!\n");
+	else if( harbol_hashmap_has_key(map, node->KeyName.CStr) )
 		return false;
-	}
 	
 	const size_t hash = generic_hash(node->KeyName.CStr) % map->Len;
 	harbol_vector_insert(map->Table + hash, (union HarbolValue){.Ptr=node});

@@ -26,7 +26,7 @@ int main()
 	g_harbol_debug_stream = fopen("data_structure_debug_output.txt", "wa+");
 	if( !g_harbol_debug_stream )
 		return -1;
-	
+	/*
 	test_harbol_string();
 	test_harbol_vector();
 	test_harbol_hashmap();
@@ -39,10 +39,12 @@ int main()
 	test_harbol_tree();
 	test_harbol_linkmap();
 	test_conversions();
+	*/
 	test_harbol_cfg();
+	/*
 	test_harbol_plugins();
 	test_harbol_multithreading();
-	
+	*/
 	fclose(g_harbol_debug_stream), g_harbol_debug_stream=NULL;
 }
 
@@ -1614,10 +1616,10 @@ void test_harbol_cfg(void)
 		}
 		
 		fputs("\ncfg :: test retrieving string value from subsection of realistic config.\n", g_harbol_debug_stream);
-		char *restrict type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers\..1.type");
-		fprintf(g_harbol_debug_stream, "root.phoneNumbers\..1.type type valid?: '%s'\n", type ? "yes" : "no");
+		char *type = harbol_cfg_get_str_by_key(larger_cfg, "root.phoneNumbers/..1.type");
+		fprintf(g_harbol_debug_stream, "root.phoneNumbers/..1.type type valid?: '%s'\n", type ? "yes" : "no");
 		if( type ) {
-			fprintf(g_harbol_debug_stream, "root.phoneNumbers\..1.type: %s\n", type);
+			fprintf(g_harbol_debug_stream, "root.phoneNumbers/..1.type: %s\n", type);
 		}
 		type = harbol_cfg_get_str_by_key(larger_cfg, "root.age");
 		fprintf(g_harbol_debug_stream, "root.age string type valid?: '%s'\n", type ? "yes" : "no");
