@@ -79,8 +79,7 @@ HARBOL_EXPORT void harbol_string_add_char(struct HarbolString *const restrict st
 	strobj->Len++;
 	if( strobj->CStr ) {
 		memcpy(newstr, strobj->CStr, oldsize);
-		free(strobj->CStr);
-		strobj->CStr=NULL;
+		free(strobj->CStr), strobj->CStr=NULL;
 	}
 	strobj->CStr = newstr;
 	strobj->CStr[strobj->Len-1] = c;

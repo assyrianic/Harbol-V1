@@ -16,7 +16,7 @@ void test_harbol_linkmap(void);
 void test_conversions(void);
 void test_harbol_cfg(void);
 void test_harbol_plugins(void);
-void test_harbol_multithreading(void);
+//void test_harbol_multithreading(void);
 
 FILE *g_harbol_debug_stream = NULL;
 
@@ -26,7 +26,7 @@ int main()
 	g_harbol_debug_stream = fopen("data_structure_debug_output.txt", "wa+");
 	if( !g_harbol_debug_stream )
 		return -1;
-	/*
+	
 	test_harbol_string();
 	test_harbol_vector();
 	test_harbol_hashmap();
@@ -39,12 +39,9 @@ int main()
 	test_harbol_tree();
 	test_harbol_linkmap();
 	test_conversions();
-	*/
 	test_harbol_cfg();
-	/*
 	test_harbol_plugins();
-	test_harbol_multithreading();
-	*/
+	//test_harbol_multithreading();
 	fclose(g_harbol_debug_stream), g_harbol_debug_stream=NULL;
 }
 
@@ -1740,7 +1737,7 @@ void test_harbol_plugins(void)
 	harbol_plugin_manager_del(&pm, on_plugin_unload);
 }
 
-
+/*
 static int first_thread_test(void *const vargp) 
 {
 	(void)vargp;
@@ -1803,3 +1800,4 @@ void test_harbol_multithreading(void)
 	harbol_thread_join(&thread2, NULL);
 	fprintf(g_harbol_debug_stream, "\nmultithreading :: mutex data: f.i[0] = '%i', f.i[1] = '%i', f.i[2] = '%i', f.g = '%f'\n", f.i[0], f.i[1], f.i[2], f.g);
 }
+*/

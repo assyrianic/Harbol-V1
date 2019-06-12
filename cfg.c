@@ -8,7 +8,7 @@
 	keyval = <string> [':'] (<value>|<section>) [','] ;
 	section = '{' <keyval> '}' ;
 	value = <string> | <number> | <color> | "true" | "false" | "null" ;
-	matrix = '[' <number> [','] <number> [','] <number> [','] <number> ']' ;
+	matrix = '[' <number> [','] [<number>] [','] [<number>] [','] [<number>] ']' ;
 	color = 'c' <matrix> ;
 	vecf = 'v' <matrix> ;
 	string = '"' chars '"' | "'" chars "'" ;
@@ -19,7 +19,6 @@
 static struct {
 	struct HarbolString errs[HARBOL_CFG_ERR_STK_SIZE];
 	size_t count, curr_line;
-	bool errored : 1;
 } _g_cfg_err;
 
 static bool is_decimal(const char c)
@@ -110,7 +109,6 @@ static int32_t _lex_hex_escape_char(const char **restrict strref)
 	if( !is_hex(**strref) ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: \\x escape hex with no digits! '%c'. Line: %zu\n", **strref, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 	} else {
 		for(; **strref; (*strref)++ ) {
 			const char c = **strref;
@@ -133,7 +131,6 @@ static bool _lex_string(const char **restrict strref, struct HarbolString *const
 	else if( !(**strref == '"' || **strref == '\'') ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid string quote mark: '%c'. Line: %zu\n", **strref, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		return false;
 	}
 	const char quote = *(*strref)++;
@@ -158,6 +155,10 @@ static bool _lex_string(const char **restrict strref, struct HarbolString *const
 	}
 	if( **strref==quote )
 		(*strref)++;
+	
+	// Patch, if an empty string was given, we allocate an empty string for the string.
+	if( str->CStr==NULL )
+		harbol_string_copy_cstr(str, "");
 	return **strref != 0;
 }
 
@@ -172,7 +173,6 @@ static bool _lex_number(const char **restrict strref, struct HarbolString *const
 	if( !is_decimal(**strref) && **strref!='.' ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid initial numeric digit: '%c'. Line: %zu\n", **strref, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		return false;
 	} else if( **strref=='0' ) {
 		harbol_string_add_char(str, *(*strref)++);
@@ -226,19 +226,16 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 	if( !map ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid harbol_linkmap ptr!\n");
-		_g_cfg_err.errored = true;
 		return false;
 	} else if( !*cfgcoderef ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid config buffer!\n");
-		_g_cfg_err.errored = true;
 		return false;
 	} else if( !**cfgcoderef || !skip_ws_and_comments(cfgcoderef) )
 		return false;
 	else if( **cfgcoderef!='"' && **cfgcoderef!='\'' ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: missing beginning quote for key '%c'. Line: %zu\n", **cfgcoderef, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		return false;
 	}
 	
@@ -247,13 +244,11 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 	if( !strresult ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid string key '%s'. Line: %zu\n", keystr.CStr, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		harbol_string_del(&keystr);
 		return false;
 	} else if( harbol_linkmap_has_key(map, keystr.CStr) ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: duplicate string key '%s'. Line: %zu\n", keystr.CStr, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		harbol_string_del(&keystr);
 		return false;
 	}
@@ -277,11 +272,9 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 			if( !str ) {
 				if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 					harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: unable to allocate string value. Line: %zu\n", _g_cfg_err.curr_line);
-				_g_cfg_err.errored = true;
 			} else {
 				if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 					harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid string value '%s'. Line: %zu\n", str->CStr, _g_cfg_err.curr_line);
-				_g_cfg_err.errored = true;
 			} return false;
 		}
 		struct HarbolVariant *var = harbol_variant_new((union HarbolValue){.Ptr=str}, HarbolTypeString);
@@ -295,7 +288,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 		if( **cfgcoderef!='[' ) {
 			if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 				harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: missing '[' '%c'. Line: %zu\n", **cfgcoderef, _g_cfg_err.curr_line);
-			_g_cfg_err.errored = true;
 			harbol_string_del(&keystr);
 			return false;
 		}
@@ -325,7 +317,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 				if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 					harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid number in [] array. Line: %zu\n", _g_cfg_err.curr_line);
 				harbol_string_del(&keystr);
-				_g_cfg_err.errored = true;
 				return false;
 			}
 			skip_ws_and_comments(cfgcoderef);
@@ -333,7 +324,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 		if( !**cfgcoderef ) {
 			if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 				harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: unexpected end of file with missing ending ']'. Line: %zu\n", _g_cfg_err.curr_line);
-			_g_cfg_err.errored = true;
 			return false;
 		}
 		(*cfgcoderef)++;
@@ -352,7 +342,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 		if( strncmp("true", *cfgcoderef, sizeof("true")-1) ) {
 			if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 				harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", _g_cfg_err.curr_line);
-			_g_cfg_err.errored = true;
 			harbol_string_del(&keystr);
 			return false;
 		}
@@ -366,7 +355,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 			if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 				harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", _g_cfg_err.curr_line);
 			harbol_string_del(&keystr);
-			_g_cfg_err.errored = true;
 			return false;
 		}
 		*cfgcoderef += sizeof("false") - 1;
@@ -379,7 +367,6 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 			if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 				harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid word value, only 'true', 'false' or 'null' are allowed. Line: %zu\n", _g_cfg_err.curr_line);
 			harbol_string_del(&keystr);
-			_g_cfg_err.errored = true;
 			return false;
 		}
 		*cfgcoderef += sizeof("null") - 1;
@@ -393,12 +380,10 @@ static bool harbol_cfg_parse_key_val(struct HarbolLinkMap *const restrict map, c
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: array bracket missing 'c' or 'v' tag. Line: %zu\n", _g_cfg_err.curr_line);
 		harbol_string_del(&keystr);
-		_g_cfg_err.errored = true;
 		return false;
 	} else {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: unknown character detected '%c'. Line: %zu\n", **cfgcoderef, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		res = false;
 	}
 	harbol_string_del(&keystr);
@@ -414,7 +399,6 @@ static bool harbol_cfg_parse_number(struct HarbolLinkMap *const restrict map, co
 	if( !result ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: invalid number. Line: %zu\n", _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		harbol_string_del(&numstr);
 		return result;
 	} else {
@@ -430,7 +414,6 @@ static bool harbol_cfg_parse_section(struct HarbolLinkMap *const restrict map, c
 	if( **cfgcoderef!='{' ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: missing '{' '%c' for section. Line: %zu\n", **cfgcoderef, _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		return false;
 	}
 	(*cfgcoderef)++;
@@ -444,7 +427,6 @@ static bool harbol_cfg_parse_section(struct HarbolLinkMap *const restrict map, c
 	if( !**cfgcoderef ) {
 		if( _g_cfg_err.count < HARBOL_CFG_ERR_STK_SIZE )
 			harbol_string_format(&_g_cfg_err.errs[_g_cfg_err.count++], "Harbol Config Parser :: unexpected end of file with missing '}' for section. Line: %zu\n", _g_cfg_err.curr_line);
-		_g_cfg_err.errored = true;
 		return false;
 	}
 	(*cfgcoderef)++;
@@ -499,7 +481,7 @@ HARBOL_EXPORT struct HarbolLinkMap *harbol_cfg_parse_cstr(const char cfgcode[])
 		const char *iter = cfgcode;
 		struct HarbolLinkMap *objs = harbol_linkmap_new();
 		while( harbol_cfg_parse_key_val(objs, &iter) );
-		if( _g_cfg_err.errored ) {
+		if( _g_cfg_err.count > 0 ) {
 			for( size_t i=0; i<_g_cfg_err.count; i++ ) {
 				fputs(_g_cfg_err.errs[i].CStr, stderr);
 				harbol_string_del(&_g_cfg_err.errs[i]);
@@ -797,7 +779,9 @@ HARBOL_EXPORT bool harbol_cfg_get_key_type(struct HarbolLinkMap *const restrict 
 		return false;
 	else {
 		const struct HarbolVariant *restrict var = _get_var_by_key(cfgmap, key);
-		if( type )
+		if( !var )
+			return false;
+		else if( type )
 			*type = var->TypeTag;
 		return true;
 	}

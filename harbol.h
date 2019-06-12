@@ -165,7 +165,6 @@ extern "C" {
 #include <inttypes.h>
 #include <stdalign.h>
 #include <time.h>
-#include <iso646.h>
 
 #ifdef OS_WINDOWS
 #	include <windows.h>
@@ -175,6 +174,13 @@ extern "C" {
 
 
 typedef bool fnHarbolDestructor(void *ptr_ref); /* use pointer to a pointer. */
+
+// for boolean values where we need to return -1 for errors and true/false for non-errors.
+#ifndef HARBOL_TRIL
+#	define HARBOL_TRIL
+typedef int8_t tril_t;
+#endif
+
 
 struct HarbolVariant;
 struct HarbolString;
@@ -938,138 +944,6 @@ HARBOL_EXPORT bool harbol_plugin_manager_load_plugins(struct HarbolPluginManager
 
 HARBOL_EXPORT bool harbol_plugin_manager_unload_plugins(struct HarbolPluginManager *manager, fnHarbolPluginEvent *unload_cb);
 HARBOL_EXPORT bool harbol_plugin_manager_reload_plugins(struct HarbolPluginManager *manager, fnHarbolPluginEvent *prereload_cb, fnHarbolPluginEvent *postreload_cb);
-/***************/
-
-
-/************* Multi-Threading Library (threads.c) *************/
-#ifndef TIME_UTC
-#	define TIME_UTC 1
-#	define HARBOL_TIMESPEC
-#	ifdef OS_WINDOWS
-#		ifndef HAVE_STRUCT_TIMESPEC
-#			define HAVE_STRUCT_TIMESPEC
-#		endif
-#	endif
-#endif
-
-typedef enum HarbolThreadRes {
-	HarbolThreadResError,
-	HarbolThreadResSuccess,
-	HarbolThreadResTimedOut,
-	HarbolThreadResBusy,
-} HarbolThreadRes;
-
-typedef enum HarbolMutexType {
-	HarbolMutexTypeNormal,
-	HarbolMutexTypeRecursive,
-	HarbolMutexTypeTimer,
-} HarbolMutexType;
-
-#ifdef OS_WINDOWS
-typedef struct {
-	union {
-		CRITICAL_SECTION CriticalSect;
-		HANDLE Mutex;
-	} MutexHandle;
-	bool
-		Locked : 1,
-		Recursive : 1,
-		Timed : 1
-	;
-} HarbolMutex;
-#else
-typedef pthread_mutex_t HarbolMutex;
-#endif
-
-HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_init(HarbolMutex *mutex, enum HarbolMutexType mutex_type);
-HARBOL_EXPORT bool harbol_mutex_del(HarbolMutex *mutex);
-
-HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_lock(HarbolMutex *mutex);
-HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_timedlock(HarbolMutex *mutex, const struct timespec *t);
-HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_trylock(HarbolMutex *mutex);
-HARBOL_EXPORT enum HarbolThreadRes harbol_mutex_unlock(HarbolMutex *mutex);
-
-
-#ifdef OS_WINDOWS
-typedef struct {
-	HANDLE EventHandles[2];
-	unsigned int CountWaiting;
-	CRITICAL_SECTION CountWaitingLock;
-} HarbolCond;
-#else
-typedef pthread_cond_t HarbolCond;
-#endif
-
-HARBOL_EXPORT enum HarbolThreadRes harbol_cond_init(HarbolCond *cond);
-HARBOL_EXPORT void harbol_cond_del(HarbolCond *cond);
-
-HARBOL_EXPORT enum HarbolThreadRes harbol_cond_signal(HarbolCond *cond);
-HARBOL_EXPORT enum HarbolThreadRes harbol_cond_broadcast(HarbolCond *cond);
-HARBOL_EXPORT enum HarbolThreadRes harbol_cond_wait(HarbolCond *cond, HarbolMutex *mutex);
-HARBOL_EXPORT enum HarbolThreadRes harbol_cond_timedwait(HarbolCond *cond, HarbolMutex *mutex, const struct timespec *t);
-
-
-#ifdef OS_WINDOWS
-typedef HANDLE HarbolThreadCtxt;
-#else
-typedef pthread_t HarbolThreadCtxt;
-#endif
-
-#ifdef C11
-#	ifndef HARBOL_THREAD_NORETURN
-#		define HARBOL_THREAD_NORETURN _Noreturn
-#	endif
-#elif defined(COMPILER_GCC)
-#	ifndef HARBOL_THREAD_NORETURN
-#		define HARBOL_THREAD_NORETURN __attribute__((__noreturn__))
-#	endif
-#else
-#	ifndef HARBOL_THREAD_NORETURN
-#		define HARBOL_THREAD_NORETURN
-#	endif
-#endif
-
-typedef int fnHarbolThread(void *arg);
-
-typedef struct HarbolThread {
-	fnHarbolThread *Func;
-	void *Args;
-	HarbolThreadCtxt Thread;
-} HarbolThread;
-
-
-HARBOL_EXPORT struct HarbolThread *harbol_thread_new(fnHarbolThread *func, void *arg);
-HARBOL_EXPORT enum HarbolThreadRes harbol_thread_init(struct HarbolThread *thr, fnHarbolThread *func, void *arg);
-
-HARBOL_EXPORT HarbolThreadCtxt harbol_thread_get_curr(void);
-HARBOL_EXPORT enum HarbolThreadRes harbol_thread_detach(struct HarbolThread *thr);
-HARBOL_EXPORT bool harbol_thread_equal(struct HarbolThread *thrA, struct HarbolThread *thrB);
-HARBOL_EXPORT HARBOL_THREAD_NORETURN void harbol_thread_exit(int res, void *retval);
-HARBOL_EXPORT enum HarbolThreadRes harbol_thread_join(struct HarbolThread *thr, int *res);
-HARBOL_EXPORT int harbol_thread_sleep(const struct timespec *duration, struct timespec *remaining);
-HARBOL_EXPORT void harbol_thread_yield(void);
-
-
-#ifdef OS_WINDOWS
-typedef uint32_t HarbolThreadStorage;
-#else
-typedef pthread_key_t HarbolThreadStorage;
-#endif
-
-typedef void fnHarbolStorageDtor(void *val);
-
-typedef struct HarbolTSS {
-#ifdef OS_WINDOWS
-	fnHarbolStorageDtor *CacheDtor;
-	void *CacheVal;
-#endif
-	HarbolThreadStorage Key;
-} HarbolTSS;
-
-HARBOL_EXPORT enum HarbolThreadRes harbol_tss_create(struct HarbolTSS *key, fnHarbolStorageDtor *dtor);
-HARBOL_EXPORT void harbol_tss_delete(struct HarbolTSS *key);
-HARBOL_EXPORT void *harbol_tss_get(struct HarbolTSS *key);
-HARBOL_EXPORT enum HarbolThreadRes harbol_tss_set(struct HarbolTSS *key, void *val);
 /***************/
 
 
